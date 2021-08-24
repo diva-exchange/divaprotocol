@@ -17,8 +17,7 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-import Ajv, { JSONSchemaType, ValidateFunction } from 'ajv';
-import { Message, MessageStruct } from './message/message';
+import Ajv from "ajv"
 import { BlockStruct } from '../chain/block';
 import { Logger } from '../logger';
 import {
@@ -30,91 +29,20 @@ import {
   CommandRemovePeer,
   TransactionStruct,
 } from '../chain/transaction';
-import path from 'path';
 import { Util } from '../chain/util';
-import { MAX_TRANSACTIONS } from '../pool/transaction-pool';
+import * as schemaAddAsset from '../schema/transaction/addAsset.json';
+import * as schemaDeleteAsset from '../schema/transaction/deleteAsset.json';
+import * as schemaAddOrder from '../schema/transaction/addOrder.json';
+import * as schemaDeleteOrder from '../schema/transaction/deleteOrder.json';
 
 export class Validation {
-  private static message: ValidateFunction;
-  private static tx: ValidateFunction;
 
   static init() {
-    const pathSchema = path.join(__dirname, '../schema/');
-    const schemaMessage: JSONSchemaType<MessageStruct> = require(pathSchema + 'message/message.json');
-    const schemaAuth: JSONSchemaType<MessageStruct> = require(pathSchema + 'message/auth.json');
-    const schemaChallenge: JSONSchemaType<MessageStruct> = require(pathSchema + 'message/challenge.json');
-    const schemaVote: JSONSchemaType<MessageStruct> = require(pathSchema + 'message/vote.json');
-    const schemaSync: JSONSchemaType<MessageStruct> = require(pathSchema + 'message/sync.json');
-    const schemaBlock: JSONSchemaType<BlockStruct> = require(pathSchema + 'block/block.json');
-    const schemaVotes: JSONSchemaType<BlockStruct> = require(pathSchema + 'block/votes.json');
-    const schemaTx: JSONSchemaType<BlockStruct> = require(pathSchema + 'block/transaction/tx.json');
-    const schemaAddPeer: JSONSchemaType<BlockStruct> = require(pathSchema + 'block/transaction/addPeer.json');
-    const schemaRemovePeer: JSONSchemaType<BlockStruct> = require(pathSchema + 'block/transaction/removePeer.json');
-    const schemaModifyStake: JSONSchemaType<BlockStruct> = require(pathSchema + 'block/transaction/modifyStake.json');
-    const schemaAddAsset: JSONSchemaType<BlockStruct> = require(pathSchema + 'block/transaction/addAsset.json');
-    const schemaDeleteAsset: JSONSchemaType<BlockStruct> = require(pathSchema + 'block/transaction/deleteAsset.json');
-    const schemaAddOrder: JSONSchemaType<BlockStruct> = require(pathSchema + 'block/transaction/addOrder.json');
-    const schemaDeleteOrder: JSONSchemaType<BlockStruct> = require(pathSchema + 'block/transaction/deleteOrder.json');
-
-    //@TODO
-    const schemaTestLoad: JSONSchemaType<BlockStruct> = require(pathSchema + 'block/transaction/testLoad.json');
-
-    Validation.message = new Ajv({
-      schemas: [
-        schemaAuth,
-        schemaChallenge,
-        schemaVote,
-        schemaSync,
-        schemaBlock,
-        schemaVotes,
-        schemaTx,
-        schemaAddPeer,
-        schemaRemovePeer,
-        schemaModifyStake,
-        schemaTestLoad,
-        schemaAddAsset,
-        schemaDeleteAsset,
-        schemaAddOrder,
-        schemaDeleteOrder,
-      ],
-    }).compile(schemaMessage);
-
-    Validation.tx = new Ajv({
-      schemas: [
-        schemaAddPeer,
-        schemaRemovePeer,
-        schemaModifyStake,
-        schemaTestLoad,
-        schemaAddAsset,
-        schemaDeleteAsset,
-        schemaAddOrder,
-        schemaDeleteOrder,
-      ],
-    }).compile(schemaTx);
-  }
-
-  static validateMessage(m: Message): boolean {
-    if (!Validation.message) {
-      Validation.init();
-    }
-
-    switch (m.type()) {
-      case Message.TYPE_CHALLENGE:
-      case Message.TYPE_AUTH:
-      case Message.TYPE_VOTE:
-      case Message.TYPE_COMMIT:
-      case Message.TYPE_SYNC:
-        if (!Validation.message(m.getMessage())) {
-          //@FIXME logging
-          Logger.trace(Validation.message.errors as object);
-          return false;
-        }
-        break;
-      default:
-        Logger.error('Unknown message type');
-        return false;
-    }
-    return true;
+    const ajv = new Ajv();
+    ajv.addSchema(schemaAddAsset, 'addAsset');
+    ajv.addSchema(schemaDeleteAsset, 'deleteAsset');
+    ajv.addSchema(schemaAddOrder, 'addOrder');
+    ajv.addSchema(schemaDeleteOrder, 'deleteOrder');
   }
 
   static validateTx(tx: TransactionStruct): boolean {
@@ -124,16 +52,9 @@ export class Validation {
         return false;
       }
     }
-    if (!Validation.tx) {
-      Validation.init();
-    }
 
     // Schema validation
-    if (!Validation.tx(tx)) {
-      //@FIXME logging
-      Logger.trace(Validation.tx.errors as object);
-      return false;
-    }
+
 
     // Protocol validation
     let result = true;
@@ -177,11 +98,11 @@ export class Validation {
       return false;
     }
 
-    if (block.tx.length > MAX_TRANSACTIONS) {
-      //@FIXME logging
-      Logger.warn('Invalid block tx length');
-      return false;
-    }
+    // if (block.tx.length > MAX_TRANSACTIONS) {
+    //   //@FIXME logging
+    //   Logger.warn('Invalid block tx length');
+    //   return false;
+    // }
 
     const _aOrigin: Array<string> = [];
     for (const tx of block.tx) {

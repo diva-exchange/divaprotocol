@@ -58,15 +58,9 @@ export class Blockchain {
 
   private constructor(server: Server) {
     this.server = server;
-    this.publicKey = this.server.getWallet().getPublicKey();
+    // getPublicKey --- from api
+    //this.publicKey = this.server.getWallet().getPublicKey();
 
-    // this.dbBlockchain = LevelUp(LevelDown(path.join(this.server.config.path_blockstore, this.publicKey)), {
-    //   createIfMissing: true,
-    //   errorIfExists: false,
-    //   compression: true,
-    //   cacheSize: 2 * 1024 * 1024, // 2 MB
-    // });
-    //
     this.dbState = LevelUp(LevelDown(path.join(this.server.config.path_state, this.publicKey)), {
       createIfMissing: true,
       errorIfExists: false,
@@ -85,7 +79,6 @@ export class Blockchain {
         .createReadStream()
         .on('data', async (data) => {
           const block: BlockStruct = JSON.parse(data.value) as BlockStruct;
-          this.updateCache(block);
           await this.processState(block);
         })
         .on('end', resolve)
@@ -108,15 +101,6 @@ export class Blockchain {
     this.mapPeer = new Map();
   }
 
-  async reset(genesis: BlockStruct) {
-    await this.clear();
-    this.server.getNetwork().resetNetwork();
-
-    await this.dbBlockchain.put(String(1).padStart(16, '0'), JSON.stringify(genesis));
-
-    await this.init();
-  }
-
   async add(block: BlockStruct): Promise<void> {
     if (
       this.height + 1 !== block.height ||
@@ -131,96 +115,6 @@ export class Blockchain {
       );
       return;
     }
-
-    this.updateCache(block);
-    this.server.getNetwork().resetGossip();
-    this.server.getCommitPool().clear();
-    this.server.getVotePool().clear();
-    this.server.getTransactionPool().clear(block);
-
-    await this.dbBlockchain.put(String(this.height).padStart(16, '0'), JSON.stringify(block));
-    await this.processState(block);
-  }
-
-  private updateCache(block: BlockStruct) {
-    this.height = block.height;
-    this.latestBlock = block;
-
-    // cache
-    // this.mapBlocks.set(this.height, block);
-    // if (this.mapBlocks.size > this.server.config.blockchain_max_blocks_in_memory) {
-    //   this.mapBlocks.delete(this.height - this.server.config.blockchain_max_blocks_in_memory);
-    // }
-  }
-
-  //@FIXME the behaviour (either gte and lte OR limit) is crap
-  async get(limit: number = 0, gte: number = 0, lte: number = 0): Promise<Array<BlockStruct>> {
-    limit = Math.floor(limit);
-    gte = Math.floor(gte);
-    lte = Math.floor(lte);
-
-    // range
-    if (gte >= 1 || lte >= 1) {
-      gte = gte < 1 ? 1 : gte <= this.height ? gte : this.height;
-      lte = lte < 1 ? 1 : lte <= this.height ? lte : this.height;
-      gte = lte - gte > 0 ? gte : lte;
-      gte =
-        lte - gte >= this.server.config.blockchain_max_query_size
-          ? lte - this.server.config.blockchain_max_query_size + 1
-          : gte;
-
-      const a: Array<BlockStruct> = [];
-      return new Promise((resolve, reject) => {
-        this.dbBlockchain
-          .createValueStream({ gte: String(gte).padStart(16, '0'), lte: String(lte).padStart(16, '0') })
-          .on('data', (data) => {
-            a.push(JSON.parse(data));
-          })
-          .on('end', () => {
-            resolve(a);
-          })
-          .on('error', reject);
-      });
-    }
-
-    // limit
-    return new Promise((resolve) => {
-      limit =
-        limit >= 1
-          ? limit > this.server.config.blockchain_max_blocks_in_memory
-            ? this.server.config.blockchain_max_blocks_in_memory
-            : limit
-          : this.server.config.blockchain_max_blocks_in_memory;
-
-      resolve(Array.from(this.mapBlocks.values()).slice(limit * -1));
-    });
-  }
-
-  async getPage(
-    page: number = 1,
-    size: number = this.server.config.blockchain_max_blocks_in_memory
-  ): Promise<Array<BlockStruct>> {
-    page = page < 1 ? 1 : Math.floor(page);
-    size =
-      size < 1 || size > this.server.config.blockchain_max_blocks_in_memory
-        ? this.server.config.blockchain_max_blocks_in_memory
-        : Math.floor(size);
-    size = size > this.height ? this.height : size;
-    const lte = this.height - ((page - 1) * size) < 1 ? size : this.height - ((page - 1) * size);
-    const gte = lte - size + 1;
-
-    return new Promise((resolve, reject) => {
-      const a: Array<BlockStruct> = [];
-      this.dbBlockchain
-        .createValueStream({ gte: String(gte).padStart(16, '0'), lte: String(lte).padStart(16, '0') })
-        .on('data', (data) => {
-          a.unshift(JSON.parse(data));
-        })
-        .on('end', () => {
-          resolve(a);
-        })
-        .on('error', reject);
-    });
   }
 
   async getTransaction(origin: string, ident: string): Promise<{ height: number; transaction: TransactionStruct }> {
@@ -304,17 +198,6 @@ export class Blockchain {
     for (const t of block.tx) {
       for (const c of t.commands) {
         switch (c.command) {
-          case 'testLoad':
-            break;
-          case 'addPeer':
-            await this.addPeer(c as CommandAddPeer);
-            break;
-          case 'removePeer':
-            await this.removePeer(c as CommandRemovePeer);
-            break;
-          case 'modifyStake':
-            await this.modifyStake(c as CommandModifyStake);
-            break;
           case 'addAsset':
             await this.addAsset(c as CommandAddAsset);
             break;
@@ -329,40 +212,6 @@ export class Blockchain {
             break;
         }
       }
-    }
-  }
-
-  private async addPeer(command: CommandAddPeer) {
-    if (this.mapPeer.has(command.publicKey)) {
-      return;
-    }
-
-    const peer: NetworkPeer = { host: command.host, port: command.port, stake: 0 };
-    this.mapPeer.set(command.publicKey, peer);
-    await this.dbState.put('peers', [...this.mapPeer.keys()].join());
-    await this.dbState.put('peer:' + command.publicKey, peer.stake);
-    this.server.getNetwork().addPeer(command.publicKey, peer);
-  }
-
-  private async removePeer(command: CommandRemovePeer) {
-    if (this.mapPeer.has(command.publicKey)) {
-      this.mapPeer.delete(command.publicKey);
-      await this.dbState.put('peers', [...this.mapPeer.keys()].join());
-      await this.dbState.del('peer:' + command.publicKey);
-      this.server.getNetwork().removePeer(command.publicKey);
-    }
-  }
-
-  private async modifyStake(command: CommandModifyStake) {
-    if (this.mapPeer.has(command.publicKey)) {
-      const peer: NetworkPeer = this.mapPeer.get(command.publicKey) as NetworkPeer;
-      peer.stake = peer.stake + command.stake;
-      if (peer.stake < 0) {
-        peer.stake = 0;
-      }
-
-      this.mapPeer.set(command.publicKey, peer);
-      await this.dbState.put('peer:' + command.publicKey, peer.stake);
     }
   }
 

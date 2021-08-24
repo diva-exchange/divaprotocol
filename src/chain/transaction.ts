@@ -17,11 +17,6 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-import { Wallet } from './wallet';
-import { nanoid } from 'nanoid';
-
-const MAX_LENGTH_IDENT = 32;
-
 interface Command {
   seq: number;
   command: string;
@@ -91,22 +86,3 @@ export type TransactionStruct = {
   sig: string;
 };
 
-export class Transaction {
-  private readonly structTransaction: TransactionStruct;
-
-  constructor(wallet: Wallet, commands: ArrayCommand, ident: string = '') {
-    const _ident = ident.length > 0 && ident.length <= MAX_LENGTH_IDENT ? ident : nanoid(8);
-    const _ts = Date.now();
-    this.structTransaction = {
-      ident: _ident,
-      origin: wallet.getPublicKey(),
-      timestamp: _ts,
-      commands: commands,
-      sig: wallet.sign(_ident + _ts + JSON.stringify(commands)),
-    };
-  }
-
-  get(): TransactionStruct {
-    return this.structTransaction;
-  }
-}

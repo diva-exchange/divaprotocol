@@ -17,9 +17,9 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-import base64url from 'base64-url';
-import crypto from 'crypto';
-import sodium from 'sodium-native';
+import * as base64url from 'base64-url';
+import * as crypto from 'crypto';
+import * as sodium from 'sodium-native';
 
 export class Util {
   /**

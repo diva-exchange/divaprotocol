@@ -25,6 +25,7 @@ export type Configuration = {
   port?: number;
   path_state?: string;
   path_app?: string;
+  per_message_deflate?: boolean;
 
 };
 
@@ -33,13 +34,18 @@ const DEFAULT_PORT = 19000;
 
 export class Config {
 
+  public readonly debug_performance: boolean;
+  public readonly VERSION: string;
   public readonly ip: string;
   public readonly port: number;
   public readonly path_state: string;
   public readonly path_app: string;
+  public readonly per_message_deflate: boolean;
 
   constructor(c: Configuration) {
-    //this.VERSION = require(path.join(this.path_app, 'package.json')).version;
+    this.debug_performance = Config.tf(process.env.DEBUG_PERFORMANCE);
+    this.VERSION = require(path.join(this.path_app, 'package.json')).version;
+    this.per_message_deflate = c.per_message_deflate || true;
 
     this.ip = c.ip || process.env.IP || DEFAULT_IP;
     this.port = Config.port(c.port || process.env.PORT || DEFAULT_PORT);
@@ -50,6 +56,15 @@ export class Config {
     }
   }
 
+  /**
+   * Boolean transformation
+   * Returns True or False
+   *
+   * @param {any} n - Anything which will be interpreted as a number
+   */
+  private static tf(n: any): boolean {
+    return Number(n) > 0;
+  }
 
   /**
    * Number transformation
