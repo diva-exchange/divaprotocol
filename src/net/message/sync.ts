@@ -18,7 +18,7 @@
  */
 
 import { Message } from './message';
-import { BlockStruct } from '../../chain/block';
+import { BlockStruct } from '../../transactions/block';
 
 export class Sync extends Message {
   constructor(message?: Buffer | string) {

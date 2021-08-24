@@ -17,8 +17,8 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-import * as path from 'path';
-import * as fs from 'fs';
+import path from 'path';
+import fs from 'fs';
 
 export type Configuration = {
   ip?: string;
@@ -30,7 +30,7 @@ export type Configuration = {
 };
 
 const DEFAULT_IP = '127.0.0.1';
-const DEFAULT_PORT = 19000;
+const DEFAULT_PORT = 19720;
 
 export class Config {
 
@@ -43,6 +43,10 @@ export class Config {
   public readonly per_message_deflate: boolean;
 
   constructor(c: Configuration) {
+
+    this.path_app =
+        c.path_app ||
+        path.join(Object.keys(process).includes('pkg') ? path.dirname(process.execPath) : __dirname, '/../');
     this.debug_performance = Config.tf(process.env.DEBUG_PERFORMANCE);
     this.VERSION = require(path.join(this.path_app, 'package.json')).version;
     this.per_message_deflate = c.per_message_deflate || true;

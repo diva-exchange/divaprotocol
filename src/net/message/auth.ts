@@ -18,7 +18,7 @@
  */
 
 import { Message } from './message';
-import { Util } from '../../chain/util';
+import { Util } from '../../transactions/util';
 
 export class Auth extends Message {
   constructor(message?: Buffer | string) {

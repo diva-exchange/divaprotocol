@@ -18,8 +18,8 @@
  */
 
 import { Message } from './message';
-import { Util } from '../../chain/util';
-import { BlockStruct } from '../../chain/block';
+import { Util } from '../../transactions/util';
+import { BlockStruct } from '../../transactions/block';
 import { Validation } from '../validation';
 
 export type VoteStruct = {

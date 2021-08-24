@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "/schema/block/transaction/deleteOrder.json",
+  "$id": "/schema/transaction/deleteOrder.json",
 
   "type": "object",
   "properties": {

@@ -19,16 +19,12 @@
 
 import { BlockStruct } from './block';
 import { Util } from './util';
-import * as fs from 'fs';
+import fs from 'fs';
 import LevelUp from 'levelup';
 import LevelDown from 'leveldown';
-import * as path from 'path';
+import path from 'path';
 import Big from 'big.js';
 import {
-  CommandAddPeer,
-  CommandRemovePeer,
-  CommandModifyStake,
-  TransactionStruct,
   CommandAddAsset,
   CommandDeleteAsset,
   CommandAddOrder,
@@ -40,8 +36,7 @@ import { Logger } from '../logger';
 
 export class Blockchain {
   private readonly server: Server;
-  private readonly publicKey: string;
-  private readonly dbBlockchain: InstanceType<typeof LevelUp>;
+  private readonly publicKey: string = '';
   private readonly dbState: InstanceType<typeof LevelUp>;
 
   private height: number = 0;
@@ -69,30 +64,11 @@ export class Blockchain {
     });
   }
 
-  private async init(): Promise<void> {
-    this.height = 0;
-    this.mapBlocks = new Map();
-    this.latestBlock = {} as BlockStruct;
-
-    return new Promise((resolve, reject) => {
-      this.dbBlockchain
-        .createReadStream()
-        .on('data', async (data) => {
-          const block: BlockStruct = JSON.parse(data.value) as BlockStruct;
-          await this.processState(block);
-        })
-        .on('end', resolve)
-        .on('error', reject);
-    });
-  }
-
   async shutdown() {
-    await this.dbBlockchain.close();
     await this.dbState.close();
   }
 
   async clear() {
-    await this.dbBlockchain.clear();
     await this.dbState.clear();
 
     this.height = 0;
@@ -115,22 +91,6 @@ export class Blockchain {
       );
       return;
     }
-  }
-
-  async getTransaction(origin: string, ident: string): Promise<{ height: number; transaction: TransactionStruct }> {
-    return new Promise((resolve, reject) => {
-      this.dbBlockchain
-        .createValueStream()
-        .on('data', (data) => {
-          const b: BlockStruct = JSON.parse(data) as BlockStruct;
-          const t = b.tx.find((t: TransactionStruct) => t.origin === origin && t.ident === ident);
-          t && resolve({ height: b.height, transaction: t });
-        })
-        .on('end', () => {
-          reject(new Error('Not found'));
-        })
-        .on('error', reject);
-    });
   }
 
   async getState(key: string = ''): Promise<Array<{key: string, value: string}>> {

@@ -25,7 +25,7 @@ import { nanoid } from 'nanoid';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import WebSocket from 'ws';
 import { Validation } from './validation';
-import { Util } from '../chain/util';
+import { Util } from '../transactions/util';
 import { Server } from './server';
 import { Sync } from './message/sync';
 import Timeout = NodeJS.Timeout;
