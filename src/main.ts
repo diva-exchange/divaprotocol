@@ -31,18 +31,8 @@ class Main {
   }
 
   private start() {
-    new Server(this.config).start().then((server) => {
-      process.once('SIGINT', () => {
-        server.shutdown().then(() => {
-          process.exit(0);
-        });
-      });
-      process.once('SIGTERM', () => {
-        server.shutdown().then(() => {
-          process.exit(0);
-        });
-      });
-    });
+    const server = new Server(this.config);
+    server.getFeed();
   }
 }
 

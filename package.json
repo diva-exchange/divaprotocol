@@ -17,7 +17,7 @@
     "build": "rimraf ./build && tsc",
     "lint": "prettier -w \"**/*.ts\" && eslint --fix src/ test/ --ext .ts",
     "start": "npm run build && node dist/main.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "env TS_NODE_PROJECT=./test/tsconfig.json NODE_ENV=test LOG_LEVEL=trace DEBUG_PERFORMANCE=1 nyc mocha"
   },
   "dependencies": {
     "ajv": "^8.6.2",
@@ -40,6 +40,7 @@
     "@testdeck/mocha": "^0.1.2",
     "@tsconfig/node12": "^1.0.9",
     "@types/base64-url": "^2.2.0",
+    "@types/big.js": "^6.1.1",
     "@types/chai": "^4.2.21",
     "@types/compression": "^1.7.1",
     "@types/express": "^4.17.13",
@@ -48,14 +49,13 @@
     "@types/leveldown": "^4.0.3",
     "@types/levelup": "^4.3.3",
     "@types/mocha": "^9.0.0",
-    "@types/node": "^16.6.1",
+    "@types/node": "^16.7.1",
     "@types/pino": "^6.3.11",
     "@types/sodium-native": "^2.3.5",
     "@types/tunnel": "^0.0.3",
     "@types/ws": "^7.4.7",
     "@typescript-eslint/eslint-plugin": "^4.29.2",
     "@typescript-eslint/parser": "^4.29.2",
-    "@types/big.js": "^6.1.1",
     "ajv-cli": "^5.0.0",
     "chai": "^4.3.4",
     "chai-http": "^4.3.0",

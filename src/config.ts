@@ -28,6 +28,7 @@ export type Configuration = {
   path_app?: string;
   per_message_deflate?: boolean;
   path_keys?: string;
+  path_blockstore?: string;
 
 };
 
@@ -45,6 +46,7 @@ export class Config {
   public readonly path_app: string;
   public readonly per_message_deflate: boolean;
   public readonly path_keys: string;
+  public readonly path_blockstore: string;
 
   constructor(c: Configuration) {
 
@@ -67,6 +69,11 @@ export class Config {
     this.path_keys = c.path_keys || path.join(this.path_app, 'keys/');
     if (!fs.existsSync(this.path_keys)) {
       fs.mkdirSync(this.path_keys, { mode: '755', recursive: true });
+    }
+
+    this.path_blockstore = c.path_blockstore || path.join(this.path_app, 'blockstore/');
+    if (!fs.existsSync(this.path_blockstore)) {
+      fs.mkdirSync(this.path_blockstore, { mode: '755', recursive: true });
     }
   }
 

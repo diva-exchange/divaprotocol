@@ -19,84 +19,73 @@
 
 import { Config } from '../config';
 import { Logger } from '../logger';
-import createError from 'http-errors';
-import express from 'express';
-import { Express, NextFunction, Request, Response } from 'express';
-import http from 'http';
-import WebSocket from 'ws';
-import compression from 'compression';
-import { Api } from './api';
+import WebSocket, { Server as WebSocketServer } from 'ws';
+import path from "path";
 
 export class Server {
   public readonly config: Config;
-  public readonly app: Express;
 
-  private readonly httpServer: http.Server;
-  private readonly webSocketServer: WebSocket.Server;
+  private readonly webSocketServer: WebSocketServer;
+  private webSocketFeed: WebSocket | undefined;
+  private height: number = 0;
 
   constructor(config: Config) {
     this.config = config;
     Logger.info(`divaprotocol ${this.config.VERSION} instantiating...`);
 
-    // express application
-    this.app = express();
-    // hide express
-    this.app.set('x-powered-by', false);
+    this.webSocketServer = new WebSocketServer({host: this.config.ip, port:this.config.port});
 
-    // compression
-    this.app.use(compression());
-
-    // json
-    this.app.use(express.json());
-
-    // catch unavailable favicon.ico
-    this.app.get('/favicon.ico', (req: Request, res: Response) => {
-      res.sendStatus(204);
-    });
-
-    // init API
-    Api.make(this);
-    Logger.info('Api initialized');
-
-    // catch 404 and forward to error handler
-    this.app.use((req: Request, res: Response, next: NextFunction) => {
-      next(createError(404));
-    });
-
-    // error handler
-    this.app.use(Server.error);
-
-    // Web Server
-    this.httpServer = http.createServer(this.app);
-    this.httpServer.on('listening', () => {
-      Logger.info(`HttpServer listening on ${this.config.ip}:${this.config.port}`);
-    });
-    this.httpServer.on('close', () => {
-      Logger.info(`HttpServer closing on ${this.config.ip}:${this.config.port}`);
-    });
-
-    this.webSocketServer = new WebSocket.Server({
-      server: this.httpServer,
-      clientTracking: false,
-      perMessageDeflate: this.config.per_message_deflate,
-    });
-    this.webSocketServer.on('connection', (ws: WebSocket) => {
-      ws.on('error', (error: Error) => {
-        //@FIXME logging
-        Logger.trace(error);
-        ws.terminate();
+    this.webSocketServer.on('connection', (error: Error, ws: WebSocket) => {
+      ws.on('error', (err: Error, ws: WebSocket) => {
+        Logger.trace(err);
+        ws.close();
       });
+      ws.on('message', function incoming(message: any) {
+        console.log('received: %s', message);
+      });
+      ws.send('test');
     });
     this.webSocketServer.on('close', () => {
       Logger.info('WebSocketServer closing');
     });
   }
 
-  async start(): Promise<Server> {
+  /**
+   * @return {WebSocket}
+   * @throws {Error}
+   */
+  getWebsocket () {
+    return new WebSocket('ws://' + this.config.ip + ':' + this.config.port)
+  }
 
-    await this.httpServer.listen(this.config.port, this.config.ip);
+  getFeed() {
+    this.webSocketFeed = new WebSocket('ws://localhost:17469', {
+      followRedirects: false,
+    });
 
-    return this;
+    this.webSocketFeed.on('error', (error) => {Logger.trace(error);});
+
+    this.webSocketFeed.on('close', () => {
+      this.webSocketFeed = {} as WebSocket;
+      setTimeout(() => { this.getFeed(); }, 1000);
+    });
+
+    this.webSocketFeed.on('message', (message: Buffer) => {
+      let block: any = {};
+      let html: string = '';
+      try {
+        block = JSON.parse(message.toString());
+        this.height = block.height > this.height ? block.height : this.height;
+        console.log(block);
+      } catch (e) {
+        return;
+      }
+      if (html.length) {
+        this.webSocketServer.clients.forEach((ws) => {
+          ws.send(JSON.stringify({ heightChain: this.height, heightBlock: block.height, html: html }));
+        });
+      }
+    });
   }
 
   async shutdown(): Promise<void> {
@@ -106,27 +95,9 @@ export class Server {
         this.webSocketServer.close(resolve);
       });
     }
-    if (this.httpServer) {
-      await new Promise((resolve) => {
-        this.httpServer.close(resolve);
-      });
-    }
   }
 
-  getWebSocketServer(): WebSocket.Server {
+  getWebSocketServer(): WebSocketServer {
     return this.webSocketServer;
-  }
-
-  private static error(err: any, req: Request, res: Response, next: NextFunction) {
-    res.status(err.status || 500);
-
-    res.json({
-      path: req.path,
-      status: err.status || 500,
-      message: err.message,
-      error: process.env.NODE_ENV === 'development' ? err : {},
-    });
-
-    next();
   }
 }
