@@ -19,7 +19,7 @@
 
 import { Util } from './util';
 import { TransactionStruct } from './transaction';
-import { Validation } from '../net/validation';
+//import { ajv } from "../net/validation";
 
 export type BlockStruct = {
   version: number;
@@ -40,9 +40,9 @@ export class Block {
 
   static make(previousBlock: BlockStruct, tx: Array<TransactionStruct>): BlockStruct {
     const b = new Block(previousBlock, tx).get();
-    if (!Validation.validateBlock(b)) {
-      throw new Error('Invalid Block');
-    }
+    // if (!Validation.validateBlock(b)) {
+    //   throw new Error('Invalid Block');
+    // }
     return b;
   }
 

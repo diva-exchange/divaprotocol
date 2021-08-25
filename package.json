@@ -14,11 +14,26 @@
   "author": "Konrad Baechler <konrad@diva.exchange> (https://diva.exchange)",
   "license": "AGPL-3.0-or-later",
   "scripts": {
+    "build": "rimraf ./build && tsc",
+    "lint": "prettier -w \"**/*.ts\" && eslint --fix src/ test/ --ext .ts",
+    "start": "npm run build && node dist/main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "ajv": "^8.6.2",
+    "base64-url": "^2.3.3",
     "big.js": "^6.1.1",
-    "ajv": "^8.6.2"
+    "compression": "^1.7.4",
+    "express": "^4.17.1",
+    "http-errors": "^1.8.0",
+    "leveldown": "^6.0.1",
+    "levelup": "^5.0.1",
+    "nanoid": "^3.1.25",
+    "pino": "^6.13.0",
+    "simple-get": "^4.0.0",
+    "socks-proxy-agent": "^6.0.0",
+    "sodium-native": "^3.2.1",
+    "ws": "^8.1.0"
   },
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.1",

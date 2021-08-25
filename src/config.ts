@@ -23,9 +23,11 @@ import fs from 'fs';
 export type Configuration = {
   ip?: string;
   port?: number;
+  address?: string;
   path_state?: string;
   path_app?: string;
   per_message_deflate?: boolean;
+  path_keys?: string;
 
 };
 
@@ -38,9 +40,11 @@ export class Config {
   public readonly VERSION: string;
   public readonly ip: string;
   public readonly port: number;
+  public address: string;
   public readonly path_state: string;
   public readonly path_app: string;
   public readonly per_message_deflate: boolean;
+  public readonly path_keys: string;
 
   constructor(c: Configuration) {
 
@@ -53,10 +57,16 @@ export class Config {
 
     this.ip = c.ip || process.env.IP || DEFAULT_IP;
     this.port = Config.port(c.port || process.env.PORT || DEFAULT_PORT);
+    this.address = c.address || process.env.ADDRESS || this.ip + ':' + this.port;
 
     this.path_state = c.path_state || path.join(this.path_app, 'state/');
     if (!fs.existsSync(this.path_state)) {
       fs.mkdirSync(this.path_state, { mode: '755', recursive: true });
+    }
+
+    this.path_keys = c.path_keys || path.join(this.path_app, 'keys/');
+    if (!fs.existsSync(this.path_keys)) {
+      fs.mkdirSync(this.path_keys, { mode: '755', recursive: true });
     }
   }
 

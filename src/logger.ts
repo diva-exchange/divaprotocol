@@ -17,7 +17,6 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-// @ts-ignore
 import pino from 'pino';
 
 export const Logger = pino(

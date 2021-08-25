@@ -31,7 +31,7 @@ import {
   CommandDeleteOrder,
 } from './transaction';
 import { Server } from '../net/server';
-import { NetworkPeer } from '../net/network';
+//import { NetworkPeer } from '../net/network';
 import { Logger } from '../logger';
 
 export class Blockchain {
@@ -43,7 +43,7 @@ export class Blockchain {
   private mapBlocks: Map<number, BlockStruct> = new Map();
   private latestBlock: BlockStruct = {} as BlockStruct;
 
-  private mapPeer: Map<string, NetworkPeer> = new Map();
+  //private mapPeer: Map<string, NetworkPeer> = new Map();
   private precision = 9;
 
   static async make(server: Server): Promise<Blockchain> {
@@ -74,7 +74,7 @@ export class Blockchain {
     this.height = 0;
     this.mapBlocks = new Map();
     this.latestBlock = {} as BlockStruct;
-    this.mapPeer = new Map();
+    //this.mapPeer = new Map();
   }
 
   async add(block: BlockStruct): Promise<void> {
