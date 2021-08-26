@@ -24,7 +24,6 @@ import { BusinessProtocol } from '../transactions/businessProtocol';
 
 export class Server {
   public readonly config: Config;
-  //private blocksaver: BusinessProtocol;
 
   private readonly webSocketServer: WebSocketServer;
   private webSocketFeed: WebSocket | undefined;

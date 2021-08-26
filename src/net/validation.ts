@@ -18,10 +18,10 @@
  */
 
 import Ajv from 'ajv';
-import schemaAddAsset from '../schema/transaction/addAsset.json';
-import schemaDeleteAsset from '../schema/transaction/deleteAsset.json';
-import schemaAddOrder from '../schema/transaction/addOrder.json';
-import schemaDeleteOrder from '../schema/transaction/deleteOrder.json';
+import schemaAddAsset from '../schema/addAsset.json';
+import schemaDeleteAsset from '../schema/deleteAsset.json';
+import schemaAddOrder from '../schema/addOrder.json';
+import schemaDeleteOrder from '../schema/deleteOrder.json';
 
 export const ajv = new Ajv();
 
