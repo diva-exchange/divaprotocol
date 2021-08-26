@@ -31,7 +31,6 @@ import {
   CommandDeleteOrder,
 } from './transaction';
 import { Server } from '../net/server';
-//import { NetworkPeer } from '../net/network';
 import { Logger } from '../logger';
 
 export class Blockchain {

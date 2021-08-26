@@ -29,11 +29,13 @@ export type Configuration = {
   per_message_deflate?: boolean;
   path_keys?: string;
   path_blockstore?: string;
+  url_block_feed?: string;
 
 };
 
 const DEFAULT_IP = '127.0.0.1';
 const DEFAULT_PORT = 19720;
+const URL_BLOCK_FEED = 'ws://127.27.27.1:18001';
 
 export class Config {
 
@@ -41,6 +43,7 @@ export class Config {
   public readonly VERSION: string;
   public readonly ip: string;
   public readonly port: number;
+  public readonly url_block_feed: string;
   public address: string;
   public readonly path_state: string;
   public readonly path_app: string;
@@ -60,6 +63,7 @@ export class Config {
     this.ip = c.ip || process.env.IP || DEFAULT_IP;
     this.port = Config.port(c.port || process.env.PORT || DEFAULT_PORT);
     this.address = c.address || process.env.ADDRESS || this.ip + ':' + this.port;
+    this.url_block_feed = c.url_block_feed || process.env.PORT_BLOCK || URL_BLOCK_FEED;
 
     this.path_state = c.path_state || path.join(this.path_app, 'state/');
     if (!fs.existsSync(this.path_state)) {

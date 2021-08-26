@@ -20,10 +20,11 @@
 import { Config } from '../config';
 import { Logger } from '../logger';
 import WebSocket, { Server as WebSocketServer } from 'ws';
-import path from "path";
+import { Blocksaver } from '../transactions/blocksaver';
 
 export class Server {
   public readonly config: Config;
+  //private blocksaver: Blocksaver;
 
   private readonly webSocketServer: WebSocketServer;
   private webSocketFeed: WebSocket | undefined;
@@ -59,7 +60,7 @@ export class Server {
   }
 
   getFeed() {
-    this.webSocketFeed = new WebSocket('ws://localhost:17469', {
+    this.webSocketFeed = new WebSocket(this.config.url_block_feed, {
       followRedirects: false,
     });
 
@@ -72,18 +73,13 @@ export class Server {
 
     this.webSocketFeed.on('message', (message: Buffer) => {
       let block: any = {};
-      let html: string = '';
       try {
         block = JSON.parse(message.toString());
         this.height = block.height > this.height ? block.height : this.height;
-        console.log(block);
+        console.log(block.tx[0].commands[0]);
+        new Blocksaver(this.config).processState(block);
       } catch (e) {
         return;
-      }
-      if (html.length) {
-        this.webSocketServer.clients.forEach((ws) => {
-          ws.send(JSON.stringify({ heightChain: this.height, heightBlock: block.height, html: html }));
-        });
       }
     });
   }
