@@ -32,7 +32,7 @@ class Main {
 
   private start() {
     const server = new Server(this.config);
-    server.getFeed();
+    server.initFeed();
   }
 }
 

@@ -20,11 +20,11 @@
 import { Config } from '../config';
 import { Logger } from '../logger';
 import WebSocket, { Server as WebSocketServer } from 'ws';
-import { Blocksaver } from '../transactions/blocksaver';
+import { BusinessProtocol } from '../transactions/businessProtocol';
 
 export class Server {
   public readonly config: Config;
-  //private blocksaver: Blocksaver;
+  //private blocksaver: BusinessProtocol;
 
   private readonly webSocketServer: WebSocketServer;
   private webSocketFeed: WebSocket | undefined;
@@ -61,7 +61,7 @@ export class Server {
     return new WebSocket('ws://' + this.config.ip + ':' + this.config.port);
   }
 
-  getFeed() {
+  initFeed() {
     this.webSocketFeed = new WebSocket(this.config.url_block_feed, {
       followRedirects: false,
     });
@@ -73,7 +73,7 @@ export class Server {
     this.webSocketFeed.on('close', () => {
       this.webSocketFeed = {} as WebSocket;
       setTimeout(() => {
-        this.getFeed();
+        this.initFeed();
       }, 1000);
     });
 
@@ -84,7 +84,7 @@ export class Server {
         console.log(block.tx[0].commands[0]);
 
         // business protocol
-        new Blocksaver(this.config).processState(block);
+        new BusinessProtocol(this.config).processState(block);
 
         // if it qualifies, forward the relevant object
         this.webSocketServer.clients.forEach((ws) => {

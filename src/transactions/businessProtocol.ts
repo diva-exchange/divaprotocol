@@ -34,7 +34,7 @@ import {
   CommandDeleteOrder,
 } from './transaction';
 
-export class Blocksaver {
+export class BusinessProtocol {
   public readonly config: Config;
   private readonly publicKey: string = '';
   private readonly dbState: InstanceType<typeof LevelUp>;
