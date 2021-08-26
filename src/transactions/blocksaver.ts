@@ -26,132 +26,161 @@ import path from 'path';
 import Big from 'big.js';
 import { Server } from '../net/server';
 import { Logger } from '../logger';
-import {BlockStruct} from "./block";
-import {CommandAddAsset, CommandAddOrder, CommandDeleteAsset, CommandDeleteOrder} from "./transaction";
+import { BlockStruct } from './block';
+import {
+  CommandAddAsset,
+  CommandAddOrder,
+  CommandDeleteAsset,
+  CommandDeleteOrder,
+} from './transaction';
 
 export class Blocksaver {
+  public readonly config: Config;
+  private readonly publicKey: string = '';
+  private readonly dbState: InstanceType<typeof LevelUp>;
 
-    public readonly config: Config;
-    private readonly publicKey: string = '';
-    private readonly dbState: InstanceType<typeof LevelUp>;
+  private height: number = 0;
+  private mapBlocks: Map<number, BlockStruct> = new Map();
+  private latestBlock: BlockStruct = {} as BlockStruct;
 
-    private height: number = 0;
-    private mapBlocks: Map<number, BlockStruct> = new Map();
-    private latestBlock: BlockStruct = {} as BlockStruct;
+  //private mapPeer: Map<string, NetworkPeer> = new Map();
+  private precision = 9;
 
-    //private mapPeer: Map<string, NetworkPeer> = new Map();
-    private precision = 9;
+  constructor(config: Config) {
+    this.config = config;
+    // getPublicKey --- from api
+    this.publicKey = 'test123test123test123test123test123';
 
-    constructor(config: Config) {
-        this.config = config;
-        // getPublicKey --- from api
-        this.publicKey = "test123test123test123test123test123";
+    this.dbState = LevelUp(
+      LevelDown(path.join(this.config.path_state, this.publicKey)),
+      {
+        createIfMissing: true,
+        errorIfExists: false,
+        compression: true,
+        cacheSize: 2 * 1024 * 1024, // 2 MB
+      }
+    );
+  }
 
-        this.dbState = LevelUp(LevelDown(path.join(this.config.path_state, this.publicKey)), {
-            createIfMissing: true,
-            errorIfExists: false,
-            compression: true,
-            cacheSize: 2 * 1024 * 1024, // 2 MB
+  async processState(block: BlockStruct) {
+    for (const t of block.tx) {
+      for (const c of t.commands) {
+        console.log(c.command);
+        switch (c.command) {
+          case 'addAsset':
+            await this.addAsset(c as CommandAddAsset);
+            break;
+          case 'deleteAsset':
+            await this.deleteAsset(c as CommandDeleteAsset);
+            break;
+          case 'addOrder':
+            await this.addOrder(c as CommandAddOrder);
+            break;
+          case 'deleteOrder':
+            await this.deleteOrder(c as CommandDeleteOrder);
+            break;
+        }
+      }
+    }
+  }
+
+  private async addAsset(command: CommandAddAsset) {
+    await this.dbState.put(
+      'asset:' + command.identAssetPair,
+      command.identAssetPair
+    );
+  }
+
+  private async deleteAsset(command: CommandDeleteAsset) {
+    new Promise((resolve, reject) => {
+      this.dbState
+        .createReadStream()
+        .on('data', (data) => {
+          if (data.key.toString().includes(command.identAssetPair)) {
+            this.dbState.del(data.key.toString());
+          }
+        })
+        .on('error', (e) => {
+          reject(e);
         });
+    });
+    await this.dbState.del('asset:' + command.identAssetPair);
+  }
+
+  private async addOrder(command: CommandAddOrder) {
+    let amount: number = 0;
+    command = this.deleteDotFromTheEnd(command);
+    const key =
+      'order:' +
+      command.identAssetPair +
+      ':' +
+      command.orderType +
+      ':' +
+      command.price;
+    try {
+      amount = await this.dbState.get(key);
+    } catch (err) {
+      Logger.error(err);
     }
+    amount = new Big(amount || 0).toNumber();
+    await this.dbState.put(
+      key,
+      new Big(command.amount || 0).plus(amount).toFixed(this.precision)
+    );
+  }
 
-    async processState(block: BlockStruct) {
-        for (const t of block.tx) {
-            for (const c of t.commands) {
-                console.log(c.command);
-                switch (c.command) {
-                    case 'addAsset':
-                        await this.addAsset(c as CommandAddAsset);
-                        break;
-                    case 'deleteAsset':
-                        await this.deleteAsset(c as CommandDeleteAsset);
-                        break;
-                    case 'addOrder':
-                        await this.addOrder(c as CommandAddOrder);
-                        break;
-                    case 'deleteOrder':
-                        await this.deleteOrder(c as CommandDeleteOrder);
-                        break;
-                }
-            }
-        }
+  private async deleteOrder(command: CommandDeleteOrder) {
+    let amount: number = 0;
+    command = this.deleteDotFromTheEnd(command);
+    const key =
+      'order:' +
+      command.identAssetPair +
+      ':' +
+      command.orderType +
+      ':' +
+      command.price;
+    try {
+      amount = await this.dbState.get(key);
+    } catch (err) {
+      Logger.error(err);
     }
-
-    private async addAsset(command: CommandAddAsset) {
-        await this.dbState.put('asset:' + command.identAssetPair, command.identAssetPair);
+    amount = new Big(amount || 0).toNumber();
+    if (amount > 0) {
+      if (parseFloat(command.amount) >= amount) {
+        await this.dbState.del(key);
+      } else {
+        await this.dbState.put(
+          key,
+          new Big(amount || 0)
+            .minus(new Big(command.amount || 0))
+            .toFixed(this.precision)
+        );
+      }
     }
+  }
 
-    private async deleteAsset(command: CommandDeleteAsset) {
-        new Promise((resolve, reject) => {
-            this.dbState.createReadStream()
-                .on('data', (data) => {
-                    if (data.key.toString().includes(command.identAssetPair)) {
-                        this.dbState.del(data.key.toString());
-                    }
-                })
-                .on('error', (e) => {
-                    reject(e);
-                });
-        });
-        await this.dbState.del('asset:' + command.identAssetPair);
+  private deleteDotFromTheEnd(command: CommandAddOrder | CommandDeleteOrder) {
+    if (command.price[command.price.length - 1] === '.') {
+      command.price = command.price.slice(0, -1);
     }
-
-    private async addOrder(command: CommandAddOrder) {
-        let amount: number = 0;
-        command = this.deleteDotFromTheEnd(command);
-        const key = 'order:' + command.identAssetPair + ':' + command.orderType + ':' + command.price;
-        try {
-            amount = await this.dbState.get(key);
-        } catch (err) {
-            Logger.error(err);
-        }
-        amount = (new Big(amount || 0)).toNumber();
-        await this.dbState.put(key, (new Big(command.amount || 0)).plus(amount).toFixed(this.precision));
+    if (command.amount[command.amount.length - 1] === '.') {
+      command.amount = command.amount.slice(0, -1);
     }
+    return command;
+  }
 
-    private async deleteOrder(command: CommandDeleteOrder) {
-        let amount: number = 0;
-        command = this.deleteDotFromTheEnd(command);
-        const key = 'order:' + command.identAssetPair + ':' + command.orderType + ':' + command.price;
-        try {
-            amount = await this.dbState.get(key);
-        } catch (err) {
-            Logger.error(err);
-        }
-        amount = (new Big(amount || 0)).toNumber();
-        if (amount > 0) {
-            if (parseFloat(command.amount) >= amount) {
-                await this.dbState.del(key);
-            } else {
-                await this.dbState.put(key, (new Big(amount || 0)).minus(new Big(command.amount || 0)).toFixed(this.precision));
-            }
-        }
-    }
+  saveBlock(block: BlockStruct) {}
 
-    private deleteDotFromTheEnd(command: CommandAddOrder|CommandDeleteOrder) {
-        if (command.price[command.price.length - 1] === '.') {
-            command.price = command.price.slice(0, -1);
-        }
-        if (command.amount[command.amount.length - 1] === '.') {
-            command.amount = command.amount.slice(0, -1);
-        }
-        return command;
-    }
+  async shutdown() {
+    await this.dbState.close();
+  }
 
-    saveBlock(block: BlockStruct) {
+  async clear() {
+    await this.dbState.clear();
 
-    }
-
-    async shutdown() {
-        await this.dbState.close();
-    }
-
-    async clear() {
-        await this.dbState.clear();
-
-        this.height = 0;
-        this.mapBlocks = new Map();
-        this.latestBlock = {} as BlockStruct;
-        //this.mapPeer = new Map();
-    }
+    this.height = 0;
+    this.mapBlocks = new Map();
+    this.latestBlock = {} as BlockStruct;
+    //this.mapPeer = new Map();
+  }
 }

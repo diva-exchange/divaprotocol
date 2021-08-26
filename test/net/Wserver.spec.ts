@@ -18,7 +18,7 @@
  */
 
 import { suite, test, slow, timeout } from '@testdeck/mocha';
-import chai, {expect} from 'chai';
+import chai, { expect } from 'chai';
 import chaiHttp from 'chai-http';
 import path from 'path';
 
@@ -30,43 +30,41 @@ chai.use(chaiHttp);
 const BASE_PORT = 19720;
 const IP = '127.0.0.1';
 const config = new Config({
-    ip: IP,
-    port: BASE_PORT
+  ip: IP,
+  port: BASE_PORT,
 });
 
 @suite
 class TestWserver {
+  static server1: Server;
 
-    static server1: Server;
+  @timeout(20000)
+  static before(): Promise<void> {
+    return new Promise(async (resolve) => {
+      setTimeout(resolve, 9000);
 
-    @timeout(20000)
-    static before(): Promise<void> {
+      this.server1 = await new Server(config);
+    });
+  }
 
-        return new Promise(async (resolve) => {
-            setTimeout(resolve, 9000);
+  @timeout(60000)
+  static after(): Promise<void> {
+    return new Promise((resolve) => {
+      this.server1.shutdown();
+    });
+  }
 
-            this.server1 = await new Server(config);
-        });
-    }
+  static async createServer(config): Promise<Server> {
+    return new Promise((resolve) => {
+      new Server(config);
+    });
+  }
 
-    @timeout(60000)
-    static after(): Promise<void> {
-        return new Promise((resolve) => {
-            this.server1.shutdown();
-        });
-    }
-
-    static async createServer(config): Promise<Server> {
-        return new Promise((resolve) => {
-            new Server(config);
-        });
-    }
-
-    @test
-    @slow(399000)
-    @timeout(400000)
-    async default404() {
-      const res = await chai.request(`ws://${config.ip}:${config.port}`).get('/');
-      expect(res).to.have.status(404);
-    }
+  @test
+  @slow(399000)
+  @timeout(400000)
+  async default404() {
+    const res = await chai.request(`ws://${config.ip}:${config.port}`).get('/');
+    expect(res).to.have.status(404);
+  }
 }

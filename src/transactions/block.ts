@@ -38,7 +38,10 @@ export class Block {
   readonly hash: string;
   readonly tx: Array<TransactionStruct>;
 
-  static make(previousBlock: BlockStruct, tx: Array<TransactionStruct>): BlockStruct {
+  static make(
+    previousBlock: BlockStruct,
+    tx: Array<TransactionStruct>
+  ): BlockStruct {
     const b = new Block(previousBlock, tx).get();
     // if (!Validation.validateBlock(b)) {
     //   throw new Error('Invalid Block');
@@ -46,13 +49,18 @@ export class Block {
     return b;
   }
 
-  private constructor(previousBlock: BlockStruct, tx: Array<TransactionStruct>) {
+  private constructor(
+    previousBlock: BlockStruct,
+    tx: Array<TransactionStruct>
+  ) {
     this.previousBlock = previousBlock;
     this.version = 1; //@FIXME
     this.previousHash = previousBlock.hash;
     this.height = previousBlock.height + 1;
     this.tx = tx;
-    this.hash = Util.hash(this.previousHash + this.version + this.height + JSON.stringify(this.tx));
+    this.hash = Util.hash(
+      this.previousHash + this.version + this.height + JSON.stringify(this.tx)
+    );
   }
 
   get(): BlockStruct {

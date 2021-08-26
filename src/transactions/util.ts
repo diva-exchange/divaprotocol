@@ -48,7 +48,11 @@ export class Util {
    * @param {string} data
    * @returns {boolean}
    */
-  static verifySignature(publicKey: string, sig: string, data: string): boolean {
+  static verifySignature(
+    publicKey: string,
+    sig: string,
+    data: string
+  ): boolean {
     return sodium.crypto_sign_verify_detached(
       Buffer.from(base64url.unescape(sig), 'base64'),
       Buffer.from(data),

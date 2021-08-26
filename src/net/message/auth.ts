@@ -33,6 +33,9 @@ export class Auth extends Message {
   }
 
   isValid(challenge: string, publicKey: string): boolean {
-    return this.message.type === Message.TYPE_AUTH && Util.verifySignature(publicKey, this.message.data, challenge);
+    return (
+      this.message.type === Message.TYPE_AUTH &&
+      Util.verifySignature(publicKey, this.message.data, challenge)
+    );
   }
 }

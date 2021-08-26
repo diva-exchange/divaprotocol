@@ -17,7 +17,7 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-import Ajv from "ajv";
+import Ajv from 'ajv';
 import schemaAddAsset from '../schema/transaction/addAsset.json';
 import schemaDeleteAsset from '../schema/transaction/deleteAsset.json';
 import schemaAddOrder from '../schema/transaction/addOrder.json';
@@ -29,4 +29,3 @@ ajv.addSchema(schemaAddAsset, 'addAsset');
 ajv.addSchema(schemaDeleteAsset, 'deleteAsset');
 ajv.addSchema(schemaAddOrder, 'addOrder');
 ajv.addSchema(schemaDeleteOrder, 'deleteOrder');
-

@@ -86,7 +86,9 @@ export class Message {
 
   updateTrail(arrayTrail: Array<string>) {
     this.message.trail || (this.message.trail = []);
-    this.message.trail = [...new Set(this.message.trail.concat(arrayTrail))].filter((_pk) => _pk);
+    this.message.trail = [
+      ...new Set(this.message.trail.concat(arrayTrail)),
+    ].filter((_pk) => _pk);
   }
 
   /**
@@ -127,7 +129,9 @@ export class Message {
         this.message = JSON.parse(base64url.decode(message));
         break;
       default:
-        throw new Error(`Message.unpack(): unsupported data version ${version}`);
+        throw new Error(
+          `Message.unpack(): unsupported data version ${version}`
+        );
     }
   }
 }

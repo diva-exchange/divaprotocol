@@ -27,7 +27,10 @@ import fs from 'fs';
 class TestConfig {
   @test
   config() {
-    const c = new Config({ network_refresh_interval_ms: 5000, network_size: 100 } as Configuration);
+    const c = new Config({
+      network_refresh_interval_ms: 5000,
+      network_size: 100,
+    } as Configuration);
     expect(c.ip).is.not.empty;
   }
 
@@ -46,14 +49,26 @@ class TestConfig {
     fs.rmdirSync(__dirname + '/keys', { recursive: true });
     const c = new Config({ path_app: __dirname } as Configuration);
     expect(c.ip).is.not.empty;
-    fs.copyFileSync(__dirname + '/../blockstore/.gitignore', __dirname + '/blockstore/.gitignore');
-    fs.copyFileSync(__dirname + '/../state/.gitignore', __dirname + '/state/.gitignore');
-    fs.copyFileSync(__dirname + '/../keys/.gitignore', __dirname + '/keys/.gitignore');
+    fs.copyFileSync(
+      __dirname + '/../blockstore/.gitignore',
+      __dirname + '/blockstore/.gitignore'
+    );
+    fs.copyFileSync(
+      __dirname + '/../state/.gitignore',
+      __dirname + '/state/.gitignore'
+    );
+    fs.copyFileSync(
+      __dirname + '/../keys/.gitignore',
+      __dirname + '/keys/.gitignore'
+    );
   }
 
   @test
   configNetworkRefreshIntervalMs() {
-    const c = new Config({ path_app: __dirname, network_refresh_interval_ms: -1 } as Configuration);
+    const c = new Config({
+      path_app: __dirname,
+      network_refresh_interval_ms: -1,
+    } as Configuration);
     // expect(c.network_refresh_interval_ms).is.greaterThanOrEqual(1);
     // expect(c.network_refresh_interval_ms).is.equal(3000);
   }

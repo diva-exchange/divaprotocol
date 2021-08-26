@@ -55,12 +55,15 @@ export class Blockchain {
     // getPublicKey --- from api
     //this.publicKey = this.server.getWallet().getPublicKey();
 
-    this.dbState = LevelUp(LevelDown(path.join(this.server.config.path_state, this.publicKey)), {
-      createIfMissing: true,
-      errorIfExists: false,
-      compression: true,
-      cacheSize: 2 * 1024 * 1024, // 2 MB
-    });
+    this.dbState = LevelUp(
+      LevelDown(path.join(this.server.config.path_state, this.publicKey)),
+      {
+        createIfMissing: true,
+        errorIfExists: false,
+        compression: true,
+        cacheSize: 2 * 1024 * 1024, // 2 MB
+      }
+    );
   }
 
   async shutdown() {
@@ -84,19 +87,28 @@ export class Blockchain {
     ) {
       Logger.warn(
         `Failed to verify block "${block.height}", ` +
-          `Height check: ${this.height + 1 !== block.height ? 'failed' : 'ok'}, ` +
-          `Previous Hash check: ${block.previousHash !== this.latestBlock.hash ? 'failed' : 'ok'}, ` +
-          `Hash check: ${block.hash !== Blockchain.hashBlock(block) ? 'failed' : 'ok'}`
+          `Height check: ${
+            this.height + 1 !== block.height ? 'failed' : 'ok'
+          }, ` +
+          `Previous Hash check: ${
+            block.previousHash !== this.latestBlock.hash ? 'failed' : 'ok'
+          }, ` +
+          `Hash check: ${
+            block.hash !== Blockchain.hashBlock(block) ? 'failed' : 'ok'
+          }`
       );
       return;
     }
   }
 
-  async getState(key: string = ''): Promise<Array<{key: string, value: string}>> {
+  async getState(
+    key: string = ''
+  ): Promise<Array<{ key: string; value: string }>> {
     return new Promise((resolve, reject) => {
       if (!key.length) {
         const a: Array<any> = [];
-        this.dbState.createReadStream()
+        this.dbState
+          .createReadStream()
           .on('data', (data) => {
             a.push({ key: data.key.toString(), value: data.value.toString() });
           })
@@ -107,7 +119,11 @@ export class Blockchain {
             reject(e);
           });
       } else {
-        this.dbState.get(key, (error, value: Buffer) => { error ? reject(error) : resolve([{ key: key, value: value.toString() }]); });
+        this.dbState.get(key, (error, value: Buffer) => {
+          error
+            ? reject(error)
+            : resolve([{ key: key, value: value.toString() }]);
+        });
       }
     });
   }
@@ -123,7 +139,9 @@ export class Blockchain {
   async getPerformance(height: number): Promise<{ timestamp: number }> {
     let ts: number;
     try {
-      ts = Number((await this.dbState.get('debug-performance-' + height)).toString());
+      ts = Number(
+        (await this.dbState.get('debug-performance-' + height)).toString()
+      );
     } catch (error) {
       ts = 0;
     }
@@ -151,7 +169,10 @@ export class Blockchain {
 
   private async processState(block: BlockStruct) {
     if (this.server.config.debug_performance) {
-      await this.dbState.put('debug-performance-' + this.height, new Date().getTime());
+      await this.dbState.put(
+        'debug-performance-' + this.height,
+        new Date().getTime()
+      );
     }
 
     for (const t of block.tx) {
@@ -175,12 +196,16 @@ export class Blockchain {
   }
 
   private async addAsset(command: CommandAddAsset) {
-    await this.dbState.put('asset:' + command.identAssetPair, command.identAssetPair);
+    await this.dbState.put(
+      'asset:' + command.identAssetPair,
+      command.identAssetPair
+    );
   }
 
   private async deleteAsset(command: CommandDeleteAsset) {
     new Promise((resolve, reject) => {
-      this.dbState.createReadStream()
+      this.dbState
+        .createReadStream()
         .on('data', (data) => {
           if (data.key.toString().includes(command.identAssetPair)) {
             this.dbState.del(data.key.toString());
@@ -196,36 +221,56 @@ export class Blockchain {
   private async addOrder(command: CommandAddOrder) {
     let amount: number = 0;
     command = this.deleteDotFromTheEnd(command);
-    const key = 'order:' + command.identAssetPair + ':' + command.orderType + ':' + command.price;
+    const key =
+      'order:' +
+      command.identAssetPair +
+      ':' +
+      command.orderType +
+      ':' +
+      command.price;
     try {
       amount = await this.dbState.get(key);
     } catch (err) {
       Logger.error(err);
     }
-    amount = (new Big(amount || 0)).toNumber();
-    await this.dbState.put(key, (new Big(command.amount || 0)).plus(amount).toFixed(this.precision));
+    amount = new Big(amount || 0).toNumber();
+    await this.dbState.put(
+      key,
+      new Big(command.amount || 0).plus(amount).toFixed(this.precision)
+    );
   }
 
   private async deleteOrder(command: CommandDeleteOrder) {
     let amount: number = 0;
     command = this.deleteDotFromTheEnd(command);
-    const key = 'order:' + command.identAssetPair + ':' + command.orderType + ':' + command.price;
+    const key =
+      'order:' +
+      command.identAssetPair +
+      ':' +
+      command.orderType +
+      ':' +
+      command.price;
     try {
       amount = await this.dbState.get(key);
     } catch (err) {
       Logger.error(err);
     }
-    amount = (new Big(amount || 0)).toNumber();
+    amount = new Big(amount || 0).toNumber();
     if (amount > 0) {
       if (parseFloat(command.amount) >= amount) {
         await this.dbState.del(key);
       } else {
-        await this.dbState.put(key, (new Big(amount || 0)).minus(new Big(command.amount || 0)).toFixed(this.precision));
+        await this.dbState.put(
+          key,
+          new Big(amount || 0)
+            .minus(new Big(command.amount || 0))
+            .toFixed(this.precision)
+        );
       }
     }
   }
 
-  private deleteDotFromTheEnd(command: CommandAddOrder|CommandDeleteOrder) {
+  private deleteDotFromTheEnd(command: CommandAddOrder | CommandDeleteOrder) {
     if (command.price[command.price.length - 1] === '.') {
       command.price = command.price.slice(0, -1);
     }

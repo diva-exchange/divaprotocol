@@ -34,7 +34,10 @@ export class Server {
     this.config = config;
     Logger.info(`divaprotocol ${this.config.VERSION} instantiating...`);
 
-    this.webSocketServer = new WebSocketServer({host: this.config.ip, port:this.config.port});
+    this.webSocketServer = new WebSocketServer({
+      host: this.config.ip,
+      port: this.config.port,
+    });
 
     this.webSocketServer.on('connection', (error: Error, ws: WebSocket) => {
       ws.on('error', (err: Error, ws: WebSocket) => {
@@ -55,8 +58,8 @@ export class Server {
    * @return {WebSocket}
    * @throws {Error}
    */
-  getWebsocket () {
-    return new WebSocket('ws://' + this.config.ip + ':' + this.config.port)
+  getWebsocket() {
+    return new WebSocket('ws://' + this.config.ip + ':' + this.config.port);
   }
 
   getFeed() {
@@ -64,11 +67,15 @@ export class Server {
       followRedirects: false,
     });
 
-    this.webSocketFeed.on('error', (error) => {Logger.trace(error);});
+    this.webSocketFeed.on('error', (error) => {
+      Logger.trace(error);
+    });
 
     this.webSocketFeed.on('close', () => {
       this.webSocketFeed = {} as WebSocket;
-      setTimeout(() => { this.getFeed(); }, 1000);
+      setTimeout(() => {
+        this.getFeed();
+      }, 1000);
     });
 
     this.webSocketFeed.on('message', (message: Buffer) => {
@@ -85,7 +92,6 @@ export class Server {
   }
 
   async shutdown(): Promise<void> {
-
     if (this.webSocketServer) {
       await new Promise((resolve) => {
         this.webSocketServer.close(resolve);

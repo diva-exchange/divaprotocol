@@ -85,4 +85,3 @@ export type TransactionStruct = {
   commands: ArrayCommand;
   sig: string;
 };
-
