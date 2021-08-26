@@ -28,7 +28,6 @@ export class Server {
 
   private readonly webSocketServer: WebSocketServer;
   private webSocketFeed: WebSocket | undefined;
-  private height: number = 0;
 
   constructor(config: Config) {
     this.config = config;
@@ -39,16 +38,16 @@ export class Server {
       port: this.config.port,
     });
 
-    this.webSocketServer.on('connection', (error: Error, ws: WebSocket) => {
-      ws.on('error', (err: Error, ws: WebSocket) => {
+    this.webSocketServer.on('connection', (ws: WebSocket) => {
+      ws.on('error', (err: Error) => {
         Logger.trace(err);
-        ws.close();
       });
-      ws.on('message', function incoming(message: any) {
-        console.log('received: %s', message);
+      ws.on('message', (message: Buffer) => {
+        // incoming subscription data must be processed here
+        console.log('received: %s', message.toString());
       });
-      ws.send('test');
     });
+
     this.webSocketServer.on('close', () => {
       Logger.info('WebSocketServer closing');
     });
@@ -82,9 +81,17 @@ export class Server {
       let block: any = {};
       try {
         block = JSON.parse(message.toString());
-        this.height = block.height > this.height ? block.height : this.height;
         console.log(block.tx[0].commands[0]);
+
+        // business protocol
         new Blocksaver(this.config).processState(block);
+
+        // if it qualifies, forward the relevant object
+        this.webSocketServer.clients.forEach((ws) => {
+          // here should be a stringified object instead of message.toString()
+          // probably only to specific subscribers
+          ws.send(message.toString());
+        });
       } catch (e) {
         return;
       }
