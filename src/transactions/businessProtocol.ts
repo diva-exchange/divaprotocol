@@ -49,7 +49,7 @@ export class BusinessProtocol {
   constructor(config: Config) {
     this.config = config;
     // getPublicKey --- from api
-    this.publicKey = 'test123test123test123test123test123';
+    this.publicKey = 'teessstttttt';
 
     this.dbState = LevelUp(
       LevelDown(path.join(this.config.path_state, this.publicKey)),
@@ -62,7 +62,16 @@ export class BusinessProtocol {
     );
   }
 
+  async shutdown() {
+    await this.dbState.close();
+  }
+
+  async clear() {
+    await this.dbState.clear();
+  }
+
   async processState(block: BlockStruct) {
+
     for (const t of block.tx) {
       for (const c of t.commands) {
         console.log(c.command);
@@ -92,31 +101,31 @@ export class BusinessProtocol {
   }
 
   private async deleteAsset(command: CommandDeleteAsset) {
-    new Promise((resolve, reject) => {
-      this.dbState
-        .createReadStream()
-        .on('data', (data) => {
-          if (data.key.toString().includes(command.identAssetPair)) {
-            this.dbState.del(data.key.toString());
-          }
-        })
-        .on('error', (e) => {
-          reject(e);
-        });
-    });
+    // new Promise((resolve, reject) => {
+    //   this.dbState
+    //     .createReadStream()
+    //     .on('data', (data) => {
+    //       if (data.key.toString().includes(command.identAssetPair)) {
+    //         this.dbState.del(data.key.toString());
+    //       }
+    //     })
+    //     .on('error', (e) => {
+    //       reject(e);
+    //     });
+    // });
     await this.dbState.del('asset:' + command.identAssetPair);
   }
 
   private async addOrder(command: CommandAddOrder) {
     let amount: number = 0;
-    command = this.deleteDotFromTheEnd(command);
+    command = BusinessProtocol.deleteDotFromTheEnd(command);
     const key =
       'order:' +
       command.identAssetPair +
       ':' +
       command.orderType +
       ':' +
-      command.price;
+      command.price ;
     try {
       amount = await this.dbState.get(key);
     } catch (err) {
@@ -125,13 +134,13 @@ export class BusinessProtocol {
     amount = new Big(amount || 0).toNumber();
     await this.dbState.put(
       key,
-      new Big(command.amount || 0).plus(amount).toFixed(this.precision)
+        new Big(command.amount || 0).plus(amount).toFixed(this.precision)
     );
   }
 
   private async deleteOrder(command: CommandDeleteOrder) {
     let amount: number = 0;
-    command = this.deleteDotFromTheEnd(command);
+    command = BusinessProtocol.deleteDotFromTheEnd(command);
     const key =
       'order:' +
       command.identAssetPair +
@@ -159,7 +168,7 @@ export class BusinessProtocol {
     }
   }
 
-  private deleteDotFromTheEnd(command: CommandAddOrder | CommandDeleteOrder) {
+  private static deleteDotFromTheEnd(command: CommandAddOrder | CommandDeleteOrder) {
     if (command.price[command.price.length - 1] === '.') {
       command.price = command.price.slice(0, -1);
     }
@@ -171,16 +180,4 @@ export class BusinessProtocol {
 
   saveBlock(block: BlockStruct) {}
 
-  async shutdown() {
-    await this.dbState.close();
-  }
-
-  async clear() {
-    await this.dbState.clear();
-
-    this.height = 0;
-    this.mapBlocks = new Map();
-    this.latestBlock = {} as BlockStruct;
-    //this.mapPeer = new Map();
-  }
 }

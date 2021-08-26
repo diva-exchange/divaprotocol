@@ -24,12 +24,15 @@ import { BusinessProtocol } from '../transactions/businessProtocol';
 
 export class Server {
   public readonly config: Config;
+  public readonly businessProtocol: BusinessProtocol;
 
   private readonly webSocketServer: WebSocketServer;
   private webSocketFeed: WebSocket | undefined;
 
   constructor(config: Config) {
     this.config = config;
+    this.businessProtocol = new BusinessProtocol(this.config);
+
     Logger.info(`divaprotocol ${this.config.VERSION} instantiating...`);
 
     this.webSocketServer = new WebSocketServer({
@@ -83,7 +86,7 @@ export class Server {
         console.log(block.tx[0].commands[0]);
 
         // business protocol
-        new BusinessProtocol(this.config).processState(block);
+        this.businessProtocol.processState(block);
 
         // if it qualifies, forward the relevant object
         this.webSocketServer.clients.forEach((ws) => {
@@ -98,6 +101,8 @@ export class Server {
   }
 
   async shutdown(): Promise<void> {
+    await this.businessProtocol.shutdown();
+    await this.businessProtocol.clear();
     if (this.webSocketServer) {
       await new Promise((resolve) => {
         this.webSocketServer.close(resolve);
