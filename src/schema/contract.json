@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "/schema/transaction/deleteOrder.json",
+  "$id": "/schema/transaction/contract.json",
 
   "type": "object",
   "properties": {
@@ -10,7 +10,7 @@
     },
     "command": {
       "type": "string",
-      "pattern": "^deleteOrder$"
+      "pattern": "^addAsset$"
     },
     "publicKey": {
       "type": "string",
@@ -19,17 +19,6 @@
     "identAssetPair": {
       "type": "string",
       "pattern": "^[a-zA-Z0-9._-]{1,64}$"
-    },
-    "orderType": {
-      "enum": ["BUY", "SELL"]
-    },
-    "amount": {
-      "type": "string",
-      "pattern": "^[0-9]+.?[0-9]{0,9}$"
-    },
-    "price": {
-      "type": "string",
-      "pattern": "^[0-9]+.?[0-9]{0,9}$"
     }
   },
   "additionalProperties": false,
@@ -37,9 +26,6 @@
     "seq",
     "command",
     "publicKey",
-    "identAssetPair",
-    "orderType",
-    "amount",
-    "price"
+    "identAssetPair"
   ]
 }

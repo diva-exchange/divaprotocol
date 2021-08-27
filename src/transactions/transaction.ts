@@ -22,23 +22,16 @@ interface Command {
   command: string;
 }
 
-interface CommandTestLoad extends Command {
-  timestamp: number;
+export interface CommandOrder extends Command {
+  channel: string;
+  type: string;
+  amount: string;
+  price: string;
+  contract: string;
 }
 
-export interface CommandAddPeer extends Command {
-  host: string;
-  port: number;
-  publicKey: string;
-}
-
-export interface CommandRemovePeer extends Command {
-  publicKey: string;
-}
-
-export interface CommandModifyStake extends Command {
-  publicKey: string;
-  stake: number;
+export interface CommandContract extends Command {
+  channel: string;
 }
 
 export interface CommandAddOrder extends Command {
@@ -68,10 +61,8 @@ export interface CommandDeleteAsset extends Command {
 }
 
 export type ArrayCommand = Array<
-  | CommandTestLoad
-  | CommandAddPeer
-  | CommandRemovePeer
-  | CommandModifyStake
+  | CommandOrder
+  | CommandContract
   | CommandAddOrder
   | CommandDeleteOrder
   | CommandAddAsset

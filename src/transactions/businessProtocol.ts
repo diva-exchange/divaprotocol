@@ -20,7 +20,10 @@
 import { Config } from '../config';
 import { Logger } from '../logger';
 import get from 'simple-get';
+import { validateContract, validateOrder } from "../net/validation";
 import base64url from 'base64-url';
+import {CommandContract, CommandOrder} from "./transaction";
+import {AnyValidateFunction} from "ajv/dist/types";
 
 export class BusinessProtocol {
   public readonly config: Config;
@@ -35,46 +38,41 @@ export class BusinessProtocol {
   }
 
   // need to be refactored !!
-  async processOrder(message: Object) {
-    if (message === null || typeof message !== 'object') {
-      return;
+  async processOrder(message: CommandOrder | CommandContract) {
+
+    // here goes the stateless validation
+
+    if (!validateOrder(message)) {
+      throw Error("");
     }
 
-    // if (message.channel === 'order') {
-    //   switch (message.command) {
-    //     case 'add':
-    //       await this.putAddOrder(message);
-    //       break;
-    //     case 'delete':
-    //       await this.putDeleteOrder(message);
-    //       break;
-    //   }
-    //}
-    //console.log(message);
+    if (message.channel === 'order') {
+      switch (message.command) {
+        case 'add':
+          await this.putAddOrder(message as CommandOrder);
+          break;
+        // case 'delete':
+        //   await this.putDeleteOrder(message as CommandOrder);
+        //   break;
+      }
+    }
+    console.log(message);
   }
 
-  // private async putAddAsset(message: Buffer) {
-  //   //processing message to valid asset
-  // }
-  //
-  // private async putDeleteAsset(message: Buffer) {
-  //   //processing message to valid asset
-  // }
-
   //@FIXME "data" as param is ugly - it should accept an object - the sequence might (but must not) be also provided by the UI
-  private async putAddOrder(data: object) {
+  private async putAddOrder(data: CommandOrder) {
     //processing message to valid order
     const opts = {
       method: 'PUT',
       url: this.config.url_api_chain + '/transaction',
       body: [{
-        seq: 1, //@FIXME
+        seq: data.seq,
         command: 'data',
-        base64url: data
+        base64url: base64url.encode(JSON.stringify(data))
       }],
       json: true
     };
-    console.log(opts);
+
     return new Promise((resolve, reject) => {
       get.concat(opts, (error: Error, response: any) => {
         if (error) {
@@ -87,7 +85,7 @@ export class BusinessProtocol {
     });
   }
 
-  private async putDeleteOrder(message: Buffer) {
-    //processing message to valid order
-  }
+  // private async putDeleteOrder(message) {
+  //   //processing message to valid order
+  // }
 }

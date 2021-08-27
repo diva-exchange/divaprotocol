@@ -22,6 +22,7 @@ import { Logger } from '../logger';
 import WebSocket, { Server as WebSocketServer } from 'ws';
 import { Feeder } from '../transactions/feeder';
 import { BusinessProtocol } from '../transactions/businessProtocol';
+import * as Buffer from "buffer";
 
 export class Server {
   public readonly config: Config;
@@ -50,9 +51,14 @@ export class Server {
       ws.on('error', (err: Error) => {
         Logger.warn(err);
       });
-      ws.on('message', async (message: Object) => {
+      ws.on('message', async (message: Buffer) => {
         // incoming subscription data must be processed here
-        await this.businessProtocol.processOrder(message);
+        try {
+          await this.businessProtocol.processOrder(JSON.parse(message.toString()));
+        } catch (err) {
+          Logger.trace(err);
+          ws.send(404);
+        }
         //@FIXME logging
         Logger.trace(`received: ${message.toString()}`);
       });

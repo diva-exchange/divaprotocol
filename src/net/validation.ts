@@ -17,15 +17,11 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-import Ajv from 'ajv';
-import schemaAddAsset from '../schema/addAsset.json';
-import schemaDeleteAsset from '../schema/deleteAsset.json';
-import schemaAddOrder from '../schema/addOrder.json';
-import schemaDeleteOrder from '../schema/deleteOrder.json';
+import Ajv, {ValidateFunction} from 'ajv';
+import schemaContract from '../schema/contract.json';
+import schemaOrder from '../schema/order.json';
 
-export const ajv = new Ajv();
+export const ajv: Ajv = new Ajv();
 
-ajv.addSchema(schemaAddAsset, 'addAsset');
-ajv.addSchema(schemaDeleteAsset, 'deleteAsset');
-ajv.addSchema(schemaAddOrder, 'addOrder');
-ajv.addSchema(schemaDeleteOrder, 'deleteOrder');
+export const validateContract: ValidateFunction = ajv.compile(schemaContract);
+export const validateOrder: ValidateFunction = ajv.compile(schemaOrder);
