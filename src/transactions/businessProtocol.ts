@@ -208,27 +208,27 @@ export class BusinessProtocol {
   //   //processing message to valid asset
   // }
 
-  //@FIXME obj should be an AddOrder
+  //@FIXME "data" as param is ugly - it should accept an object - the sequence might (but must not) be also provided by the UI
   private async putAddOrder(data: string) {
     //processing message to valid order
     const opts = {
       method: 'PUT',
       url: this.config.url_api_chain + '/transaction',
       body: [{
-        seq: 1,
+        seq: 1, //@FIXME
         command: 'data',
         base64url: base64url.encode(data)
       }],
       json: true
     };
     console.log(opts);
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       get.concat(opts, (error: Error, response: any) => {
         if (error) {
           Logger.trace(error);
+          reject(error);
           return;
         }
-        Logger.trace(response);
         resolve(response);
       });
     });
