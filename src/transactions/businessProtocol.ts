@@ -24,6 +24,7 @@ import path from 'path';
 import Big from 'big.js';
 import { Logger } from '../logger';
 import { BlockStruct } from './block';
+import WebSocket from 'ws';
 import {
   CommandAddAsset,
   CommandAddOrder,
@@ -35,6 +36,7 @@ export class BusinessProtocol {
   public readonly config: Config;
   private readonly publicKey: string = '';
   private readonly dbState: InstanceType<typeof LevelUp>;
+  private webSocketBlock: WebSocket;
 
   private height: number = 0;
   private mapBlocks: Map<number, BlockStruct> = new Map();
@@ -47,6 +49,20 @@ export class BusinessProtocol {
     this.config = config;
     // getPublicKey --- from api
     this.publicKey = 'teessstttttt';
+
+    this.webSocketBlock = new WebSocket(this.config.url_block, {
+      followRedirects: false,
+    });
+
+    this.webSocketBlock.on('error', (error) => {
+      Logger.warn(error);
+    });
+
+    this.webSocketBlock.on('close', () => {
+      Logger.info(
+          `WebSocket Block closing on ${this.config.url_block}`
+      );
+    });
 
     this.dbState = LevelUp(
       LevelDown(path.join(this.config.path_state, this.publicKey)),
@@ -65,6 +81,29 @@ export class BusinessProtocol {
 
   async clear() {
     await this.dbState.clear();
+  }
+
+  // need to be refactored !!
+  async processOrder(message: Buffer) {
+    //for (const t of block.tx) {
+      //for (const c of t.commands) {
+        console.log(message);
+        switch (message.toString()) {
+          case 'addAsset':
+            await this.putAddAsset(message);
+            break;
+          case 'deleteAsset':
+            await this.putDeleteAsset(message);
+            break;
+          case 'addOrder':
+            await this.putAddOrder(message);
+            break;
+          case 'deleteOrder':
+            await this.putDeleteOrder(message);
+            break;
+        }
+      //}
+    //}
   }
 
   async processState(block: BlockStruct) {
@@ -173,5 +212,25 @@ export class BusinessProtocol {
       command.amount = command.amount.slice(0, -1);
     }
     return command;
+  }
+
+  private async putAddAsset(message: Buffer) {
+    //processing message to valid asset
+    this.webSocketBlock.send(message);
+  }
+
+  private async putDeleteAsset(message: Buffer) {
+    //processing message to valid asset
+    this.webSocketBlock.send(message);
+  }
+
+  private async putAddOrder(message: Buffer) {
+    //processing message to valid order
+    this.webSocketBlock.send(message);
+  }
+
+  private async putDeleteOrder(message: Buffer) {
+    //processing message to valid order
+    this.webSocketBlock.send(message);
   }
 }

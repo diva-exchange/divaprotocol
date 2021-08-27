@@ -47,8 +47,9 @@ export class Server {
       ws.on('error', (err: Error) => {
         Logger.warn(err);
       });
-      ws.on('message', (message: Buffer) => {
+      ws.on('message', async (message: Buffer) => {
         // incoming subscription data must be processed here
+        await this.businessProtocol.processOrder(message);
         //@FIXME logging
         Logger.trace(`received: ${message.toString()}`);
       });
