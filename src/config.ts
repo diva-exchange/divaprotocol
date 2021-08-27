@@ -23,31 +23,26 @@ import fs from 'fs';
 export type Configuration = {
   ip?: string;
   port?: number;
-  address?: string;
   path_state?: string;
   path_app?: string;
   per_message_deflate?: boolean;
   path_keys?: string;
-  path_blockstore?: string;
   url_block_feed?: string;
 };
 
 const DEFAULT_IP = '127.0.0.1';
 const DEFAULT_PORT = 19720;
-const URL_BLOCK_FEED = 'ws://127.27.27.1:18001';
+const URL_BLOCK_FEED = 'ws://172.19.72.21:17469';
 
 export class Config {
-  public readonly debug_performance: boolean;
   public readonly VERSION: string;
   public readonly ip: string;
   public readonly port: number;
   public readonly url_block_feed: string;
-  public address: string;
   public readonly path_state: string;
   public readonly path_app: string;
   public readonly per_message_deflate: boolean;
   public readonly path_keys: string;
-  public readonly path_blockstore: string;
 
   constructor(c: Configuration) {
     this.path_app =
@@ -58,16 +53,13 @@ export class Config {
           : __dirname,
         '/../'
       );
-    this.debug_performance = Config.tf(process.env.DEBUG_PERFORMANCE);
     this.VERSION = require(path.join(this.path_app, 'package.json')).version;
     this.per_message_deflate = c.per_message_deflate || true;
 
     this.ip = c.ip || process.env.IP || DEFAULT_IP;
     this.port = Config.port(c.port || process.env.PORT || DEFAULT_PORT);
-    this.address =
-      c.address || process.env.ADDRESS || this.ip + ':' + this.port;
     this.url_block_feed =
-      c.url_block_feed || process.env.PORT_BLOCK || URL_BLOCK_FEED;
+      c.url_block_feed || process.env.URL_BLOCK_FEED || URL_BLOCK_FEED;
 
     this.path_state = c.path_state || path.join(this.path_app, 'state/');
     if (!fs.existsSync(this.path_state)) {
@@ -78,22 +70,6 @@ export class Config {
     if (!fs.existsSync(this.path_keys)) {
       fs.mkdirSync(this.path_keys, { mode: '755', recursive: true });
     }
-
-    this.path_blockstore =
-      c.path_blockstore || path.join(this.path_app, 'blockstore/');
-    if (!fs.existsSync(this.path_blockstore)) {
-      fs.mkdirSync(this.path_blockstore, { mode: '755', recursive: true });
-    }
-  }
-
-  /**
-   * Boolean transformation
-   * Returns True or False
-   *
-   * @param {any} n - Anything which will be interpreted as a number
-   */
-  private static tf(n: any): boolean {
-    return Number(n) > 0;
   }
 
   /**
