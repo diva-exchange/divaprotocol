@@ -58,9 +58,6 @@ export class Server {
       Logger.info(
         `WebSocket Server closing on ${this.config.ip}:${this.config.port}`
       );
-      this.webSocketServer.clients.forEach((ws) => {
-        ws.terminate();
-      });
     });
   }
 
@@ -102,13 +99,14 @@ export class Server {
     });
   }
 
-  async shutdown(): Promise<void> {
+  async shutdown() {
     await this.businessProtocol.clear();
     await this.businessProtocol.shutdown();
     return new Promise((resolve) => {
-      this.webSocketServer.close(() => {
-        resolve();
+      this.webSocketServer.clients.forEach((ws) => {
+        ws.terminate();
       });
+      this.webSocketServer.close(resolve);
     });
   }
 }
