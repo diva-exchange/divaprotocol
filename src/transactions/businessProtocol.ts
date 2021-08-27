@@ -97,13 +97,16 @@ export class BusinessProtocol {
   }
 
   private async deleteAsset(command: CommandDeleteAsset) {
-    new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       this.dbState
           .createReadStream()
           .on('data', (data) => {
             if (data.key.toString().includes(command.identAssetPair)) {
               this.dbState.del(data.key.toString());
             }
+          })
+          .on('end', () => {
+            resolve(this.dbState);
           })
           .on('error', (e) => {
             reject(e);
