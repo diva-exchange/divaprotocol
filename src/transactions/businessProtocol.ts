@@ -17,14 +17,11 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-import { Util } from './util';
 import { Config } from '../config';
-import fs from 'fs';
 import LevelUp from 'levelup';
 import LevelDown from 'leveldown';
 import path from 'path';
 import Big from 'big.js';
-import { Server } from '../net/server';
 import { Logger } from '../logger';
 import { BlockStruct } from './block';
 import {
@@ -71,7 +68,6 @@ export class BusinessProtocol {
   }
 
   async processState(block: BlockStruct) {
-
     for (const t of block.tx) {
       for (const c of t.commands) {
         console.log(c.command);
@@ -101,76 +97,76 @@ export class BusinessProtocol {
   }
 
   private async deleteAsset(command: CommandDeleteAsset) {
-    new Promise((resolve, reject) => {
-      this.dbState
-        .createReadStream()
-        .on('data', (data) => {
-          if (data.key.toString().includes(command.identAssetPair)) {
-            this.dbState.del(data.key.toString());
-          }
-        })
-        .on('error', (e) => {
-          reject(e);
-        });
-    });
-    //await this.dbState.del('asset:' + command.identAssetPair);
+    // new Promise((resolve, reject) => {
+    //   this.dbState
+    //     .createReadStream()
+    //     .on('data', (data) => {
+    //       if (data.key.toString().includes(command.identAssetPair)) {
+    //         this.dbState.del(data.key.toString());
+    //       }
+    //     })
+    //     .on('error', (e) => {
+    //       reject(e);
+    //     });
+    // });
+    await this.dbState.del('asset:' + command.identAssetPair);
   }
 
   private async addOrder(command: CommandAddOrder) {
-
-    let currentMap = new Map<string, string>();
+    let amount: number = 0;
     command = BusinessProtocol.deleteDotFromTheEnd(command);
     const key =
       'order:' +
       command.identAssetPair +
       ':' +
-      command.orderType ;
+      command.orderType +
+      ':' +
+      command.price;
     try {
-      currentMap = await this.dbState.get(key);
+      amount = await this.dbState.get(key);
     } catch (err) {
       Logger.error(err);
     }
-    let amountString = currentMap.get(command.price.toString());
-    let amount = new Big(amountString || 0).toNumber();
-    currentMap.set(command.price.toString(),new Big(command.amount || 0).plus(amount).toFixed(this.precision));
+    amount = new Big(amount || 0).toNumber();
     await this.dbState.put(
       key,
-        currentMap
+      new Big(command.amount || 0).plus(amount).toFixed(this.precision)
     );
   }
 
   private async deleteOrder(command: CommandDeleteOrder) {
-
-    let currentMap = new Map<string, string>();
+    let amount: number = 0;
     command = BusinessProtocol.deleteDotFromTheEnd(command);
     const key =
       'order:' +
       command.identAssetPair +
       ':' +
-      command.orderType;
+      command.orderType +
+      ':' +
+      command.price;
     try {
-      currentMap = await this.dbState.get(key);
+      amount = await this.dbState.get(key);
     } catch (err) {
       Logger.error(err);
     }
-    let amountString = currentMap.get(command.price.toString());
-    let amount = new Big(amountString || 0).toNumber();
+    amount = new Big(amount || 0).toNumber();
     if (amount > 0) {
       if (parseFloat(command.amount) >= amount) {
-        currentMap.delete(key);
+        await this.dbState.del(key);
       } else {
-        currentMap.set(key, new Big(amount || 0)
+        await this.dbState.put(
+          key,
+          new Big(amount || 0)
             .minus(new Big(command.amount || 0))
-            .toFixed(this.precision))
+            .toFixed(this.precision)
+        );
       }
     }
-    await this.dbState.put(
-        key,
-        currentMap
-    );
   }
 
-  private static deleteDotFromTheEnd(command: CommandAddOrder | CommandDeleteOrder) {
+  private static deleteDotFromTheEnd(
+    command: CommandAddOrder | CommandDeleteOrder
+  ) {
     if (command.price[command.price.length - 1] === '.') {
       command.price = command.price.slice(0, -1);
     }
@@ -179,7 +175,4 @@ export class BusinessProtocol {
     }
     return command;
   }
-
-  saveBlock(block: BlockStruct) {}
-
 }

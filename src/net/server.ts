@@ -39,29 +39,29 @@ export class Server {
       host: this.config.ip,
       port: this.config.port,
     });
-    Logger.info(`WebSocket Server listening on ${this.config.ip}:${this.config.port}`);
+    Logger.info(
+      `WebSocket Server listening on ${this.config.ip}:${this.config.port}`
+    );
 
     this.webSocketServer.on('connection', (ws: WebSocket) => {
       ws.on('error', (err: Error) => {
-        Logger.trace(err);
+        Logger.warn(err);
       });
       ws.on('message', (message: Buffer) => {
         // incoming subscription data must be processed here
-        console.log('received: %s', message.toString());
+        //@FIXME logging
+        Logger.trace(`received: ${message.toString()}`);
       });
     });
 
     this.webSocketServer.on('close', () => {
-      Logger.info('WebSocketServer closing');
+      Logger.info(
+        `WebSocket Server closing on ${this.config.ip}:${this.config.port}`
+      );
+      this.webSocketServer.clients.forEach((ws) => {
+        ws.terminate();
+      });
     });
-  }
-
-  /**
-   * @return {WebSocket}
-   * @throws {Error}
-   */
-  getWebsocket() {
-    return new WebSocket('ws://' + this.config.ip + ':' + this.config.port);
   }
 
   initFeed() {
@@ -70,7 +70,7 @@ export class Server {
     });
 
     this.webSocketFeed.on('error', (error) => {
-      Logger.trace(error);
+      Logger.warn(error);
     });
 
     this.webSocketFeed.on('close', () => {
@@ -80,20 +80,21 @@ export class Server {
       }, 1000);
     });
 
-    this.webSocketFeed.on('message', (message: Buffer) => {
+    this.webSocketFeed.on('message', async (message: Buffer) => {
       let block: any = {};
       try {
         block = JSON.parse(message.toString());
-        console.log(block.tx[0].commands[0]);
+        //@FIXME logging
+        Logger.trace(block.tx[0].commands[0]);
 
         // business protocol
-        this.businessProtocol.processState(block);
+        await this.businessProtocol.processState(block);
 
         // if it qualifies, forward the relevant object
         this.webSocketServer.clients.forEach((ws) => {
-          // here should be a stringified object instead of message.toString()
-          // probably only to specific subscribers
-          ws.send(message.toString());
+          // probably, here should be a stringified object instead of the binary message
+          // probably, only to specific subscribers
+          ws.send(message);
         });
       } catch (e) {
         return;
@@ -102,15 +103,12 @@ export class Server {
   }
 
   async shutdown(): Promise<void> {
-    await this.businessProtocol.shutdown();
     await this.businessProtocol.clear();
+    await this.businessProtocol.shutdown();
     return new Promise((resolve) => {
-      this.webSocketServer.clients.forEach((ws) =>  { ws.terminate(); });
-      this.webSocketServer.close(() => { resolve(); });
+      this.webSocketServer.close(() => {
+        resolve();
+      });
     });
-  }
-
-  getWebSocketServer(): WebSocketServer {
-    return this.webSocketServer;
   }
 }
