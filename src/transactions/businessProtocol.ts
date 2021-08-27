@@ -17,14 +17,11 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-import { Util } from './util';
 import { Config } from '../config';
-import fs from 'fs';
 import LevelUp from 'levelup';
 import LevelDown from 'leveldown';
 import path from 'path';
 import Big from 'big.js';
-import { Server } from '../net/server';
 import { Logger } from '../logger';
 import { BlockStruct } from './block';
 import {
@@ -71,7 +68,6 @@ export class BusinessProtocol {
   }
 
   async processState(block: BlockStruct) {
-
     for (const t of block.tx) {
       for (const c of t.commands) {
         console.log(c.command);
@@ -125,7 +121,7 @@ export class BusinessProtocol {
       ':' +
       command.orderType +
       ':' +
-      command.price ;
+      command.price;
     try {
       amount = await this.dbState.get(key);
     } catch (err) {
@@ -134,7 +130,7 @@ export class BusinessProtocol {
     amount = new Big(amount || 0).toNumber();
     await this.dbState.put(
       key,
-        new Big(command.amount || 0).plus(amount).toFixed(this.precision)
+      new Big(command.amount || 0).plus(amount).toFixed(this.precision)
     );
   }
 
@@ -168,7 +164,9 @@ export class BusinessProtocol {
     }
   }
 
-  private static deleteDotFromTheEnd(command: CommandAddOrder | CommandDeleteOrder) {
+  private static deleteDotFromTheEnd(
+    command: CommandAddOrder | CommandDeleteOrder
+  ) {
     if (command.price[command.price.length - 1] === '.') {
       command.price = command.price.slice(0, -1);
     }
@@ -177,7 +175,4 @@ export class BusinessProtocol {
     }
     return command;
   }
-
-  saveBlock(block: BlockStruct) {}
-
 }
