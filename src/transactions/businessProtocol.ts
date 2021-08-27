@@ -101,71 +101,73 @@ export class BusinessProtocol {
   }
 
   private async deleteAsset(command: CommandDeleteAsset) {
-    // new Promise((resolve, reject) => {
-    //   this.dbState
-    //     .createReadStream()
-    //     .on('data', (data) => {
-    //       if (data.key.toString().includes(command.identAssetPair)) {
-    //         this.dbState.del(data.key.toString());
-    //       }
-    //     })
-    //     .on('error', (e) => {
-    //       reject(e);
-    //     });
-    // });
-    await this.dbState.del('asset:' + command.identAssetPair);
+    new Promise((resolve, reject) => {
+      this.dbState
+        .createReadStream()
+        .on('data', (data) => {
+          if (data.key.toString().includes(command.identAssetPair)) {
+            this.dbState.del(data.key.toString());
+          }
+        })
+        .on('error', (e) => {
+          reject(e);
+        });
+    });
+    //await this.dbState.del('asset:' + command.identAssetPair);
   }
 
   private async addOrder(command: CommandAddOrder) {
-    let amount: number = 0;
+
+    let currentMap = new Map<string, string>();
     command = BusinessProtocol.deleteDotFromTheEnd(command);
     const key =
       'order:' +
       command.identAssetPair +
       ':' +
-      command.orderType +
-      ':' +
-      command.price ;
+      command.orderType ;
     try {
-      amount = await this.dbState.get(key);
+      currentMap = await this.dbState.get(key);
     } catch (err) {
       Logger.error(err);
     }
-    amount = new Big(amount || 0).toNumber();
+    let amountString = currentMap.get(command.price.toString());
+    let amount = new Big(amountString || 0).toNumber();
+    currentMap.set(command.price.toString(),new Big(command.amount || 0).plus(amount).toFixed(this.precision));
     await this.dbState.put(
       key,
-        new Big(command.amount || 0).plus(amount).toFixed(this.precision)
+        currentMap
     );
   }
 
   private async deleteOrder(command: CommandDeleteOrder) {
-    let amount: number = 0;
+
+    let currentMap = new Map<string, string>();
     command = BusinessProtocol.deleteDotFromTheEnd(command);
     const key =
       'order:' +
       command.identAssetPair +
       ':' +
-      command.orderType +
-      ':' +
-      command.price;
+      command.orderType;
     try {
-      amount = await this.dbState.get(key);
+      currentMap = await this.dbState.get(key);
     } catch (err) {
       Logger.error(err);
     }
-    amount = new Big(amount || 0).toNumber();
+    let amountString = currentMap.get(command.price.toString());
+    let amount = new Big(amountString || 0).toNumber();
     if (amount > 0) {
       if (parseFloat(command.amount) >= amount) {
-        await this.dbState.del(key);
+        currentMap.delete(key);
       } else {
-        await this.dbState.put(
-          key,
-          new Big(amount || 0)
+        currentMap.set(key, new Big(amount || 0)
             .minus(new Big(command.amount || 0))
-            .toFixed(this.precision)
-        );
+            .toFixed(this.precision))
       }
     }
+    await this.dbState.put(
+        key,
+        currentMap
+    );
   }
 
   private static deleteDotFromTheEnd(command: CommandAddOrder | CommandDeleteOrder) {

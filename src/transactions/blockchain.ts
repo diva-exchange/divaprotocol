@@ -168,12 +168,12 @@ export class Blockchain {
   }
 
   private async processState(block: BlockStruct) {
-    if (this.server.config.debug_performance) {
-      await this.dbState.put(
-        'debug-performance-' + this.height,
-        new Date().getTime()
-      );
-    }
+    // if (this.server.config.debug_performance) {
+    //   await this.dbState.put(
+    //     'debug-performance-' + this.height,
+    //     new Date().getTime()
+    //   );
+    // }
 
     for (const t of block.tx) {
       for (const c of t.commands) {
