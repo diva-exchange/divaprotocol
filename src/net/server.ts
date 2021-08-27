@@ -20,11 +20,13 @@
 import { Config } from '../config';
 import { Logger } from '../logger';
 import WebSocket, { Server as WebSocketServer } from 'ws';
+import { Feeder } from '../transactions/feeder';
 import { BusinessProtocol } from '../transactions/businessProtocol';
 
 export class Server {
   public readonly config: Config;
   public readonly businessProtocol: BusinessProtocol;
+  public readonly feeder: Feeder;
 
   private readonly webSocketServer: WebSocketServer;
   private webSocketFeed: WebSocket | undefined;
@@ -32,6 +34,7 @@ export class Server {
   constructor(config: Config) {
     this.config = config;
     this.businessProtocol = new BusinessProtocol(this.config);
+    this.feeder = new Feeder(this.config);
 
     Logger.info(`divaprotocol ${this.config.VERSION} instantiating...`);
 
@@ -47,7 +50,7 @@ export class Server {
       ws.on('error', (err: Error) => {
         Logger.warn(err);
       });
-      ws.on('message', async (message: Buffer) => {
+      ws.on('message', async (message: Object) => {
         // incoming subscription data must be processed here
         await this.businessProtocol.processOrder(message);
         //@FIXME logging
@@ -86,7 +89,7 @@ export class Server {
         Logger.trace(block.tx[0].commands[0]);
 
         // business protocol
-        await this.businessProtocol.processState(block);
+        await this.feeder.processState(block);
 
         // if it qualifies, forward the relevant object
         this.webSocketServer.clients.forEach((ws) => {
@@ -101,8 +104,8 @@ export class Server {
   }
 
   async shutdown() {
-    await this.businessProtocol.clear();
-    await this.businessProtocol.shutdown();
+    await this.feeder.clear();
+    await this.feeder.shutdown();
     return new Promise((resolve) => {
       this.webSocketServer.clients.forEach((ws) => {
         ws.terminate();
