@@ -24,23 +24,19 @@ import path from 'path';
 import Big from 'big.js';
 import { Logger } from '../logger';
 import { BlockStruct } from './block';
-import WebSocket from 'ws';
 import {
   CommandAddAsset,
   CommandAddOrder,
   CommandDeleteAsset,
   CommandDeleteOrder,
 } from './transaction';
+import get from 'simple-get';
+import base64url from 'base64-url';
 
 export class BusinessProtocol {
   public readonly config: Config;
   private readonly publicKey: string = '';
   private readonly dbState: InstanceType<typeof LevelUp>;
-  private webSocketBlock: WebSocket;
-
-  private height: number = 0;
-  private mapBlocks: Map<number, BlockStruct> = new Map();
-  private latestBlock: BlockStruct = {} as BlockStruct;
 
   //private mapPeer: Map<string, NetworkPeer> = new Map();
   private precision = 9;
@@ -49,20 +45,6 @@ export class BusinessProtocol {
     this.config = config;
     // getPublicKey --- from api
     this.publicKey = 'teessstttttt';
-
-    this.webSocketBlock = new WebSocket(this.config.url_block, {
-      followRedirects: false,
-    });
-
-    this.webSocketBlock.on('error', (error) => {
-      Logger.warn(error);
-    });
-
-    this.webSocketBlock.on('close', () => {
-      Logger.info(
-          `WebSocket Block closing on ${this.config.url_block}`
-      );
-    });
 
     this.dbState = LevelUp(
       LevelDown(path.join(this.config.path_state, this.publicKey)),
@@ -85,25 +67,29 @@ export class BusinessProtocol {
 
   // need to be refactored !!
   async processOrder(message: Buffer) {
-    //for (const t of block.tx) {
-      //for (const c of t.commands) {
-        console.log(message);
-        switch (message.toString()) {
-          case 'addAsset':
-            await this.putAddAsset(message);
-            break;
-          case 'deleteAsset':
-            await this.putDeleteAsset(message);
-            break;
-          case 'addOrder':
-            await this.putAddOrder(message);
-            break;
-          case 'deleteOrder':
-            await this.putDeleteOrder(message);
-            break;
-        }
-      //}
-    //}
+    let obj: any = {}; //@FIXME proper definition
+    try {
+      obj = JSON.parse(message.toString());
+    } catch (error: any) {
+      Logger.trace(error);
+      return;
+    }
+
+    console.log(obj);
+    switch (obj.command) {
+      // case 'addAsset':
+      //   await this.putAddAsset(obj);
+      //   break;
+      // case 'deleteAsset':
+      //   await this.putDeleteAsset(obj);
+      //   break;
+      case 'addOrder':
+        await this.putAddOrder(obj.data);
+        break;
+      // case 'deleteOrder':
+      //   await this.putDeleteOrder(obj);
+      //   break;
+    }
   }
 
   async processState(block: BlockStruct) {
@@ -214,23 +200,41 @@ export class BusinessProtocol {
     return command;
   }
 
-  private async putAddAsset(message: Buffer) {
-    //processing message to valid asset
-    this.webSocketBlock.send(message);
-  }
+  // private async putAddAsset(message: Buffer) {
+  //   //processing message to valid asset
+  // }
+  //
+  // private async putDeleteAsset(message: Buffer) {
+  //   //processing message to valid asset
+  // }
 
-  private async putDeleteAsset(message: Buffer) {
-    //processing message to valid asset
-    this.webSocketBlock.send(message);
-  }
-
-  private async putAddOrder(message: Buffer) {
+  //@FIXME obj should be an AddOrder
+  private async putAddOrder(data: string) {
     //processing message to valid order
-    this.webSocketBlock.send(message);
+    const opts = {
+      method: 'PUT',
+      url: this.config.url_api_chain + '/transaction',
+      body: [{
+        seq: 1,
+        command: 'data',
+        base64url: base64url.encode(data)
+      }],
+      json: true
+    };
+    console.log(opts);
+    return new Promise((resolve) => {
+      get.concat(opts, (error: Error, response: any) => {
+        if (error) {
+          Logger.trace(error);
+          return;
+        }
+        Logger.trace(response);
+        resolve(response);
+      });
+    });
   }
 
-  private async putDeleteOrder(message: Buffer) {
-    //processing message to valid order
-    this.webSocketBlock.send(message);
-  }
+  // private async putDeleteOrder(message: Buffer) {
+  //   //processing message to valid order
+  // }
 }
