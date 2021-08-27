@@ -32,6 +32,13 @@ class Main {
 
   private start() {
     const server = new Server(this.config);
+    ['SIGINT', 'SIGTERM'].forEach((sig) => {
+      process.once(sig, async () => {
+        await server.shutdown();
+        process.exit(0);
+      });
+    });
+
     server.initFeed();
   }
 }

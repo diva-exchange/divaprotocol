@@ -39,6 +39,7 @@ export class Server {
       host: this.config.ip,
       port: this.config.port,
     });
+    Logger.info(`WebSocket Server listening on ${this.config.ip}:${this.config.port}`);
 
     this.webSocketServer.on('connection', (ws: WebSocket) => {
       ws.on('error', (err: Error) => {
@@ -103,11 +104,10 @@ export class Server {
   async shutdown(): Promise<void> {
     await this.businessProtocol.shutdown();
     await this.businessProtocol.clear();
-    if (this.webSocketServer) {
-      await new Promise((resolve) => {
-        this.webSocketServer.close(resolve);
-      });
-    }
+    return new Promise((resolve) => {
+      this.webSocketServer.clients.forEach((ws) =>  { ws.terminate(); });
+      this.webSocketServer.close(() => { resolve(); });
+    });
   }
 
   getWebSocketServer(): WebSocketServer {

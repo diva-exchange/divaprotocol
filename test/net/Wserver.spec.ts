@@ -20,7 +20,6 @@
 import { suite, test, slow, timeout } from '@testdeck/mocha';
 import chai, { expect } from 'chai';
 import chaiHttp from 'chai-http';
-import path from 'path';
 
 import { Server } from '../../src/net/server';
 import { Config } from '../../src/config';
@@ -36,28 +35,16 @@ const config = new Config({
 
 @suite
 class TestWserver {
-  static server1: Server;
+  static server: Server;
 
   @timeout(20000)
-  static before(): Promise<void> {
-    return new Promise(async (resolve) => {
-      setTimeout(resolve, 9000);
-
-      this.server1 = await new Server(config);
-    });
+  static before() {
+    this.server = new Server(config);
   }
 
   @timeout(60000)
-  static after(): Promise<void> {
-    return new Promise((resolve) => {
-      this.server1.shutdown();
-    });
-  }
-
-  static async createServer(config): Promise<Server> {
-    return new Promise((resolve) => {
-      new Server(config);
-    });
+  static async after() {
+    await this.server.shutdown();
   }
 
   @test
