@@ -23,12 +23,15 @@ import get from 'simple-get';
 import {validateContract, validateOrder, validateSubscribe} from "../net/validation";
 import base64url from 'base64-url';
 import {CommandContract, CommandOrder, CommandSubscribe} from "./transaction";
+//import {OrderBook} from './orderBook';
 
 export class BusinessProtocol {
   public readonly config: Config;
+  //private orderBook: OrderBook;
 
   constructor(config: Config) {
     this.config = config;
+    //this.orderBook = new OrderBook(this.config);
   }
 
   async processOrder(message: CommandOrder | CommandContract | CommandSubscribe) {
@@ -41,21 +44,27 @@ export class BusinessProtocol {
       await this.putOrder(message as CommandOrder);
     }
 
-    if (message.command === 'subscribe') {
-      await this.sendOrderBook(message as CommandSubscribe);
+    if (message.command === 'contract') {
+      await this.putContract(message as CommandContract);
     }
-    console.log(message);
+
+    if (message.command === 'subscribe') {
+      //await this.orderBook.sendOrderBook(message as CommandSubscribe);
+    }
   }
 
   private async putOrder(data: CommandOrder) {
+
+    const nameSpace = data.command == 'add'?'DivaExchangeOrderAdd':'DivaExchangeOrderDelete';
+
     const opts = {
       method: 'PUT',
       url: this.config.url_api_chain + '/transaction',
       body: [{
         seq: data.seq,
-        cmd: 'data',
-        ns: 'testFromProtocol',
-        b64u: base64url.encode(JSON.stringify(data))
+        command: 'data',
+        ns: nameSpace,
+        base64url: base64url.encode(JSON.stringify(data))
       }],
       json: true
     };
@@ -72,7 +81,7 @@ export class BusinessProtocol {
     });
   }
 
-  private async sendOrderBook(message: CommandSubscribe) {
-    console.log(message)
+  private async putContract(message: CommandContract) {
+    console.log(message);
   }
 }

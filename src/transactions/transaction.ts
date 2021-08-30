@@ -17,11 +17,13 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-interface Command {
-  command: string;
+interface CommandData {
+  ns: string,
+  base64url: string;
 }
 
-export interface CommandOrder extends Command {
+export interface CommandOrder extends CommandData{
+  command: string;
   seq: number;
   channel: string;
   type: string;
@@ -30,17 +32,20 @@ export interface CommandOrder extends Command {
   contract: string;
 }
 
-export interface CommandContract extends Command {
+export interface CommandContract {
+  command: string;
   seq: number;
   channel: string;
 }
 
-export interface CommandSubscribe extends Command {
+export interface CommandSubscribe {
+  command: string;
   channel: string;
   contract: string;
 }
 
-export interface CommandAddOrder extends Command {
+export interface CommandAddOrder {
+  command: string;
   seq: number;
   publicKey: string;
   identAssetPair: string;
@@ -49,22 +54,24 @@ export interface CommandAddOrder extends Command {
   price: string;
 }
 
-export interface CommandDeleteOrder extends Command {
+export interface CommandDeleteOrder {
+  command: string;
   seq: number;
-  publicKey: string;
-  identAssetPair: string;
-  orderType: string;
+  contract: string;
+  type: string;
   amount: string;
   price: string;
 }
 
-export interface CommandAddAsset extends Command {
+export interface CommandAddContract {
+  command: string;
   seq: number;
   publicKey: string;
   identAssetPair: string;
 }
 
-export interface CommandDeleteAsset extends Command {
+export interface CommandDeleteContract {
+  command: string;
   seq: number;
   publicKey: string;
   identAssetPair: string;
@@ -75,8 +82,8 @@ export type ArrayCommand = Array<
   | CommandContract
   | CommandAddOrder
   | CommandDeleteOrder
-  | CommandAddAsset
-  | CommandDeleteAsset
+  | CommandAddContract
+  | CommandDeleteContract
 >;
 
 export type TransactionStruct = {
