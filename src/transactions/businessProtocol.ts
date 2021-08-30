@@ -23,45 +23,29 @@ import get from 'simple-get';
 import { validateContract, validateOrder } from "../net/validation";
 import base64url from 'base64-url';
 import {CommandContract, CommandOrder} from "./transaction";
-import {AnyValidateFunction} from "ajv/dist/types";
 
 export class BusinessProtocol {
   public readonly config: Config;
   private readonly publicKey: string = '';
 
-  private precision = 9;
-
   constructor(config: Config) {
     this.config = config;
-    // getPublicKey --- from api
     this.publicKey = 'teessstttttt';
   }
 
-  // need to be refactored !!
   async processOrder(message: CommandOrder | CommandContract) {
 
-    // here goes the stateless validation
-
-    if (!validateOrder(message)) {
+    if (!validateOrder(message) && !validateContract(message)) {
       throw Error("");
     }
 
     if (message.channel === 'order') {
-      switch (message.command) {
-        case 'add':
-          await this.putAddOrder(message as CommandOrder);
-          break;
-        // case 'delete':
-        //   await this.putDeleteOrder(message as CommandOrder);
-        //   break;
-      }
+      await this.putOrder(message as CommandOrder);
     }
     console.log(message);
   }
 
-  //@FIXME "data" as param is ugly - it should accept an object - the sequence might (but must not) be also provided by the UI
-  private async putAddOrder(data: CommandOrder) {
-    //processing message to valid order
+  private async putOrder(data: CommandOrder) {
     const opts = {
       method: 'PUT',
       url: this.config.url_api_chain + '/transaction',
@@ -84,8 +68,4 @@ export class BusinessProtocol {
       });
     });
   }
-
-  // private async putDeleteOrder(message) {
-  //   //processing message to valid order
-  // }
 }
