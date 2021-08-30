@@ -60,7 +60,7 @@ export class Server {
           ws.send(404);
         }
         //@FIXME logging
-        Logger.trace(`received: ${message.toString()}`);
+        Logger.trace(`received to webSocketServer ( 127.0.0.1 : 19720) : ${message.toString()}`);
       });
     });
 
@@ -92,7 +92,7 @@ export class Server {
       try {
         block = JSON.parse(message.toString());
         //@FIXME logging
-        Logger.trace(block.tx[0].commands[0]);
+        Logger.trace('Feeder part: ' + block.tx[0].commands[0]);
 
         // business protocol
         await this.feeder.processState(block);

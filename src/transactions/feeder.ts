@@ -65,7 +65,7 @@ export class Feeder {
     async processState(block: BlockStruct) {
         for (const t of block.tx) {
             for (const c of t.commands) {
-                console.log(c.command);
+                //console.log(c.command);
                 switch (c.command) {
                     case 'addAsset':
                         await this.addAsset(c as CommandAddAsset);

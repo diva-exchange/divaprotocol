@@ -37,7 +37,7 @@ export class BusinessProtocol {
       throw Error("");
     }
 
-    if (message.command === 'data') {
+    if (message.command === 'add' || message.command === 'delete') {
       await this.putOrder(message as CommandOrder);
     }
 
@@ -59,7 +59,7 @@ export class BusinessProtocol {
       }],
       json: true
     };
-console.log(opts);
+
     return new Promise((resolve, reject) => {
       get.concat(opts, (error: Error, response: any) => {
         if (error) {
