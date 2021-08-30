@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "/schema/transaction/subscribe.json",
+
+  "type": "object",
+  "properties": {
+    "channel": {
+      "enum": ["market", "nostro"]
+    },
+    "command": {
+      "type": "string",
+      "pattern": "^subscribe$"
+    },
+    "contract": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9._-]{1,64}$"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "channel",
+    "command",
+    "contract"
+  ]
+}

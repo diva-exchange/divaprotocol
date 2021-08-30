@@ -20,8 +20,11 @@
 import Ajv, {ValidateFunction} from 'ajv';
 import schemaContract from '../schema/contract.json';
 import schemaOrder from '../schema/order.json';
+import schemaSubscribe from '../schema/subscribe.json'
 
 export const ajv: Ajv = new Ajv();
 
 export const validateContract: ValidateFunction = ajv.compile(schemaContract);
 export const validateOrder: ValidateFunction = ajv.compile(schemaOrder);
+export const validateSubscribe: ValidateFunction = ajv.compile(schemaSubscribe);
+

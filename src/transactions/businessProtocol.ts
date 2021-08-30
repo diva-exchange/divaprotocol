@@ -20,27 +20,29 @@
 import { Config } from '../config';
 import { Logger } from '../logger';
 import get from 'simple-get';
-import { validateContract, validateOrder } from "../net/validation";
+import {validateContract, validateOrder, validateSubscribe} from "../net/validation";
 import base64url from 'base64-url';
-import {CommandContract, CommandOrder} from "./transaction";
+import {CommandContract, CommandOrder, CommandSubscribe} from "./transaction";
 
 export class BusinessProtocol {
   public readonly config: Config;
-  private readonly publicKey: string = '';
 
   constructor(config: Config) {
     this.config = config;
-    this.publicKey = 'teessstttttt';
   }
 
-  async processOrder(message: CommandOrder | CommandContract) {
+  async processOrder(message: CommandOrder | CommandContract | CommandSubscribe) {
 
-    if (!validateOrder(message) && !validateContract(message)) {
+    if (!validateOrder(message) && !validateContract(message) && !validateSubscribe(message)) {
       throw Error("");
     }
 
-    if (message.channel === 'nostro') {
+    if (message.command === 'data') {
       await this.putOrder(message as CommandOrder);
+    }
+
+    if (message.command === 'subscribe') {
+      await this.sendOrderBook(message as CommandSubscribe);
     }
     console.log(message);
   }
@@ -51,12 +53,13 @@ export class BusinessProtocol {
       url: this.config.url_api_chain + '/transaction',
       body: [{
         seq: data.seq,
-        command: 'data',
-        base64url: base64url.encode(JSON.stringify(data))
+        cmd: 'data',
+        ns: 'testFromProtocol',
+        b64u: base64url.encode(JSON.stringify(data))
       }],
       json: true
     };
-
+console.log(opts);
     return new Promise((resolve, reject) => {
       get.concat(opts, (error: Error, response: any) => {
         if (error) {
@@ -67,5 +70,9 @@ export class BusinessProtocol {
         resolve(response);
       });
     });
+  }
+
+  private async sendOrderBook(message: CommandSubscribe) {
+    console.log(message)
   }
 }

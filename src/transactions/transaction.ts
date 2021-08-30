@@ -18,11 +18,11 @@
  */
 
 interface Command {
-  seq: number;
   command: string;
 }
 
 export interface CommandOrder extends Command {
+  seq: number;
   channel: string;
   type: string;
   amount: string;
@@ -31,10 +31,17 @@ export interface CommandOrder extends Command {
 }
 
 export interface CommandContract extends Command {
+  seq: number;
   channel: string;
 }
 
+export interface CommandSubscribe extends Command {
+  channel: string;
+  contract: string;
+}
+
 export interface CommandAddOrder extends Command {
+  seq: number;
   publicKey: string;
   identAssetPair: string;
   orderType: string;
@@ -43,6 +50,7 @@ export interface CommandAddOrder extends Command {
 }
 
 export interface CommandDeleteOrder extends Command {
+  seq: number;
   publicKey: string;
   identAssetPair: string;
   orderType: string;
@@ -51,11 +59,13 @@ export interface CommandDeleteOrder extends Command {
 }
 
 export interface CommandAddAsset extends Command {
+  seq: number;
   publicKey: string;
   identAssetPair: string;
 }
 
 export interface CommandDeleteAsset extends Command {
+  seq: number;
   publicKey: string;
   identAssetPair: string;
 }
