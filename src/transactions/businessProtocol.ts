@@ -39,7 +39,7 @@ export class BusinessProtocol {
       throw Error("");
     }
 
-    if (message.channel === 'order') {
+    if (message.channel === 'nostro') {
       await this.putOrder(message as CommandOrder);
     }
     console.log(message);

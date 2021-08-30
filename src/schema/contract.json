@@ -8,15 +8,18 @@
       "type": "integer",
       "minimum": 1
     },
-    "command": {
+    "channel": {
       "type": "string",
-      "pattern": "^addAsset$"
+      "pattern": "^contract$"
+    },
+    "command": {
+      "enum": ["add", "delete"]
     },
     "publicKey": {
       "type": "string",
       "pattern": "^[A-Za-z0-9_-]{43}$"
     },
-    "identAssetPair": {
+    "contract": {
       "type": "string",
       "pattern": "^[a-zA-Z0-9._-]{1,64}$"
     }
