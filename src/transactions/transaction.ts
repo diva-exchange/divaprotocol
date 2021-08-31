@@ -17,73 +17,37 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-interface CommandData {
+export interface CommandData {
+  seq: number;
+  command: string;
   ns: string,
   base64url: string;
 }
 
-export interface CommandOrder extends CommandData{
-  command: string;
-  seq: number;
-  channel: string;
-  type: string;
-  amount: string;
-  price: string;
-  contract: string;
-}
-
-export interface CommandContract {
-  command: string;
-  seq: number;
-  channel: string;
-}
-
-export interface CommandSubscribe {
+interface Command {
   command: string;
   channel: string;
   contract: string;
 }
 
-export interface CommandAddOrder {
-  command: string;
+export interface CommandOrder extends Command{
   seq: number;
-  publicKey: string;
-  identAssetPair: string;
-  orderType: string;
-  amount: string;
-  price: string;
-}
-
-export interface CommandDeleteOrder {
-  command: string;
-  seq: number;
-  contract: string;
   type: string;
   amount: string;
   price: string;
 }
 
-export interface CommandAddContract {
-  command: string;
+export interface CommandContract  extends Command{
   seq: number;
-  publicKey: string;
-  identAssetPair: string;
 }
 
-export interface CommandDeleteContract {
-  command: string;
-  seq: number;
-  publicKey: string;
-  identAssetPair: string;
+export interface CommandSubscribe  extends Command{
 }
 
 export type ArrayCommand = Array<
+  | CommandData
   | CommandOrder
   | CommandContract
-  | CommandAddOrder
-  | CommandDeleteOrder
-  | CommandAddContract
-  | CommandDeleteContract
 >;
 
 export type TransactionStruct = {

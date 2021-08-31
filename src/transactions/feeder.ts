@@ -18,17 +18,13 @@
  */
 
 import { Config } from '../config';
-// import LevelUp from 'levelup';
-// import LevelDown from 'leveldown';
 import Big from 'big.js';
-import { Logger } from '../logger';
 import { Db } from '../transactions/db';
 import { BlockStruct } from './block';
 import {
-    CommandAddContract,
-    CommandAddOrder,
-    CommandDeleteContract,
-    CommandDeleteOrder, CommandOrder,
+    CommandOrder,
+    CommandContract,
+    CommandData
 } from './transaction';
 import base64url from "base64-url";
 
@@ -36,50 +32,31 @@ export class Feeder {
     public readonly config: Config;
     private readonly db: Db;
 
-
     private precision = 9;
 
     public constructor(config: Config) {
         this.config = config;
         this.db = Db.make(this.config);
-
-        // this.dbState = LevelUp(
-        //     LevelDown(this.config.path_state),
-        //     {
-        //         createIfMissing: true,
-        //         errorIfExists: false,
-        //         compression: true,
-        //         cacheSize: 2 * 1024 * 1024, // 2 MB
-        //     }
-        // );
-    }
-
-    public async shutdown() {
-        await this.db.shutdown();
-    }
-
-    public async clear() {
-        await this.db.clear();
     }
 
     public async processState(block: BlockStruct) {
         for (const t of block.tx) {
             for (const c of t.commands) {
                 if (c.command === 'data') {
-                    let data = c as CommandOrder;
-                    const decodedData = base64url.decode(data.base64url);
+                    let data = c as CommandData;
+                    const decodedData = JSON.parse(base64url.decode(data.base64url));
                     switch (data.ns) {
                         case 'DivaExchangeContractAdd':
-                            await this.addContract(decodedData);
+                            await this.addContract(decodedData as CommandContract);
                             break;
                         case 'DivaExchangeContractDelete':
-                            await this.deleteContract(decodedData);
+                            await this.deleteContract(decodedData as CommandContract);
                             break;
                         case 'DivaExchangeOrderAdd':
-                            await this.addOrder(decodedData);
+                            await this.addOrder(decodedData  as CommandOrder);
                             break;
                         case 'DivaExchangeOrderDelete':
-                            await this.deleteOrder(decodedData);
+                            await this.deleteOrder(decodedData  as CommandOrder);
                             break;
                     }
                 }
@@ -87,68 +64,39 @@ export class Feeder {
         }
     }
 
-    private async addContract(data: string) {
-        let jsonData = JSON.parse(data);
+    private async addContract(data: CommandContract) {
         await this.db.updateKey(
-            'asset:' + jsonData.identAssetPair,
-            jsonData.identAssetPair
+            'asset:' + data.contract,
+            new Map<string, string>()
         );
     }
 
-    private async deleteContract(data: string) {
-        // let jsonData = JSON.parse(data);
-        // return new Promise((resolve, reject) => {
-        //     this.dbState
-        //         .createReadStream()
-        //         .on('data', (data) => {
-        //             if (data.key.toString().includes(jsonData.contract)) {
-        //                 this.dbState.del(data.key.toString());
-        //             }
-        //         })
-        //         .on('end', () => {
-        //             resolve(this.dbState);
-        //         })
-        //         .on('error', (e) => {
-        //             reject(e);
-        //         });
-        // });
+    private async deleteContract(data: CommandContract) {
+        await this.db.deleteByKeyPart(data.contract);
     }
 
-    private async addOrder(data: string) {
-        let jsonData = JSON.parse(data);
-        let currentMap = new Map<string, string>();
-        //jsonData = Feeder.deleteDotFromTheEnd(jsonData);
-        const key =
-            'order:' +
-            jsonData.contract +
-            ':' +
-            jsonData.type ;
-        currentMap = await this.db.getValueByKey(key);
-        let amountString = currentMap.get(jsonData.price.toString());
+    private async addOrder(data: CommandOrder) {
+        data = Feeder.deleteDotFromTheEnd(data);
+        const key = this.getOrderKey(data);
+        const currentMap = await this.db.getValueByKey(key);
+        let amountString = currentMap.get(data.price.toString());
         let amount = new Big(amountString || 0).toNumber();
-        currentMap.set(jsonData.price.toString(),new Big(jsonData.amount || 0).plus(amount).toFixed(this.precision));
+        currentMap.set(data.price.toString(),new Big(data.amount || 0).plus(amount).toFixed(this.precision));
         await this.db.updateKey(key,currentMap);
-        Logger.info(await this.db.getValueByKey(key));
     }
 
-    private async deleteOrder(data: string) {
-        let jsonData = JSON.parse(data);
-        let currentMap = new Map<string, string>();
-        //jsonData = Feeder.deleteDotFromTheEnd(jsonData);
-        const key =
-            'order:' +
-            jsonData.contract +
-            ':' +
-            jsonData.type;
-        currentMap = await this.db.getValueByKey(key);
-        let amountString = currentMap.get(jsonData.price.toString());
+    private async deleteOrder(data: CommandOrder) {
+        data = Feeder.deleteDotFromTheEnd(data);
+        const key = this.getOrderKey(data);
+        const currentMap = await this.db.getValueByKey(key);
+        let amountString = currentMap.get(data.price.toString());
         let amount = new Big(amountString || 0).toNumber();
         if (amount > 0) {
-            if (parseFloat(jsonData.amount) >= amount) {
+            if (parseFloat(data.amount) >= amount) {
                 currentMap.delete(key);
             } else {
                 currentMap.set(key, new Big(amount || 0)
-                    .minus(new Big(jsonData.amount || 0))
+                    .minus(new Big(data.amount || 0))
                     .toFixed(this.precision))
             }
         }
@@ -158,15 +106,30 @@ export class Feeder {
         );
     }
 
-    private static deleteDotFromTheEnd(
-        command: CommandAddOrder | CommandDeleteOrder
-    ) {
-        if (command.price[command.price.length - 1] === '.') {
-            command.price = command.price.slice(0, -1);
+    private getOrderKey(data: CommandOrder) {
+        const key =
+            'order:' +
+            data.contract +
+            ':' +
+            data.type;
+        return key;
+    }
+
+    private static deleteDotFromTheEnd(data: CommandOrder) {
+        if (data.price[data.price.length - 1] === '.') {
+            data.price = data.price.slice(0, -1);
         }
-        if (command.amount[command.amount.length - 1] === '.') {
-            command.amount = command.amount.slice(0, -1);
+        if (data.amount[data.amount.length - 1] === '.') {
+            data.amount = data.amount.slice(0, -1);
         }
-        return command;
+        return data;
+    }
+
+    public async shutdown() {
+        await this.db.shutdown();
+    }
+
+    public async clear() {
+        await this.db.clear();
     }
 }

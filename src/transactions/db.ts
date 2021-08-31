@@ -57,8 +57,26 @@ export class Db {
         return new Map<string, string>();
     }
 
-    public async deleteKey(key: string) {
+    public async deleteByKey(key: string) {
         this.dbState.del(key);
+    }
+
+    public async deleteByKeyPart(keyPart: string) {
+        return new Promise((resolve, reject) => {
+            this.dbState
+                .createReadStream()
+                .on('data', (data) => {
+                    if (data.key.toString().includes(keyPart)) {
+                        this.deleteByKey(data.key.toString());
+                    }
+                })
+                .on('end', () => {
+                    resolve(this.dbState);
+                })
+                .on('error', (e) => {
+                    reject(e);
+                });
+        });
     }
 
     public async shutdown() {

@@ -19,11 +19,7 @@
 
 import {Config} from "../config";
 import { Db } from "../transactions/db";
-import { Logger } from '../logger';
-import get from 'simple-get';
-import base64url from 'base64-url';
-import {CommandContract, CommandOrder, CommandSubscribe} from "./transaction";
-import path from "path";
+import { CommandSubscribe } from "./transaction";
 
 export class OrderBook {
     public readonly config: Config;
