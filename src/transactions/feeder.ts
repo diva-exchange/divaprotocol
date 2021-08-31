@@ -18,10 +18,11 @@
  */
 
 import { Config } from '../config';
-import LevelUp from 'levelup';
-import LevelDown from 'leveldown';
+// import LevelUp from 'levelup';
+// import LevelDown from 'leveldown';
 import Big from 'big.js';
 import { Logger } from '../logger';
+import { Db } from '../transactions/db';
 import { BlockStruct } from './block';
 import {
     CommandAddContract,
@@ -33,33 +34,35 @@ import base64url from "base64-url";
 
 export class Feeder {
     public readonly config: Config;
-    private readonly dbState: InstanceType<typeof LevelUp>;
+    private readonly db: Db;
+
 
     private precision = 9;
 
-    constructor(config: Config) {
+    public constructor(config: Config) {
         this.config = config;
+        this.db = Db.make(this.config);
 
-        this.dbState = LevelUp(
-            LevelDown(this.config.path_state),
-            {
-                createIfMissing: true,
-                errorIfExists: false,
-                compression: true,
-                cacheSize: 2 * 1024 * 1024, // 2 MB
-            }
-        );
+        // this.dbState = LevelUp(
+        //     LevelDown(this.config.path_state),
+        //     {
+        //         createIfMissing: true,
+        //         errorIfExists: false,
+        //         compression: true,
+        //         cacheSize: 2 * 1024 * 1024, // 2 MB
+        //     }
+        // );
     }
 
-    async shutdown() {
-        await this.dbState.close();
+    public async shutdown() {
+        await this.db.shutdown();
     }
 
-    async clear() {
-        await this.dbState.clear();
+    public async clear() {
+        await this.db.clear();
     }
 
-    async processState(block: BlockStruct) {
+    public async processState(block: BlockStruct) {
         for (const t of block.tx) {
             for (const c of t.commands) {
                 if (c.command === 'data') {
@@ -86,18 +89,19 @@ export class Feeder {
 
     private async addContract(data: string) {
         let jsonData = JSON.parse(data);
-        await this.dbState.put(
+        await this.db.updateKey(
             'asset:' + jsonData.identAssetPair,
             jsonData.identAssetPair
         );
     }
 
     private async deleteContract(data: string) {
+        // let jsonData = JSON.parse(data);
         // return new Promise((resolve, reject) => {
         //     this.dbState
         //         .createReadStream()
         //         .on('data', (data) => {
-        //             if (data.key.toString().includes(command.identAssetPair)) {
+        //             if (data.key.toString().includes(jsonData.contract)) {
         //                 this.dbState.del(data.key.toString());
         //             }
         //         })
@@ -119,47 +123,39 @@ export class Feeder {
             jsonData.contract +
             ':' +
             jsonData.type ;
-        try {
-            currentMap = await this.dbState.get(key);
-        } catch (err) {
-            Logger.error(err);
-        }
+        currentMap = await this.db.getValueByKey(key);
         let amountString = currentMap.get(jsonData.price.toString());
         let amount = new Big(amountString || 0).toNumber();
         currentMap.set(jsonData.price.toString(),new Big(jsonData.amount || 0).plus(amount).toFixed(this.precision));
-        await this.dbState.put(key,currentMap);
-
-        console.log(await this.dbState.get(key));
+        await this.db.updateKey(key,currentMap);
+        Logger.info(await this.db.getValueByKey(key));
     }
 
     private async deleteOrder(data: string) {
-        // let currentMap = new Map<string, string>();
-        // command = Feeder.deleteDotFromTheEnd(command);
-        // const key =
-        //     'order:' +
-        //     command.identAssetPair +
-        //     ':' +
-        //     command.orderType;
-        // try {
-        //     currentMap = await this.dbState.get(key);
-        // } catch (err) {
-        //     Logger.error(err);
-        // }
-        // let amountString = currentMap.get(command.price.toString());
-        // let amount = new Big(amountString || 0).toNumber();
-        // if (amount > 0) {
-        //     if (parseFloat(command.amount) >= amount) {
-        //         currentMap.delete(key);
-        //     } else {
-        //         currentMap.set(key, new Big(amount || 0)
-        //             .minus(new Big(command.amount || 0))
-        //             .toFixed(this.precision))
-        //     }
-        // }
-        // await this.dbState.put(
-        //     key,
-        //     currentMap
-        // );
+        let jsonData = JSON.parse(data);
+        let currentMap = new Map<string, string>();
+        //jsonData = Feeder.deleteDotFromTheEnd(jsonData);
+        const key =
+            'order:' +
+            jsonData.contract +
+            ':' +
+            jsonData.type;
+        currentMap = await this.db.getValueByKey(key);
+        let amountString = currentMap.get(jsonData.price.toString());
+        let amount = new Big(amountString || 0).toNumber();
+        if (amount > 0) {
+            if (parseFloat(jsonData.amount) >= amount) {
+                currentMap.delete(key);
+            } else {
+                currentMap.set(key, new Big(amount || 0)
+                    .minus(new Big(jsonData.amount || 0))
+                    .toFixed(this.precision))
+            }
+        }
+        await this.db.updateKey(
+            key,
+            currentMap
+        );
     }
 
     private static deleteDotFromTheEnd(

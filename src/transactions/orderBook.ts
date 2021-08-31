@@ -18,35 +18,29 @@
  */
 
 import {Config} from "../config";
+import { Db } from "../transactions/db";
 import { Logger } from '../logger';
 import get from 'simple-get';
 import base64url from 'base64-url';
-import LevelUp from 'levelup';
-import LevelDown from 'leveldown';
 import {CommandContract, CommandOrder, CommandSubscribe} from "./transaction";
 import path from "path";
 
 export class OrderBook {
     public readonly config: Config;
-    private readonly dbState: InstanceType<typeof LevelUp>;
+    private readonly db: Db;
 
-    constructor(config: Config) {
+    public constructor(config: Config) {
         this.config = config;
-        this.dbState = LevelUp(
-            LevelDown(this.config.path_state),
-            {
-                createIfMissing: true,
-                errorIfExists: false,
-                compression: true,
-                cacheSize: 2 * 1024 * 1024, // 2 MB
-            }
-        );
+        this.db = Db.make(this.config);
     }
 
-    public async sendOrderBook(message: CommandSubscribe) {
-
-        console.log(message);
+    public async getOrderBook(message: CommandSubscribe) {
+        const orderBuy: Map<string, string> = await this.db.getValueByKey('order:' + message.contract + ':buy');
+        const orderSell: Map<string, string> = await this.db.getValueByKey('order:' + message.contract + ':sell');
+        return {
+            "channel": message.channel,
+            "data": { "buy": orderBuy,
+                "sell": orderSell}
+        };
     }
-
-
 }

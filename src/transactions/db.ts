@@ -20,23 +20,15 @@
 import { Config } from '../config';
 import LevelUp from 'levelup';
 import LevelDown from 'leveldown';
-import Big from 'big.js';
-import { Logger } from '../logger';
-import { BlockStruct } from './block';
-import {
-    CommandAddContract,
-    CommandAddOrder,
-    CommandDeleteContract,
-    CommandDeleteOrder,
-} from './transaction';
+import {Logger} from "../logger";
 
 export class Db {
     public readonly config: Config;
     private readonly dbState: InstanceType<typeof LevelUp>;
+    private static dbInstance: Db;
 
-    constructor(config: Config) {
+    private constructor(config: Config) {
         this.config = config;
-
         this.dbState = LevelUp(
             LevelDown(this.config.path_state),
             {
@@ -48,11 +40,32 @@ export class Db {
         );
     }
 
-    async shutdown() {
+    public static make(config: Config) {
+        return this.dbInstance || (this.dbInstance = new this(config));
+    }
+
+    public async updateKey(key: string, value: Map<string, string>) {
+        this.dbState.put(key, value);
+    }
+
+    public async getValueByKey(key: string) {
+        try {
+            return await this.dbState.get(key);
+        } catch (err) {
+            Logger.error(err);
+        }
+        return new Map<string, string>();
+    }
+
+    public async deleteKey(key: string) {
+        this.dbState.del(key);
+    }
+
+    public async shutdown() {
         await this.dbState.close();
     }
 
-    async clear() {
+    public async clear() {
         await this.dbState.clear();
     }
 }
