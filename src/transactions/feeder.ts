@@ -45,6 +45,7 @@ export class Feeder {
 
     public async processState(block: BlockStruct) {
         for (const t of block.tx) {
+            const channel: string = t.origin==this.config.my_public_key?'nostro':'market:';
             for (const c of t.commands) {
                 if (c.command === 'data') {
                     let data = c as CommandData;
@@ -57,14 +58,13 @@ export class Feeder {
                             await this.deleteContract(decodedData as CommandContract);
                             break;
                         case 'DivaExchangeOrderAdd':
-                            await this.addOrder(decodedData  as CommandOrder);
+                            await this.addOrder(decodedData  as CommandOrder, channel);
                             break;
                         case 'DivaExchangeOrderDelete':
-                            await this.deleteOrder(decodedData  as CommandOrder);
+                            await this.deleteOrder(decodedData  as CommandOrder, channel);
                             break;
                     }
-                    decodedData.channel = decodedData.channel?decodedData.channel:'nostro';
-                    return this.orderBook.sendSubscribe(decodedData as CommandSubscribe);
+                    return this.orderBook.sendSubscribe(decodedData.contract, channel);
                 }
             }
         }
@@ -81,9 +81,9 @@ export class Feeder {
         await this.db.deleteByKeyPart(data.contract);
     }
 
-    private async addOrder(data: CommandOrder) {
+    private async addOrder(data: CommandOrder, channel: string) {
         data = Feeder.deleteDotFromTheEnd(data);
-        const key = this.getOrderKey(data);
+        const key = this.getOrderKey(data, channel);
         let currentMap = new Map<string,string>(JSON.parse(await this.db.getValueByKey(key)));
         const mapKey: string = data.price.toString();
         let amountString: string | undefined = currentMap.has(mapKey)?currentMap.get(mapKey):'0';
@@ -93,9 +93,9 @@ export class Feeder {
         await this.db.updateByKey(key,JSON.stringify(Array.from(currentMap.entries())));
     }
 
-    private async deleteOrder(data: CommandOrder) {
+    private async deleteOrder(data: CommandOrder, channel: string) {
         data = Feeder.deleteDotFromTheEnd(data);
-        const key = this.getOrderKey(data);
+        const key = this.getOrderKey(data, channel);
         const mapKey: string = data.price.toString();
         const currentMap = new Map<string,string>(JSON.parse(await this.db.getValueByKey(key)));
         let amountString: string | undefined = currentMap.has(mapKey)?currentMap.get(mapKey):'0';
@@ -115,9 +115,10 @@ export class Feeder {
         );
     }
 
-    private getOrderKey(data: CommandOrder) {
+    private getOrderKey(data: CommandOrder, channel: string) {
         const key =
-            'order:' +
+            'order_' + channel +
+            ':' +
             data.contract +
             ':' +
             data.type;

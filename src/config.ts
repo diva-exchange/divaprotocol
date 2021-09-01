@@ -19,6 +19,8 @@
 
 import path from 'path';
 import fs from 'fs';
+import get from 'simple-get';
+import {Logger} from "./logger";
 
 export type Configuration = {
   ip?: string;
@@ -29,6 +31,7 @@ export type Configuration = {
   path_keys?: string;
   url_block_feed?: string;
   url_api_chain?: string;
+  my_public_key?: string;
 };
 
 const DEFAULT_IP = '127.0.0.1';
@@ -47,6 +50,8 @@ export class Config {
   public readonly path_app: string;
   public readonly per_message_deflate: boolean;
   public readonly path_keys: string;
+  public my_public_key: string = '';
+
 
   constructor(c: Configuration) {
     this.path_app =
@@ -76,6 +81,24 @@ export class Config {
     if (!fs.existsSync(this.path_keys)) {
       fs.mkdirSync(this.path_keys, { mode: '755', recursive: true });
     }
+
+    this.getPublicKey();
+  }
+
+  private async getPublicKey() {
+    return new Promise((resolve, reject) => {
+      get.concat(this.url_api_chain + '/about', (error: Error, res: any, data: any) => {
+        if (error) {
+          Logger.trace(error);
+          reject(error);
+          return;
+        }
+        if (res.statusCode == 200) {
+          this.my_public_key = JSON.parse(data).publicKey.toString();
+        }
+        resolve(data);
+      });
+    });
   }
 
   /**

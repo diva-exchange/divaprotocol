@@ -30,11 +30,11 @@ export class OrderBook {
         this.db = Db.make(this.config);
     }
 
-    public async sendSubscribe(data: CommandSubscribe) {
-        const orderBuy: string = await this.db.getValueByKey('order:' + data.contract + ':buy');
-        const orderSell: string = await this.db.getValueByKey('order:' + data.contract + ':sell');
+    public async sendSubscribe(contract: string, channel: string) {
+        const orderBuy: string = await this.db.getValueByKey('order_' + channel + ':' + contract + ':buy');
+        const orderSell: string = await this.db.getValueByKey('order_' + channel + ':' + contract + ':sell');
         return {
-            "channel": data.channel,
+            "channel": channel,
             "data": { "buy": orderBuy.toString(),
                 "sell": orderSell.toString()}
         };

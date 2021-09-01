@@ -44,7 +44,7 @@ export class Db {
         return this.dbInstance || (this.dbInstance = new this(config));
     }
 
-    public async updateByKey(key: string, value: string) {
+    public async updateByKey(key: string, value: string): Promise<void> {
         this.dbState.put(key, value);
     }
 
@@ -57,11 +57,11 @@ export class Db {
         return '[]';
     }
 
-    public async deleteByKey(key: string) {
+    public async deleteByKey(key: string): Promise<void> {
         this.dbState.del(key);
     }
 
-    public async deleteByKeyPart(keyPart: string) {
+    public async deleteByKeyPart(keyPart: string): Promise<void> {
         return new Promise((resolve, reject) => {
             this.dbState
                 .createReadStream()
@@ -71,7 +71,7 @@ export class Db {
                     }
                 })
                 .on('end', () => {
-                    resolve(this.dbState);
+                    resolve();
                 })
                 .on('error', (e) => {
                     reject(e);
