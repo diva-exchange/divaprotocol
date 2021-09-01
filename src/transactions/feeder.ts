@@ -45,7 +45,7 @@ export class Feeder {
 
     public async processState(block: BlockStruct) {
         for (const t of block.tx) {
-            const channel: string = t.origin==this.config.my_public_key?'nostro':'market:';
+            const channel: string = t.origin==this.config.my_public_key?'nostro':'market';
             for (const c of t.commands) {
                 if (c.command === 'data') {
                     let data = c as CommandData;
@@ -85,10 +85,15 @@ export class Feeder {
         data = Feeder.deleteDotFromTheEnd(data);
         const key = this.getOrderKey(data, channel);
         let currentMap = new Map<string,string>(JSON.parse(await this.db.getValueByKey(key)));
-        const mapKey: string = data.price.toString();
-        let amountString: string | undefined = currentMap.has(mapKey)?currentMap.get(mapKey):'0';
-        const amount = new Big(amountString || 0).toNumber();
-        const newAmount: string = new Big(data.amount || 0).plus(amount).toFixed(this.precision);
+        let mapKey:string = data.price.toString() + ':' + Date.now();
+        let newAmount = data.amount.toString();
+
+        if (channel == 'market') {
+            mapKey = data.price.toString();
+            let amountString: string | undefined = currentMap.has(mapKey)?currentMap.get(mapKey):'0';
+            const amount = new Big(amountString || 0).toNumber();
+            newAmount = new Big(data.amount || 0).plus(amount).toFixed(this.precision);
+        }
         currentMap.set(mapKey, newAmount);
         await this.db.updateByKey(key,JSON.stringify(Array.from(currentMap.entries())));
     }
