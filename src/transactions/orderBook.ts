@@ -18,7 +18,7 @@
  */
 
 import {Config} from "../config";
-import { Db } from "../transactions/db";
+import { Db } from "../db";
 import { CommandSubscribe } from "./transaction";
 
 export class OrderBook {
@@ -30,13 +30,13 @@ export class OrderBook {
         this.db = Db.make(this.config);
     }
 
-    public async getOrderBook(message: CommandSubscribe) {
-        const orderBuy: Map<string, string> = await this.db.getValueByKey('order:' + message.contract + ':buy');
-        const orderSell: Map<string, string> = await this.db.getValueByKey('order:' + message.contract + ':sell');
+    public async sendSubscribe(data: CommandSubscribe) {
+        const orderBuy: string = await this.db.getValueByKey('order:' + data.contract + ':buy');
+        const orderSell: string = await this.db.getValueByKey('order:' + data.contract + ':sell');
         return {
-            "channel": message.channel,
-            "data": { "buy": orderBuy,
-                "sell": orderSell}
+            "channel": data.channel,
+            "data": { "buy": orderBuy.toString(),
+                "sell": orderSell.toString()}
         };
     }
 }

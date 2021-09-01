@@ -19,24 +19,29 @@
 
 import { Config } from '../config';
 import Big from 'big.js';
-import { Db } from '../transactions/db';
+import { Db } from '../db';
 import { BlockStruct } from './block';
 import {
     CommandOrder,
     CommandContract,
-    CommandData
+    CommandData,
+    CommandSubscribe
 } from './transaction';
 import base64url from "base64-url";
+import {OrderBook} from './orderBook';
+import {Logger} from "../logger";
 
 export class Feeder {
     public readonly config: Config;
     private readonly db: Db;
+    private orderBook: OrderBook;
 
     private precision = 9;
 
     public constructor(config: Config) {
         this.config = config;
         this.db = Db.make(this.config);
+        this.orderBook = new OrderBook(this.config);
     }
 
     public async processState(block: BlockStruct) {
@@ -59,15 +64,16 @@ export class Feeder {
                             await this.deleteOrder(decodedData  as CommandOrder);
                             break;
                     }
+                    return await this.orderBook.sendSubscribe(decodedData as CommandSubscribe);
                 }
             }
         }
     }
 
     private async addContract(data: CommandContract) {
-        await this.db.updateKey(
+        await this.db.updateByKey(
             'asset:' + data.contract,
-            new Map<string, string>()
+            data.contract
         );
     }
 
@@ -78,18 +84,21 @@ export class Feeder {
     private async addOrder(data: CommandOrder) {
         data = Feeder.deleteDotFromTheEnd(data);
         const key = this.getOrderKey(data);
-        const currentMap = await this.db.getValueByKey(key);
-        let amountString = currentMap.get(data.price.toString());
-        let amount = new Big(amountString || 0).toNumber();
-        currentMap.set(data.price.toString(),new Big(data.amount || 0).plus(amount).toFixed(this.precision));
-        await this.db.updateKey(key,currentMap);
+        let currentMap = new Map<string,string>(JSON.parse(await this.db.getValueByKey(key)));
+        const mapKey: string = data.price.toString();
+        let amountString: string | undefined = currentMap.has(mapKey)?currentMap.get(mapKey):'0';
+        const amount = new Big(amountString || 0).toNumber();
+        const newAmount: string = new Big(data.amount || 0).plus(amount).toFixed(this.precision);
+        currentMap.set(mapKey, newAmount);
+        await this.db.updateByKey(key,JSON.stringify(Array.from(currentMap.entries())));
     }
 
     private async deleteOrder(data: CommandOrder) {
         data = Feeder.deleteDotFromTheEnd(data);
         const key = this.getOrderKey(data);
-        const currentMap = await this.db.getValueByKey(key);
-        let amountString = currentMap.get(data.price.toString());
+        const mapKey: string = data.price.toString();
+        const currentMap = new Map<string,string>(JSON.parse(await this.db.getValueByKey(key)));
+        let amountString: string | undefined = currentMap.has(mapKey)?currentMap.get(mapKey):'0';
         let amount = new Big(amountString || 0).toNumber();
         if (amount > 0) {
             if (parseFloat(data.amount) >= amount) {
@@ -100,9 +109,9 @@ export class Feeder {
                     .toFixed(this.precision))
             }
         }
-        await this.db.updateKey(
+        await this.db.updateByKey(
             key,
-            currentMap
+            JSON.stringify(Array.from(currentMap.entries()))
         );
     }
 

@@ -23,15 +23,12 @@ import get from 'simple-get';
 import {validateContract, validateOrder, validateSubscribe} from "../net/validation";
 import base64url from 'base64-url';
 import {CommandContract, CommandOrder, CommandSubscribe} from "./transaction";
-import {OrderBook} from './orderBook';
 
 export class BusinessProtocol {
   public readonly config: Config;
-  private orderBook: OrderBook;
 
   constructor(config: Config) {
     this.config = config;
-    this.orderBook = new OrderBook(this.config);
   }
 
   async processOrder(message: CommandOrder | CommandContract | CommandSubscribe) {
@@ -46,11 +43,6 @@ export class BusinessProtocol {
 
     if (message.command === 'contract') {
       await this.putContract(message as CommandContract);
-    }
-
-    if (message.command === 'subscribe') {
-      const subscribeData = await this.orderBook.getOrderBook(message as CommandSubscribe);
-      //ws.send(subscribeData);
     }
   }
 

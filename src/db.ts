@@ -17,10 +17,10 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-import { Config } from '../config';
+import { Config } from './config';
 import LevelUp from 'levelup';
 import LevelDown from 'leveldown';
-import {Logger} from "../logger";
+import {Logger} from "./logger";
 
 export class Db {
     public readonly config: Config;
@@ -44,17 +44,17 @@ export class Db {
         return this.dbInstance || (this.dbInstance = new this(config));
     }
 
-    public async updateKey(key: string, value: Map<string, string>) {
+    public async updateByKey(key: string, value: string) {
         this.dbState.put(key, value);
     }
 
-    public async getValueByKey(key: string) {
+    public async getValueByKey(key: string): Promise<string> {
         try {
             return await this.dbState.get(key);
         } catch (err) {
             Logger.error(err);
         }
-        return new Map<string, string>();
+        return '[]';
     }
 
     public async deleteByKey(key: string) {
