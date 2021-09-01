@@ -39,7 +39,9 @@ export class OrderBook {
     );
     return {
       channel: channel,
-      data: { buy: orderBuy.toString(), sell: orderSell.toString() },
+      contract: contract,
+      buy: orderBuy.toString(),
+      sell: orderSell.toString()
     };
   }
 }
