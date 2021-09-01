@@ -26,7 +26,6 @@ export interface CommandData {
 
 interface Command {
   command: string;
-  channel: string;
   contract: string;
 }
 
@@ -39,9 +38,11 @@ export interface CommandOrder extends Command{
 
 export interface CommandContract  extends Command{
   seq: number;
+  channel: string;
 }
 
 export interface CommandSubscribe  extends Command{
+  channel: string;
 }
 
 export type ArrayCommand = Array<

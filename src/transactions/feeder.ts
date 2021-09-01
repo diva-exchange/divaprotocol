@@ -29,7 +29,6 @@ import {
 } from './transaction';
 import base64url from "base64-url";
 import {OrderBook} from './orderBook';
-import {Logger} from "../logger";
 
 export class Feeder {
     public readonly config: Config;
@@ -64,7 +63,8 @@ export class Feeder {
                             await this.deleteOrder(decodedData  as CommandOrder);
                             break;
                     }
-                    return await this.orderBook.sendSubscribe(decodedData as CommandSubscribe);
+                    decodedData.channel = decodedData.channel?decodedData.channel:'nostro';
+                    return this.orderBook.sendSubscribe(decodedData as CommandSubscribe);
                 }
             }
         }
