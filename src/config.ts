@@ -20,7 +20,7 @@
 import path from 'path';
 import fs from 'fs';
 import get from 'simple-get';
-import {Logger} from "./logger";
+import { Logger } from './logger';
 
 export type Configuration = {
   ip?: string;
@@ -52,7 +52,6 @@ export class Config {
   public readonly path_keys: string;
   public my_public_key: string = '';
 
-
   constructor(c: Configuration) {
     this.path_app =
       c.path_app ||
@@ -70,7 +69,7 @@ export class Config {
     this.url_block_feed =
       c.url_block_feed || process.env.URL_BLOCK_FEED || URL_BLOCK_FEED;
     this.url_api_chain =
-        c.url_api_chain || process.env.URL_API_CHAIN || URL_API_CHAIN;
+      c.url_api_chain || process.env.URL_API_CHAIN || URL_API_CHAIN;
 
     this.path_state = c.path_state || path.join(this.path_app, 'state/');
     if (!fs.existsSync(this.path_state)) {
@@ -87,17 +86,20 @@ export class Config {
 
   private async getPublicKey() {
     return new Promise((resolve, reject) => {
-      get.concat(this.url_api_chain + '/about', (error: Error, res: any, data: any) => {
-        if (error) {
-          Logger.trace(error);
-          reject(error);
-          return;
+      get.concat(
+        this.url_api_chain + '/about',
+        (error: Error, res: any, data: any) => {
+          if (error) {
+            Logger.trace(error);
+            reject(error);
+            return;
+          }
+          if (res.statusCode == 200) {
+            this.my_public_key = JSON.parse(data).publicKey.toString();
+          }
+          resolve(data);
         }
-        if (res.statusCode == 200) {
-          this.my_public_key = JSON.parse(data).publicKey.toString();
-        }
-        resolve(data);
-      });
+      );
     });
   }
 

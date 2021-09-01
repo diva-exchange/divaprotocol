@@ -20,70 +20,67 @@
 import { Config } from './config';
 import LevelUp from 'levelup';
 import LevelDown from 'leveldown';
-import {Logger} from "./logger";
+import { Logger } from './logger';
 
 export class Db {
-    public readonly config: Config;
-    private readonly dbState: InstanceType<typeof LevelUp>;
-    private static dbInstance: Db;
+  public readonly config: Config;
+  private readonly dbState: InstanceType<typeof LevelUp>;
+  private static dbInstance: Db;
 
-    private constructor(config: Config) {
-        this.config = config;
-        this.dbState = LevelUp(
-            LevelDown(this.config.path_state),
-            {
-                createIfMissing: true,
-                errorIfExists: false,
-                compression: true,
-                cacheSize: 2 * 1024 * 1024, // 2 MB
-            }
-        );
+  private constructor(config: Config) {
+    this.config = config;
+    this.dbState = LevelUp(LevelDown(this.config.path_state), {
+      createIfMissing: true,
+      errorIfExists: false,
+      compression: true,
+      cacheSize: 2 * 1024 * 1024, // 2 MB
+    });
+  }
+
+  public static make(config: Config) {
+    return this.dbInstance || (this.dbInstance = new this(config));
+  }
+
+  public async updateByKey(key: string, value: string): Promise<void> {
+    this.dbState.put(key, value);
+  }
+
+  public async getValueByKey(key: string): Promise<string> {
+    try {
+      return await this.dbState.get(key);
+    } catch (err) {
+      Logger.error(err);
     }
+    return '[]';
+  }
 
-    public static make(config: Config) {
-        return this.dbInstance || (this.dbInstance = new this(config));
-    }
+  public async deleteByKey(key: string): Promise<void> {
+    this.dbState.del(key);
+  }
 
-    public async updateByKey(key: string, value: string): Promise<void> {
-        this.dbState.put(key, value);
-    }
-
-    public async getValueByKey(key: string): Promise<string> {
-        try {
-            return await this.dbState.get(key);
-        } catch (err) {
-            Logger.error(err);
-        }
-        return '[]';
-    }
-
-    public async deleteByKey(key: string): Promise<void> {
-        this.dbState.del(key);
-    }
-
-    public async deleteByKeyPart(keyPart: string): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.dbState
-                .createReadStream()
-                .on('data', (data) => {
-                    if (data.key.toString().includes(keyPart)) {
-                        this.deleteByKey(data.key.toString());
-                    }
-                })
-                .on('end', () => {
-                    resolve();
-                })
-                .on('error', (e) => {
-                    reject(e);
-                });
+  public async deleteByKeyPart(keyPart: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.dbState
+        .createReadStream()
+        .on('data', (data) => {
+          if (data.key.toString().includes(keyPart)) {
+            this.deleteByKey(data.key.toString());
+          }
+        })
+        .on('end', () => {
+          resolve();
+        })
+        .on('error', (e) => {
+          reject(e);
         });
-    }
+    });
+  }
 
-    public async shutdown() {
-        await this.dbState.close();
-    }
+  public async shutdown() {
+    await this.dbState.close();
+  }
 
-    public async clear() {
-        await this.dbState.clear();
-    }
+  public async clear() {
+    await this.dbState.clear();
+  }
 }

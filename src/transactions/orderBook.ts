@@ -17,26 +17,29 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-import {Config} from "../config";
-import { Db } from "../db";
-import { CommandSubscribe } from "./transaction";
+import { Config } from '../config';
+import { Db } from '../db';
+import { CommandSubscribe } from './transaction';
 
 export class OrderBook {
-    public readonly config: Config;
-    private readonly db: Db;
+  public readonly config: Config;
+  private readonly db: Db;
 
-    public constructor(config: Config) {
-        this.config = config;
-        this.db = Db.make(this.config);
-    }
+  public constructor(config: Config) {
+    this.config = config;
+    this.db = Db.make(this.config);
+  }
 
-    public async sendSubscribe(contract: string, channel: string) {
-        const orderBuy: string = await this.db.getValueByKey('order_' + channel + ':' + contract + ':buy');
-        const orderSell: string = await this.db.getValueByKey('order_' + channel + ':' + contract + ':sell');
-        return {
-            "channel": channel,
-            "data": { "buy": orderBuy.toString(),
-                "sell": orderSell.toString()}
-        };
-    }
+  public async sendSubscribe(contract: string, channel: string) {
+    const orderBuy: string = await this.db.getValueByKey(
+      'order_' + channel + ':' + contract + ':buy'
+    );
+    const orderSell: string = await this.db.getValueByKey(
+      'order_' + channel + ':' + contract + ':sell'
+    );
+    return {
+      channel: channel,
+      data: { buy: orderBuy.toString(), sell: orderSell.toString() },
+    };
+  }
 }

@@ -22,7 +22,7 @@ import { Logger } from '../logger';
 import WebSocket, { Server as WebSocketServer } from 'ws';
 import { Feeder } from '../transactions/feeder';
 import { BusinessProtocol } from '../transactions/businessProtocol';
-import * as Buffer from "buffer";
+import * as Buffer from 'buffer';
 
 export class Server {
   public readonly config: Config;
@@ -54,13 +54,17 @@ export class Server {
       ws.on('message', async (message: Buffer) => {
         // incoming subscription data must be processed here
         try {
-          await this.businessProtocol.processOrder(JSON.parse(message.toString()));
+          await this.businessProtocol.processOrder(
+            JSON.parse(message.toString())
+          );
         } catch (err) {
           Logger.trace(err);
           ws.send(404);
         }
         //@FIXME logging
-        Logger.trace(`received to webSocketServer ( 127.0.0.1 : 19720) : ${message.toString()}`);
+        Logger.trace(
+          `received to webSocketServer ( 127.0.0.1 : 19720) : ${message.toString()}`
+        );
       });
     });
 

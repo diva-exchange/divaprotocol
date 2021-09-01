@@ -20,7 +20,7 @@
 export interface CommandData {
   seq: number;
   command: string;
-  ns: string,
+  ns: string;
   base64url: string;
 }
 
@@ -29,27 +29,23 @@ interface Command {
   contract: string;
 }
 
-export interface CommandOrder extends Command{
+export interface CommandOrder extends Command {
   seq: number;
   type: string;
   amount: string;
   price: string;
 }
 
-export interface CommandContract  extends Command{
+export interface CommandContract extends Command {
   seq: number;
   channel: string;
 }
 
-export interface CommandSubscribe  extends Command{
+export interface CommandSubscribe extends Command {
   channel: string;
 }
 
-export type ArrayCommand = Array<
-  | CommandData
-  | CommandOrder
-  | CommandContract
->;
+export type ArrayCommand = Array<CommandData | CommandOrder | CommandContract>;
 
 export type TransactionStruct = {
   ident: string;

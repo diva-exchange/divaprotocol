@@ -20,9 +20,13 @@
 import { Config } from '../config';
 import { Logger } from '../logger';
 import get from 'simple-get';
-import {validateContract, validateOrder, validateSubscribe} from "../net/validation";
+import {
+  validateContract,
+  validateOrder,
+  validateSubscribe,
+} from '../net/validation';
 import base64url from 'base64-url';
-import {CommandContract, CommandOrder, CommandSubscribe} from "./transaction";
+import { CommandContract, CommandOrder, CommandSubscribe } from './transaction';
 
 export class BusinessProtocol {
   public readonly config: Config;
@@ -31,10 +35,15 @@ export class BusinessProtocol {
     this.config = config;
   }
 
-  async processOrder(message: CommandOrder | CommandContract | CommandSubscribe) {
-
-    if (!validateOrder(message) && !validateContract(message) && !validateSubscribe(message)) {
-      throw Error("");
+  async processOrder(
+    message: CommandOrder | CommandContract | CommandSubscribe
+  ) {
+    if (
+      !validateOrder(message) &&
+      !validateContract(message) &&
+      !validateSubscribe(message)
+    ) {
+      throw Error('');
     }
 
     if (message.command === 'add' || message.command === 'delete') {
@@ -47,19 +56,23 @@ export class BusinessProtocol {
   }
 
   private async putOrder(data: CommandOrder) {
-
-    const nameSpace = data.command == 'add'?'DivaExchangeOrderAdd':'DivaExchangeOrderDelete';
+    const nameSpace =
+      data.command == 'add'
+        ? 'DivaExchangeOrderAdd'
+        : 'DivaExchangeOrderDelete';
 
     const opts = {
       method: 'PUT',
       url: this.config.url_api_chain + '/transaction',
-      body: [{
-        seq: data.seq,
-        command: 'data',
-        ns: nameSpace,
-        base64url: base64url.encode(JSON.stringify(data))
-      }],
-      json: true
+      body: [
+        {
+          seq: data.seq,
+          command: 'data',
+          ns: nameSpace,
+          base64url: base64url.encode(JSON.stringify(data)),
+        },
+      ],
+      json: true,
     };
 
     return new Promise((resolve, reject) => {
