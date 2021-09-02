@@ -52,14 +52,14 @@ export class Server {
         Logger.warn(err);
       });
       ws.on('message', async (message: Buffer) => {
-        // incoming subscription data must be processed here
+        // incoming from client, like subscription, orders, contracts etc.
+        // it must be JSON
         try {
           await this.businessProtocol.processOrder(
             JSON.parse(message.toString())
           );
         } catch (err) {
           Logger.trace(err);
-          ws.send(404);
         }
         //@FIXME logging
         Logger.trace(
@@ -92,8 +92,7 @@ export class Server {
     });
 
     this.webSocketFeed.on('message', async (message: Buffer) => {
-      let block: any = {};
-      block = JSON.parse(message.toString());
+      const block = JSON.parse(message.toString());
       //@FIXME logging
       Logger.trace('Feeder part: ' + JSON.stringify(block.tx[0].commands[0]));
 

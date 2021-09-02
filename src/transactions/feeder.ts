@@ -21,16 +21,10 @@ import { Config } from '../config';
 import Big from 'big.js';
 import { Db } from '../db';
 import { BlockStruct } from './block';
-import {
-  CommandOrder,
-  CommandContract,
-  CommandData,
-  CommandSubscribe,
-} from './transaction';
+import { CommandOrder, CommandContract, CommandData } from './transaction';
 import base64url from 'base64-url';
 import { OrderBook } from './orderBook';
-import * as Buffer from "buffer";
-import {Logger} from "../logger";
+import { Logger } from '../logger';
 
 export class Feeder {
   public readonly config: Config;
@@ -105,7 +99,9 @@ export class Feeder {
     if (channel === 'nostro') {
       const mapKey: string = data.price.toString();
 
-      const currentMap: Map<string, string> = new Map(await this.db.getValueByKey(key));
+      const currentMap: Map<string, string> = new Map(
+        await this.db.getValueByKey(key)
+      );
 
       const amountString: string = currentMap.get(mapKey) || '0';
 
@@ -115,10 +111,7 @@ export class Feeder {
         .toFixed(this.precision);
       currentMap.set(mapKey, newAmount);
       Logger.trace(JSON.stringify([...currentMap.entries()]));
-      await this.db.updateByKey(
-          key,
-          [...currentMap.entries()]
-      );
+      await this.db.updateByKey(key, [...currentMap.entries()]);
     }
   }
 

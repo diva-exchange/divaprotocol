@@ -41,7 +41,7 @@ export class OrderBook {
       channel: channel,
       contract: contract,
       buy: orderBuy,
-      sell: orderSell
+      sell: orderSell,
     };
   }
 }

@@ -43,15 +43,22 @@ export class BusinessProtocol {
       !validateContract(message) &&
       !validateSubscribe(message)
     ) {
-      throw Error('');
+      throw Error('BusinessProtocol.processOrder(): Invalid Message');
     }
 
-    if (message.command === 'add' || message.command === 'delete') {
-      await this.putOrder(message as CommandOrder);
-    }
-
-    if (message.command === 'contract') {
-      await this.putContract(message as CommandContract);
+    switch (message.command) {
+      case 'add':
+      case 'delete':
+        // 1. create the new order book
+        // 2. send the new order book to the blockchain (transaction)
+        // 3. if blockchain result is
+        //    3a. OK: store the orderbook in the state, send the new order book to subscribers and return
+        //    3b. ERROR: throw error and crash -> later: retry? or...?
+        return await this.putOrder(message as CommandOrder);
+      case 'contract':
+        return await this.putContract(message as CommandContract);
+      default:
+        throw Error('BusinessProtocol.processOrder(): Invalid Command');
     }
   }
 
