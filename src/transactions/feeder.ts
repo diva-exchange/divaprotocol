@@ -55,10 +55,10 @@ export class Feeder {
               await this.deleteContract(decodedData as CommandContract);
               break;
             case 'DivaExchangeOrderAdd':
-              await this.addOrder(decodedData as CommandOrder, channel);
+              await this.addMarketOrder(decodedData as CommandOrder);
               break;
             case 'DivaExchangeOrderDelete':
-              await this.deleteOrder(decodedData as CommandOrder, channel);
+              await this.deleteMarketOrder(decodedData as CommandOrder);
               break;
           }
           return this.orderBook.getSubscribe(decodedData.contract, channel);
@@ -68,84 +68,56 @@ export class Feeder {
   }
 
   private async addContract(data: CommandContract) {
-    //await this.db.updateByKey('asset:' + data.contract, data.contract);
+    await this.db.updateByKey('asset:' + data.contract, {});
   }
 
   private async deleteContract(data: CommandContract) {
     await this.db.deleteByKeyPart(data.contract);
   }
 
-  private async addOrder(data: CommandOrder, channel: string) {
+  private async addMarketOrder(data: CommandOrder) {
     data = Feeder.deleteDotFromTheEnd(data);
-    const key: string = this.getOrderKey(data, channel);
+    const key: string = this.getMarketOrderKey(data);
+    const mapKey: string = data.price.toString();
+    const currentMap: Map<string, string> = new Map(
+      await this.db.getValueByKey(key)
+    );
+    const amountString: string = currentMap.get(mapKey) || '0';
+    const amount = new Big(amountString || 0).toNumber();
+    const newAmount = new Big(data.amount || 0)
+      .plus(amount)
+      .toFixed(this.precision);
+    currentMap.set(mapKey, newAmount);
+    Logger.trace(JSON.stringify([...currentMap.entries()]));
+    await this.db.updateByKey(key, [...currentMap.entries()]);
+  }
 
-    // if (channel === 'nostro') {
-    //   const newEntry: string = data.amount.toString() + '@' + data.price.toString();
-    //   console.log('KEYYYYYYYYYYYYYYYYy : ');
-    //   console.log(key);
-    //   const stringFromDB: string = await this.db.getValueByKey(key);
-    //   console.log('HHHHHHHHHHHHHHHHHHHH : ');
-    //   console.log(stringFromDB[0]);
-    //   console.log([...stringFromDB]);
-    //
-    //
-    //   const newArray = [...stringFromDB].push('newEntry');
-    //
-    //   await this.db.updateByKey(
-    //       key,
-    //       JSON.stringify(newArray)
-    //   );
-    // }
-    if (channel === 'nostro') {
-      const mapKey: string = data.price.toString();
-
-      const currentMap: Map<string, string> = new Map(
+  private async deleteMarketOrder(data: CommandOrder) {
+    data = Feeder.deleteDotFromTheEnd(data);
+    const key: string = this.getMarketOrderKey(data);
+    const mapKey: string = data.price.toString();
+    const currentMap: Map<string, string> = new Map(
         await this.db.getValueByKey(key)
-      );
-
-      const amountString: string = currentMap.get(mapKey) || '0';
-
-      const amount = new Big(amountString || 0).toNumber();
-      const newAmount = new Big(data.amount || 0)
-        .plus(amount)
-        .toFixed(this.precision);
-      currentMap.set(mapKey, newAmount);
-      Logger.trace(JSON.stringify([...currentMap.entries()]));
-      await this.db.updateByKey(key, [...currentMap.entries()]);
+    );
+    const amountString: string = currentMap.get(mapKey) || '0';
+    const amount = new Big(amountString || 0).toNumber();
+    if (amount > 0) {
+      if (parseFloat(data.amount) >= amount) {
+        currentMap.delete(key);
+      } else {
+        currentMap.set(
+          key,
+          new Big(amount || 0)
+            .minus(new Big(data.amount || 0))
+            .toFixed(this.precision)
+        );
+      }
     }
+    await this.db.updateByKey(key, [...currentMap.entries()]);
   }
 
-  private async deleteOrder(data: CommandOrder, channel: string) {
-    // data = Feeder.deleteDotFromTheEnd(data);
-    // const key: string = this.getOrderKey(data, channel);
-    // const mapKey: string = data.price.toString();
-    // const currentMap = new Map<string, string>(
-    //   JSON.parse(await this.db.getValueByKey(key))
-    // );
-    // const amountString: string | undefined = currentMap.has(mapKey)
-    //   ? currentMap.get(mapKey)
-    //   : '0';
-    // const amount = new Big(amountString || 0).toNumber();
-    // if (amount > 0) {
-    //   if (parseFloat(data.amount) >= amount) {
-    //     currentMap.delete(key);
-    //   } else {
-    //     currentMap.set(
-    //       key,
-    //       new Big(amount || 0)
-    //         .minus(new Big(data.amount || 0))
-    //         .toFixed(this.precision)
-    //     );
-    //   }
-    // }
-    // await this.db.updateByKey(
-    //   key,
-    //   JSON.stringify(Array.from(currentMap.entries()))
-    // );
-  }
-
-  private getOrderKey(data: CommandOrder, channel: string): string {
-    const key = 'order_' + channel + ':' + data.contract + ':' + data.type;
+  private getMarketOrderKey(data: CommandOrder): string {
+    const key = 'order_market:' + data.contract + ':' + data.type;
     return key;
   }
 

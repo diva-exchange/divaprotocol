@@ -19,7 +19,6 @@
 
 import { Config } from '../config';
 import { Db } from '../db';
-import { CommandSubscribe } from './transaction';
 
 export class OrderBook {
   public readonly config: Config;

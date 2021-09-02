@@ -20,6 +20,7 @@
 import { Config } from '../config';
 import { Logger } from '../logger';
 import get from 'simple-get';
+import { Db } from '../db';
 import {
   validateContract,
   validateOrder,
@@ -27,12 +28,17 @@ import {
 } from '../net/validation';
 import base64url from 'base64-url';
 import { CommandContract, CommandOrder, CommandSubscribe } from './transaction';
+import { OrderBook } from './orderBook';
 
 export class BusinessProtocol {
   public readonly config: Config;
+  private readonly db: Db;
+  private orderBook: OrderBook;
 
   constructor(config: Config) {
     this.config = config;
+    this.db = Db.make(this.config);
+    this.orderBook = new OrderBook(this.config);
   }
 
   async processOrder(
@@ -57,17 +63,32 @@ export class BusinessProtocol {
         return await this.putOrder(message as CommandOrder);
       case 'contract':
         return await this.putContract(message as CommandContract);
+      case 'subscribe':
+        return await this.orderBook.getSubscribe((message as CommandSubscribe).channel, (message as CommandSubscribe).contract);
       default:
         throw Error('BusinessProtocol.processOrder(): Invalid Command');
     }
   }
 
   private async putOrder(data: CommandOrder) {
-    const nameSpace =
-      data.command == 'add'
-        ? 'DivaExchangeOrderAdd'
-        : 'DivaExchangeOrderDelete';
+    const opts = this.createOrder(data);
+    return new Promise((resolve, reject) => {
+      get.concat(opts, (error: Error, res: any) => {
+        if (error) {
+          Logger.trace(error);
+          reject(error);
+          return;
+        }
+        if (res.statusCode == 200) {
+          this.storeNostroData(data);
+        }
+        resolve(res);
+      });
+    });
+  }
 
+  private createOrder(data: CommandOrder) {
+    let nameSpace: string = this.getNamespace(data.command);
     const opts = {
       method: 'PUT',
       url: this.config.url_api_chain + '/transaction',
@@ -81,20 +102,38 @@ export class BusinessProtocol {
       ],
       json: true,
     };
+    return opts;
+  }
 
-    return new Promise((resolve, reject) => {
-      get.concat(opts, (error: Error, response: any) => {
-        if (error) {
-          Logger.trace(error);
-          reject(error);
-          return;
-        }
-        resolve(response);
-      });
-    });
+  private getNamespace(command: string): string {
+    let nameSpace: string = '';
+    switch (command) {
+      case 'add':
+        nameSpace = 'DivaExchangeOrderAdd';
+        break;
+      case 'delete':
+        nameSpace = 'DivaExchangeOrderDelete';
+        break;
+      default:
+        return '';
+    }
+    return nameSpace;
   }
 
   private async putContract(message: CommandContract) {
     console.log(message);
+  }
+
+  private async storeNostroData(data: CommandOrder) {
+    const key = this.getNostroOrderKey(data);
+    const newEntry: string = data.amount.toString() + '@' + data.price.toString();
+    const currentArray: Array<string> = await this.db.getValueByKey(key);
+    currentArray.unshift(newEntry);
+    await this.db.updateByKey(key, [...currentArray]);
+  }
+
+  private getNostroOrderKey(data: CommandOrder): string {
+    const key = 'order_nostro:' + data.contract + ':' + data.type;
+    return key;
   }
 }
