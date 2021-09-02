@@ -41,17 +41,17 @@ export class Db {
     return this.dbInstance || (this.dbInstance = new this(config));
   }
 
-  public async updateByKey(key: string, value: string): Promise<void> {
-    this.dbState.put(key, value);
+  public async updateByKey(key: string, value: object): Promise<void> {
+    this.dbState.put(key, JSON.stringify(value));
   }
 
-  public async getValueByKey(key: string): Promise<string> {
+  public async getValueByKey(key: string): Promise<any> {
     try {
-      return await this.dbState.get(key);
+      return JSON.parse(await this.dbState.get(key));
     } catch (err) {
       Logger.error(err);
     }
-    return '[]';
+    return [];
   }
 
   public async deleteByKey(key: string): Promise<void> {

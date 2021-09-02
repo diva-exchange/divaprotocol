@@ -30,7 +30,7 @@ export class OrderBook {
     this.db = Db.make(this.config);
   }
 
-  public async sendSubscribe(contract: string, channel: string) {
+  public async getSubscribe(contract: string, channel: string) {
     const orderBuy: string = await this.db.getValueByKey(
       'order_' + channel + ':' + contract + ':buy'
     );
@@ -40,8 +40,8 @@ export class OrderBook {
     return {
       channel: channel,
       contract: contract,
-      buy: orderBuy.toString(),
-      sell: orderSell.toString()
+      buy: orderBuy,
+      sell: orderSell
     };
   }
 }

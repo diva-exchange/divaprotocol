@@ -93,24 +93,20 @@ export class Server {
 
     this.webSocketFeed.on('message', async (message: Buffer) => {
       let block: any = {};
-      try {
-        block = JSON.parse(message.toString());
-        //@FIXME logging
-        Logger.trace('Feeder part: ' + JSON.stringify(block.tx[0].commands[0]));
+      block = JSON.parse(message.toString());
+      //@FIXME logging
+      Logger.trace('Feeder part: ' + JSON.stringify(block.tx[0].commands[0]));
 
-        // business protocol
-        const orderBook = await this.feeder.processState(block);
+      // business protocol
+      const orderBook = await this.feeder.processState(block);
 
-        // if it qualifies, forward the relevant object
-        this.webSocketServer.clients.forEach((ws) => {
-          // probably, here should be a stringified object instead of the binary message
-          // probably, only to specific subscribers
-          Logger.info(JSON.stringify(orderBook));
-          ws.send(JSON.stringify(orderBook));
-        });
-      } catch (e) {
-        return;
-      }
+      // if it qualifies, forward the relevant object
+      this.webSocketServer.clients.forEach((ws) => {
+        // probably, here should be a stringified object instead of the binary message
+        // probably, only to specific subscribers
+        Logger.info(JSON.stringify(orderBook));
+        ws.send(JSON.stringify(orderBook));
+      });
     });
   }
 
