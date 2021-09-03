@@ -33,7 +33,7 @@ export class Processor {
   constructor(config: Config) {
     this.config = config;
     this.db = Db.make(this.config);
-    this.orderBook = OrderBook.make(this.db);
+    this.orderBook = OrderBook.make(this.config);
   }
 
   async process(message: Message) {
@@ -57,6 +57,10 @@ export class Processor {
         return;
       //return await this.putContract(message);
       case 'subscribe':
+        //@FIXME
+        return;
+      // return await this.orderBook.getSubscribe(message.channel, message.contract);
+      case 'unsubscribe':
         //@FIXME
         return;
       // return await this.orderBook.getSubscribe(message.channel, message.contract);

@@ -106,7 +106,6 @@ export class Server {
       this.webSocketServer.clients.forEach((ws) => {
         // probably, here should be a stringified object instead of the binary message
         // probably, only to specific subscribers
-        Logger.info(JSON.stringify(feed));
         ws.send(JSON.stringify(feed));
       });
     });

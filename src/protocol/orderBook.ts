@@ -17,27 +17,31 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-import { Db } from '../db';
+import { Config } from '../config';
 import Big from 'big.js';
+import get from 'simple-get';
+import { Logger } from '../logger';
+import base64url from 'base64-url';
 
 export class OrderBook {
-  private readonly db: Db;
+  private readonly config: Config;
   private readonly arrayBook: {
     [key: string]: { buy: Map<string, string>; sell: Map<string, string> };
   };
 
-  public static make(db: Db): OrderBook {
-    return new OrderBook(db);
+  public static make(config: Config): OrderBook {
+    return new OrderBook(config);
   }
 
-  private constructor(db: Db) {
-    this.db = db;
+  private constructor(config: Config) {
+    this.config = config;
     //@FIXME load the order books from the chain
     this.arrayBook = {
       BTC_ETH: { buy: new Map(), sell: new Map() },
       BTC_XMR: { buy: new Map(), sell: new Map() },
       BTC_ZEC: { buy: new Map(), sell: new Map() },
     };
+    this.loadOrderBookFromChain();
   }
 
   public updateBook(
@@ -77,5 +81,34 @@ export class OrderBook {
       buy: [...this.arrayBook[contract].buy.entries()],
       sell: [...this.arrayBook[contract].sell.entries()],
     });
+  }
+
+  private async loadOrderBookFromChain() {
+    for (const contract of this.config.contracts_array) {
+      const url: string =
+        this.config.url_api_chain +
+        '/state/' +
+        this.config.my_public_key +
+        ':DivaExchange:OrderBook:' +
+        contract;
+      new Promise((resolve, reject) => {
+        get.concat(url, (error: Error, res: any, data: any) => {
+          if (error) {
+            Logger.trace(error);
+            reject(error);
+            return;
+          }
+          if (res.statusCode == 200) {
+            //@FIXME type any need to be solved
+            const obj: { buy: any; sell: any } = JSON.parse(
+              base64url.decode(data)
+            );
+            this.arrayBook[contract].buy = new Map(obj.buy);
+            this.arrayBook[contract].sell = new Map(obj.sell);
+          }
+          resolve(data);
+        });
+      });
+    }
   }
 }

@@ -17,34 +17,33 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-import { Server } from './net/server';
-import { Config, Configuration } from './config';
-import { Factory } from './factory';
+import get from 'simple-get';
+import { Logger } from './logger';
 
-const c: Configuration = {} as Configuration;
+export class Factory {
+  public my_public_key: string = '';
+  private url_api_chain: string;
 
-class Main {
-  private readonly config: Config;
-  public factory: Factory;
-
-  constructor(c: Configuration) {
-    this.config = new Config(c);
-    this.factory = new Factory(this.config.url_api_chain);
-    this.start();
+  constructor(urlApiChain: string) {
+    this.url_api_chain = urlApiChain;
   }
 
-  private async start() {
-    this.config.my_public_key = await this.factory.getPublicKey();
-    const server = new Server(this.config);
-    ['SIGINT', 'SIGTERM'].forEach((sig) => {
-      process.once(sig, async () => {
-        await server.shutdown();
-        process.exit(0);
-      });
+  public async getPublicKey(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      get.concat(
+        this.url_api_chain + '/about',
+        (error: Error, res: any, data: any) => {
+          if (error) {
+            Logger.trace(error);
+            reject(error);
+            return;
+          }
+          if (res.statusCode == 200) {
+            this.my_public_key = JSON.parse(data).publicKey.toString();
+          }
+          resolve(JSON.parse(data).publicKey.toString());
+        }
+      );
     });
-
-    server.initFeed();
   }
 }
-
-new Main(c);

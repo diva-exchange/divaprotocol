@@ -35,7 +35,7 @@ export class Feeder {
   public constructor(config: Config) {
     this.config = config;
     this.db = Db.make(this.config);
-    this.orderBook = OrderBook.make(this.db);
+    this.orderBook = OrderBook.make(this.config);
   }
 
   public async shutdown() {
@@ -50,9 +50,13 @@ export class Feeder {
   public process(block: BlockStruct) {
     for (const t of block.tx) {
       // const channel: string = t.origin == this.config.my_public_key ? 'nostro' : 'market';
-      for (const c of t.commands) {
-        const decodedData = JSON.parse(base64url.decode(c.base64url));
-        Logger.trace(decodedData);
+      if (t.origin == this.config.my_public_key) {
+        for (const c of t.commands) {
+          //@TODO update order book with confirmation of the order
+          //this.orderBook.updateBook();
+          const decodedData = JSON.parse(base64url.decode(c.base64url));
+          Logger.trace(decodedData);
+        }
       }
     }
   }
