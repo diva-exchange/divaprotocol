@@ -48,8 +48,8 @@ export class Db {
   public async getValueByKey(key: string): Promise<any> {
     try {
       return JSON.parse(await this.dbState.get(key));
-    } catch (err) {
-      Logger.error(err);
+    } catch (error: any) {
+      Logger.error(error);
     }
     return [];
   }

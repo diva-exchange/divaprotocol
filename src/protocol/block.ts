@@ -19,7 +19,6 @@
 
 import { Util } from './util';
 import { TransactionStruct } from './transaction';
-//import { ajv } from "../net/validation";
 
 export type BlockStruct = {
   version: number;

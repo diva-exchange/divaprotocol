@@ -64,7 +64,10 @@ export class BusinessProtocol {
       case 'contract':
         return await this.putContract(message as CommandContract);
       case 'subscribe':
-        return await this.orderBook.getSubscribe((message as CommandSubscribe).channel, (message as CommandSubscribe).contract);
+        return await this.orderBook.getSubscribe(
+          (message as CommandSubscribe).channel,
+          (message as CommandSubscribe).contract
+        );
       default:
         throw Error('BusinessProtocol.processOrder(): Invalid Command');
     }
@@ -88,7 +91,7 @@ export class BusinessProtocol {
   }
 
   private createOrder(data: CommandOrder) {
-    let nameSpace: string = this.getNamespace(data.command);
+    const nameSpace: string = this.getNamespace(data.command);
     const opts = {
       method: 'PUT',
       url: this.config.url_api_chain + '/transaction',
@@ -126,7 +129,8 @@ export class BusinessProtocol {
 
   private async storeNostroData(data: CommandOrder) {
     const key = this.getNostroOrderKey(data);
-    const newEntry: string = data.amount.toString() + '@' + data.price.toString();
+    const newEntry: string =
+      data.amount.toString() + '@' + data.price.toString();
     const currentArray: Array<string> = await this.db.getValueByKey(key);
     currentArray.unshift(newEntry);
     await this.db.updateByKey(key, [...currentArray]);

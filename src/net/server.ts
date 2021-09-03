@@ -20,8 +20,8 @@
 import { Config } from '../config';
 import { Logger } from '../logger';
 import WebSocket, { Server as WebSocketServer } from 'ws';
-import { Feeder } from '../transactions/feeder';
-import { BusinessProtocol } from '../transactions/businessProtocol';
+import { Feeder } from '../protocol/feeder';
+import { BusinessProtocol } from '../protocol/businessProtocol';
 import * as Buffer from 'buffer';
 
 export class Server {
@@ -58,8 +58,8 @@ export class Server {
           await this.businessProtocol.processOrder(
             JSON.parse(message.toString())
           );
-        } catch (err) {
-          Logger.trace(err);
+        } catch (error: any) {
+          Logger.trace(error);
         }
         //@FIXME logging
         Logger.trace(

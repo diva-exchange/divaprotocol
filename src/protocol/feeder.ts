@@ -97,7 +97,7 @@ export class Feeder {
     const key: string = this.getMarketOrderKey(data);
     const mapKey: string = data.price.toString();
     const currentMap: Map<string, string> = new Map(
-        await this.db.getValueByKey(key)
+      await this.db.getValueByKey(key)
     );
     const amountString: string = currentMap.get(mapKey) || '0';
     const amount = new Big(amountString || 0).toNumber();
