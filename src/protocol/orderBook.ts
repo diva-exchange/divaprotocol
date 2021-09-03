@@ -68,4 +68,14 @@ export class OrderBook {
     }
     return this.arrayBook[contract];
   }
+
+  serialize(contract: string): string {
+    if (!this.arrayBook[contract]) {
+      throw Error('OrderBook.get(): Unsupported contract');
+    }
+    return JSON.stringify({
+      buy: [...this.arrayBook[contract].buy.entries()],
+      sell: [...this.arrayBook[contract].sell.entries()],
+    });
+  }
 }

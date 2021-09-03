@@ -76,7 +76,7 @@ export class Processor {
           command: 'data',
           ns: nameSpace,
           base64url: base64url.encode(
-            JSON.stringify(this.orderBook.get(message.contract))
+            this.orderBook.serialize(message.contract)
           ),
         },
       ],
