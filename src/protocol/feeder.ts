@@ -20,14 +20,13 @@
 import { Config } from '../config';
 import Big from 'big.js';
 import { Db } from '../db';
-import { BlockStruct } from './block';
-import { CommandOrder, CommandContract, CommandData } from './transaction';
+import { BlockStruct } from './struct';
 import base64url from 'base64-url';
 import { OrderBook } from './orderBook';
 import { Logger } from '../logger';
 
 export class Feeder {
-  public readonly config: Config;
+  private readonly config: Config;
   private readonly db: Db;
   private orderBook: OrderBook;
 
@@ -39,34 +38,26 @@ export class Feeder {
     this.orderBook = new OrderBook(this.config);
   }
 
-  public async processState(block: BlockStruct) {
+  public async shutdown() {
+    await this.db.shutdown();
+  }
+
+  public async clear() {
+    await this.db.clear();
+  }
+
+  //@FIXME what's the return value of the feeder processing data from the blockchain?
+  public process(block: BlockStruct) {
     for (const t of block.tx) {
-      const channel: string =
-        t.origin == this.config.my_public_key ? 'nostro' : 'market';
+      // const channel: string = t.origin == this.config.my_public_key ? 'nostro' : 'market';
       for (const c of t.commands) {
-        if (c.command === 'data') {
-          const data = c as CommandData;
-          const decodedData = JSON.parse(base64url.decode(data.base64url));
-          switch (data.ns) {
-            case 'DivaExchangeContractAdd':
-              await this.addContract(decodedData as CommandContract);
-              break;
-            case 'DivaExchangeContractDelete':
-              await this.deleteContract(decodedData as CommandContract);
-              break;
-            case 'DivaExchangeOrderAdd':
-              await this.addMarketOrder(decodedData as CommandOrder);
-              break;
-            case 'DivaExchangeOrderDelete':
-              await this.deleteMarketOrder(decodedData as CommandOrder);
-              break;
-          }
-          return this.orderBook.getSubscribe(decodedData.contract, channel);
-        }
+        const decodedData = JSON.parse(base64url.decode(c.base64url));
+        Logger.trace(decodedData);
       }
     }
   }
 
+  /*
   private async addContract(data: CommandContract) {
     await this.db.updateByKey('asset:' + data.contract, {});
   }
@@ -121,6 +112,8 @@ export class Feeder {
     return key;
   }
 
+  //@FIXME there cannot be any "invalid" data in the feeder
+  //  Reason: the feeder only accepts or drops data - but never fixes it
   private static deleteDotFromTheEnd(data: CommandOrder) {
     if (data.price[data.price.length - 1] === '.') {
       data.price = data.price.slice(0, -1);
@@ -130,12 +123,5 @@ export class Feeder {
     }
     return data;
   }
-
-  public async shutdown() {
-    await this.db.shutdown();
-  }
-
-  public async clear() {
-    await this.db.clear();
-  }
+  */
 }

@@ -21,16 +21,11 @@ import { Config } from '../config';
 import { Logger } from '../logger';
 import get from 'simple-get';
 import { Db } from '../db';
-import {
-  validateContract,
-  validateOrder,
-  validateSubscribe,
-} from '../net/validation';
 import base64url from 'base64-url';
-import { CommandContract, CommandOrder, CommandSubscribe } from './transaction';
 import { OrderBook } from './orderBook';
+import { Message, MessageOrder } from './struct';
 
-export class BusinessProtocol {
+export class Processor {
   public readonly config: Config;
   private readonly db: Db;
   private orderBook: OrderBook;
@@ -41,17 +36,7 @@ export class BusinessProtocol {
     this.orderBook = new OrderBook(this.config);
   }
 
-  async processOrder(
-    message: CommandOrder | CommandContract | CommandSubscribe
-  ) {
-    if (
-      !validateOrder(message) &&
-      !validateContract(message) &&
-      !validateSubscribe(message)
-    ) {
-      throw Error('BusinessProtocol.processOrder(): Invalid Message');
-    }
-
+  async processOrder(message: Message) {
     switch (message.command) {
       case 'add':
       case 'delete':
@@ -60,20 +45,19 @@ export class BusinessProtocol {
         // 3. if blockchain result is
         //    3a. OK: store the orderbook in the state, send the new order book to subscribers and return
         //    3b. ERROR: throw error and crash -> later: retry? or...?
-        return await this.putOrder(message as CommandOrder);
+        return await this.putOrder(message as MessageOrder);
       case 'contract':
-        return await this.putContract(message as CommandContract);
+        return await this.putContract(message);
       case 'subscribe':
-        return await this.orderBook.getSubscribe(
-          (message as CommandSubscribe).channel,
-          (message as CommandSubscribe).contract
-        );
+        //@FIXME
+        return;
+      // return await this.orderBook.getSubscribe(message.channel, message.contract);
       default:
         throw Error('BusinessProtocol.processOrder(): Invalid Command');
     }
   }
 
-  private async putOrder(data: CommandOrder) {
+  private async putOrder(data: MessageOrder) {
     const opts = this.createOrder(data);
     return new Promise((resolve, reject) => {
       get.concat(opts, (error: Error, res: any) => {
@@ -90,9 +74,9 @@ export class BusinessProtocol {
     });
   }
 
-  private createOrder(data: CommandOrder) {
+  private createOrder(data: Message) {
     const nameSpace: string = this.getNamespace(data.command);
-    const opts = {
+    return {
       method: 'PUT',
       url: this.config.url_api_chain + '/transaction',
       body: [
@@ -105,29 +89,23 @@ export class BusinessProtocol {
       ],
       json: true,
     };
-    return opts;
   }
 
   private getNamespace(command: string): string {
-    let nameSpace: string = '';
     switch (command) {
       case 'add':
-        nameSpace = 'DivaExchangeOrderAdd';
-        break;
       case 'delete':
-        nameSpace = 'DivaExchangeOrderDelete';
-        break;
+        return 'DivaExchangeOrderBook';
       default:
-        return '';
+        throw new Error('Processor.getNamespace(): Unsupported Command');
     }
-    return nameSpace;
   }
 
-  private async putContract(message: CommandContract) {
+  private async putContract(message: Message) {
     console.log(message);
   }
 
-  private async storeNostroData(data: CommandOrder) {
+  private async storeNostroData(data: MessageOrder) {
     const key = this.getNostroOrderKey(data);
     const newEntry: string =
       data.amount.toString() + '@' + data.price.toString();
@@ -136,8 +114,7 @@ export class BusinessProtocol {
     await this.db.updateByKey(key, [...currentArray]);
   }
 
-  private getNostroOrderKey(data: CommandOrder): string {
-    const key = 'order_nostro:' + data.contract + ':' + data.type;
-    return key;
+  private getNostroOrderKey(data: MessageOrder): string {
+    return 'order_nostro:' + data.contract + ':' + data.type;
   }
 }

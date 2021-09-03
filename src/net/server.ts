@@ -21,21 +21,23 @@ import { Config } from '../config';
 import { Logger } from '../logger';
 import WebSocket, { Server as WebSocketServer } from 'ws';
 import { Feeder } from '../protocol/feeder';
-import { BusinessProtocol } from '../protocol/businessProtocol';
-import * as Buffer from 'buffer';
+import { Processor } from '../protocol/processor';
+import Buffer from 'buffer';
+import { Validation } from './validation';
 
 export class Server {
-  public readonly config: Config;
-  public readonly businessProtocol: BusinessProtocol;
-  public readonly feeder: Feeder;
-
+  private readonly config: Config;
+  private readonly businessProtocol: Processor;
+  private readonly feeder: Feeder;
+  private readonly validation: Validation;
   private readonly webSocketServer: WebSocketServer;
   private webSocketFeed: WebSocket | undefined;
 
   constructor(config: Config) {
     this.config = config;
-    this.businessProtocol = new BusinessProtocol(this.config);
+    this.businessProtocol = new Processor(this.config);
     this.feeder = new Feeder(this.config);
+    this.validation = Validation.make();
 
     Logger.info(`divaprotocol ${this.config.VERSION} instantiating...`);
 
@@ -52,6 +54,10 @@ export class Server {
         Logger.warn(err);
       });
       ws.on('message', async (message: Buffer) => {
+        if (!Validation.make().validate(message)) {
+          return;
+        }
+
         // incoming from client, like subscription, orders, contracts etc.
         // it must be JSON
         try {
@@ -96,15 +102,14 @@ export class Server {
       //@FIXME logging
       Logger.trace('Feeder part: ' + JSON.stringify(block.tx[0].commands[0]));
 
-      // business protocol
-      const orderBook = await this.feeder.processState(block);
+      const feed = await this.feeder.process(block);
 
       // if it qualifies, forward the relevant object
       this.webSocketServer.clients.forEach((ws) => {
         // probably, here should be a stringified object instead of the binary message
         // probably, only to specific subscribers
-        Logger.info(JSON.stringify(orderBook));
-        ws.send(JSON.stringify(orderBook));
+        Logger.info(JSON.stringify(feed));
+        ws.send(JSON.stringify(feed));
       });
     });
   }

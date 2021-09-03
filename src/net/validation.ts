@@ -21,9 +21,42 @@ import Ajv, { ValidateFunction } from 'ajv';
 import schemaContract from '../schema/contract.json';
 import schemaOrder from '../schema/order.json';
 import schemaSubscribe from '../schema/subscribe.json';
+import { Logger } from '../logger';
+import { Message } from '../protocol/struct';
 
-export const ajv: Ajv = new Ajv();
+export class Validation {
+  private ajv: Ajv;
+  private validateContract: ValidateFunction;
+  private validateOrder: ValidateFunction;
+  private validateSubscribe: ValidateFunction;
 
-export const validateContract: ValidateFunction = ajv.compile(schemaContract);
-export const validateOrder: ValidateFunction = ajv.compile(schemaOrder);
-export const validateSubscribe: ValidateFunction = ajv.compile(schemaSubscribe);
+  public static make() {
+    return new Validation();
+  }
+
+  private constructor() {
+    this.ajv = new Ajv();
+    this.validateContract = this.ajv.compile(schemaContract);
+    this.validateOrder = this.ajv.compile(schemaOrder);
+    this.validateSubscribe = this.ajv.compile(schemaSubscribe);
+  }
+
+  public validate(message: Buffer): boolean {
+    try {
+      const m = JSON.parse(message.toString()) as Message;
+      switch (m.command) {
+        case 'add':
+        case 'delete':
+        case 'subscribe':
+        case 'unsubscribe':
+          return true;
+        default:
+          Logger.warn('Validation.validate(): Command not supported');
+          return false;
+      }
+    } catch (error: any) {
+      Logger.trace(error);
+      return false;
+    }
+  }
+}

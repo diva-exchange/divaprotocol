@@ -24,33 +24,37 @@ export interface CommandData {
   base64url: string;
 }
 
-interface Command {
-  command: string;
-  contract: string;
-}
-
-export interface CommandOrder extends Command {
-  seq: number;
-  type: string;
-  amount: string;
-  price: string;
-}
-
-export interface CommandContract extends Command {
-  seq: number;
-  channel: string;
-}
-
-export interface CommandSubscribe extends Command {
-  channel: string;
-}
-
-export type ArrayCommand = Array<CommandData | CommandOrder | CommandContract>;
-
 export type TransactionStruct = {
   ident: string;
   origin: string;
   timestamp: number; // Format: Milliseconds (1/1,000 second)
-  commands: ArrayCommand;
+  commands: Array<CommandData>;
   sig: string;
 };
+
+export type BlockStruct = {
+  version: number;
+  previousHash: string;
+  hash: string;
+  tx: Array<TransactionStruct>;
+  height: number;
+  votes: Array<{ origin: string; sig: string }>;
+};
+
+interface iMessage {
+  seq: number;
+  command: string;
+  contract: string;
+}
+
+export interface MessageOrder extends iMessage {
+  type: string;
+  price: string;
+  amount: string;
+}
+
+export interface MessageSubscribe extends iMessage {
+  channel: string;
+}
+
+export type Message = MessageOrder | MessageSubscribe;
