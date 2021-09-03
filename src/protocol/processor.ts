@@ -23,20 +23,20 @@ import get from 'simple-get';
 import { Db } from '../db';
 import base64url from 'base64-url';
 import { OrderBook } from './orderBook';
-import { Message, MessageOrder } from './struct';
+import { Message } from './struct';
 
 export class Processor {
   public readonly config: Config;
   private readonly db: Db;
-  private orderBook: OrderBook;
+  private readonly orderBook: OrderBook;
 
   constructor(config: Config) {
     this.config = config;
     this.db = Db.make(this.config);
-    this.orderBook = new OrderBook(this.config);
+    this.orderBook = OrderBook.make(this.db);
   }
 
-  async processOrder(message: Message) {
+  async process(message: Message) {
     switch (message.command) {
       case 'add':
       case 'delete':
@@ -45,9 +45,17 @@ export class Processor {
         // 3. if blockchain result is
         //    3a. OK: store the orderbook in the state, send the new order book to subscribers and return
         //    3b. ERROR: throw error and crash -> later: retry? or...?
-        return await this.putOrder(message as MessageOrder);
+        this.orderBook.updateBook(
+          message.contract,
+          message.type,
+          message.price,
+          message.amount
+        );
+        return await this.storeOrderBookOnChain(message);
       case 'contract':
-        return await this.putContract(message);
+        //@FIXME
+        return;
+      //return await this.putContract(message);
       case 'subscribe':
         //@FIXME
         return;
@@ -57,8 +65,23 @@ export class Processor {
     }
   }
 
-  private async putOrder(data: MessageOrder) {
-    const opts = this.createOrder(data);
+  private async storeOrderBookOnChain(message: Message) {
+    const nameSpace: string = 'DivaExchange:OrderBook:' + message.contract;
+    const opts = {
+      method: 'PUT',
+      url: this.config.url_api_chain + '/transaction',
+      body: [
+        {
+          seq: message.seq,
+          command: 'data',
+          ns: nameSpace,
+          base64url: base64url.encode(
+            JSON.stringify(this.orderBook.get(message.contract))
+          ),
+        },
+      ],
+      json: true,
+    };
     return new Promise((resolve, reject) => {
       get.concat(opts, (error: Error, res: any) => {
         if (error) {
@@ -66,55 +89,8 @@ export class Processor {
           reject(error);
           return;
         }
-        if (res.statusCode == 200) {
-          this.storeNostroData(data);
-        }
         resolve(res);
       });
     });
-  }
-
-  private createOrder(data: Message) {
-    const nameSpace: string = this.getNamespace(data.command);
-    return {
-      method: 'PUT',
-      url: this.config.url_api_chain + '/transaction',
-      body: [
-        {
-          seq: data.seq,
-          command: 'data',
-          ns: nameSpace,
-          base64url: base64url.encode(JSON.stringify(data)),
-        },
-      ],
-      json: true,
-    };
-  }
-
-  private getNamespace(command: string): string {
-    switch (command) {
-      case 'add':
-      case 'delete':
-        return 'DivaExchangeOrderBook';
-      default:
-        throw new Error('Processor.getNamespace(): Unsupported Command');
-    }
-  }
-
-  private async putContract(message: Message) {
-    console.log(message);
-  }
-
-  private async storeNostroData(data: MessageOrder) {
-    const key = this.getNostroOrderKey(data);
-    const newEntry: string =
-      data.amount.toString() + '@' + data.price.toString();
-    const currentArray: Array<string> = await this.db.getValueByKey(key);
-    currentArray.unshift(newEntry);
-    await this.db.updateByKey(key, [...currentArray]);
-  }
-
-  private getNostroOrderKey(data: MessageOrder): string {
-    return 'order_nostro:' + data.contract + ':' + data.type;
   }
 }

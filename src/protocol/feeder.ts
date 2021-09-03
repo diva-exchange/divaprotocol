@@ -18,7 +18,7 @@
  */
 
 import { Config } from '../config';
-import Big from 'big.js';
+//import Big from 'big.js';
 import { Db } from '../db';
 import { BlockStruct } from './struct';
 import base64url from 'base64-url';
@@ -35,7 +35,7 @@ export class Feeder {
   public constructor(config: Config) {
     this.config = config;
     this.db = Db.make(this.config);
-    this.orderBook = new OrderBook(this.config);
+    this.orderBook = OrderBook.make(this.db);
   }
 
   public async shutdown() {

@@ -17,30 +17,55 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-import { Config } from '../config';
 import { Db } from '../db';
+import Big from 'big.js';
 
 export class OrderBook {
-  public readonly config: Config;
   private readonly db: Db;
+  private readonly arrayBook: {
+    [key: string]: { buy: Map<string, string>; sell: Map<string, string> };
+  };
 
-  public constructor(config: Config) {
-    this.config = config;
-    this.db = Db.make(this.config);
+  public static make(db: Db): OrderBook {
+    return new OrderBook(db);
   }
 
-  public async getSubscribe(contract: string, channel: string) {
-    const orderBuy: string = await this.db.getValueByKey(
-      'order_' + channel + ':' + contract + ':buy'
-    );
-    const orderSell: string = await this.db.getValueByKey(
-      'order_' + channel + ':' + contract + ':sell'
-    );
-    return {
-      channel: channel,
-      contract: contract,
-      buy: orderBuy,
-      sell: orderSell,
+  private constructor(db: Db) {
+    this.db = db;
+    //@FIXME load the order books from the chain
+    this.arrayBook = {
+      BTC_ETH: { buy: new Map(), sell: new Map() },
+      BTC_XMR: { buy: new Map(), sell: new Map() },
+      BTC_ZEC: { buy: new Map(), sell: new Map() },
     };
+  }
+
+  public updateBook(
+    contract: string,
+    type: 'buy' | 'sell',
+    price: number,
+    amount: number
+  ) {
+    if (!this.arrayBook[contract]) {
+      throw Error('OrderBook.updateBook(): Unsupported contract');
+    }
+    //@FIXME precision
+    const newPrice: string = new Big(price).toFixed(9);
+    const newAmount: string = new Big(
+      this.arrayBook[contract][type].get(newPrice) || 0
+    )
+      .plus(amount)
+      .toFixed(9);
+    this.arrayBook[contract][type].set(newPrice, newAmount);
+  }
+
+  get(contract: string): {
+    buy: Map<string, string>;
+    sell: Map<string, string>;
+  } {
+    if (!this.arrayBook[contract]) {
+      throw Error('OrderBook.get(): Unsupported contract');
+    }
+    return this.arrayBook[contract];
   }
 }

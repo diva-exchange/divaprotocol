@@ -48,13 +48,13 @@ interface iMessage {
 }
 
 export interface MessageOrder extends iMessage {
-  type: string;
-  price: string;
-  amount: string;
+  type: 'buy' | 'sell';
+  price: number;
+  amount: number;
 }
 
 export interface MessageSubscribe extends iMessage {
   channel: string;
 }
 
-export type Message = MessageOrder | MessageSubscribe;
+export interface Message extends MessageOrder, MessageSubscribe {}

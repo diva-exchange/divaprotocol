@@ -61,9 +61,7 @@ export class Server {
         // incoming from client, like subscription, orders, contracts etc.
         // it must be JSON
         try {
-          await this.businessProtocol.processOrder(
-            JSON.parse(message.toString())
-          );
+          await this.businessProtocol.process(JSON.parse(message.toString()));
         } catch (error: any) {
           Logger.trace(error);
         }
