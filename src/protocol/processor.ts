@@ -58,10 +58,6 @@ export class Processor {
         //@FIXME
         return;
       // return await this.orderBook.getSubscribe(message.channel, message.contract);
-      case 'unsubscribe':
-        //@FIXME
-        return;
-      // return await this.orderBook.getSubscribe(message.channel, message.contract);
       default:
         throw Error('Processor.process(): Invalid Command');
     }
