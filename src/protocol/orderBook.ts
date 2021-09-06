@@ -26,22 +26,23 @@ import base64url from 'base64-url';
 export class OrderBook {
   private readonly config: Config;
   private readonly arrayBook: {
-    [key: string]: { buy: Map<string, string>; sell: Map<string, string>; status: number };
+    [key: string]: { buy: { [price: string]: string }; sell: { [price: string]: string }; status: number };
   };
 
-  public static make(config: Config): OrderBook {
-    return new OrderBook(config);
+  public static async make(config: Config): Promise<OrderBook> {
+    const ob = new OrderBook(config);
+    await ob.loadOrderBookFromChain();
+    return ob;
   }
 
   private constructor(config: Config) {
     this.config = config;
     //@FIXME load the order books from the chain
     this.arrayBook = {
-      BTC_ETH: { buy: new Map(), sell: new Map(), status: 0 },
-      BTC_XMR: { buy: new Map(), sell: new Map(), status: 0 },
-      BTC_ZEC: { buy: new Map(), sell: new Map(), status: 0 },
+      BTC_ETH: { buy: {}, sell: {}, status: 0 },
+      BTC_XMR: { buy: {}, sell: {}, status: 0 },
+      BTC_ZEC: { buy: {}, sell: {}, status: 0 },
     };
-    this.loadOrderBookFromChain();
   }
 
   public updateBook(
@@ -56,18 +57,19 @@ export class OrderBook {
 
     const newPrice: string = new Big(price).toFixed(this.config.precision);
     let newAmount: string = new Big(
-      this.arrayBook[contract][type].get(newPrice) || 0
+      this.arrayBook[contract][type][newPrice] || 0
     )
       .plus(amount)
       .toFixed(this.config.precision);
     newAmount = parseFloat(newAmount)>0?newAmount:'0';
-    this.arrayBook[contract][type].set(newPrice, newAmount);
+    this.arrayBook[contract][type][newPrice] = newAmount;
     this.arrayBook[contract]['status'] = 0;
   }
 
   public get(contract: string): {
-    buy: Map<string, string>;
-    sell: Map<string, string>;
+    buy: { [price: string]: string };
+    sell: { [price: string]: string };
+    status: number;
   } {
     if (!this.arrayBook[contract]) {
       throw Error('OrderBook.get(): Unsupported contract');
@@ -80,8 +82,8 @@ export class OrderBook {
       throw Error('OrderBook.serialize(): Unsupported contract');
     }
     return JSON.stringify({
-      buy: [...this.arrayBook[contract].buy.entries()],
-      sell: [...this.arrayBook[contract].sell.entries()],
+      buy: this.arrayBook[contract].buy,
+      sell: this.arrayBook[contract].sell,
     });
   }
 
@@ -91,30 +93,39 @@ export class OrderBook {
 
   private async loadOrderBookFromChain(): Promise<void> {
     for (const contract of this.config.contracts_array) {
-      const url: string =
-        this.config.url_api_chain +
-        '/state/' +
-        this.config.my_public_key +
-        ':DivaExchange:OrderBook:' +
-        contract;
-      new Promise((resolve, reject) => {
-        get.concat(url, (error: Error, res: any, data: any) => {
-          if (error) {
-            Logger.trace(error);
-            reject(error);
-            return;
-          }
-          if (res.statusCode == 200) {
-            //@FIXME type any need to be solved
-            const obj: { buy: any; sell: any } = JSON.parse(
-              base64url.decode(data)
-            );
-            this.arrayBook[contract].buy = new Map(obj.buy);
-            this.arrayBook[contract].sell = new Map(obj.sell);
-          }
-          resolve(data);
-        });
-      });
+      try {
+        await this.fetch(contract);
+      } catch (error: any) {
+        Logger.trace(error);
+      }
     }
+  }
+
+  private fetch(contract: string): Promise<void> {
+    const url: string =
+      this.config.url_api_chain +
+      '/state/' +
+      this.config.my_public_key +
+      ':DivaExchange:OrderBook:' +
+      contract;
+    return new Promise((resolve, reject) => {
+      get.concat(url, (error: Error, res: any, data: any) => {
+        if (error) {
+          reject(error);
+        }
+        if (res.statusCode === 200) {
+          //@FIXME type any need to be solved
+          const obj: { buy: { [price: string]: string }; sell: { [price: string]: string } } = JSON.parse(
+              base64url.decode(data)
+          );
+          Logger.trace(obj.buy);
+          Logger.trace(obj.sell);
+          this.arrayBook[contract].buy = obj.buy;
+          this.arrayBook[contract].sell = obj.sell;
+          this.arrayBook[contract].status = 1;
+        }
+        resolve();
+      });
+    });
   }
 }

@@ -28,12 +28,17 @@ import { Message } from './struct';
 export class Processor {
   public readonly config: Config;
   private readonly db: Db;
-  private readonly orderBook: OrderBook;
+  private orderBook: OrderBook = {} as OrderBook;
 
-  constructor(config: Config) {
+  public static async make(config: Config): Promise<Processor> {
+    const p = new Processor(config);
+    p.orderBook = await OrderBook.make(config);
+    return p;
+  }
+
+  private constructor(config: Config) {
     this.config = config;
     this.db = Db.make(this.config);
-    this.orderBook = OrderBook.make(this.config);
   }
 
   async process(message: Message) {
@@ -55,9 +60,9 @@ export class Processor {
         await this.storeOrderBookOnChain(message);
         break;
       case 'contract':
-      case 'subscribe':
-        return await this.orderBook.get(message.contract);
         break;
+      case 'subscribe':
+        return this.orderBook.get(message.contract);
       case 'unsubscribe':
         //@FIXME
         return;

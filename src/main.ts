@@ -35,7 +35,7 @@ class Main {
 
   private async start() {
     this.config.my_public_key = await this.factory.getPublicKey();
-    const server = new Server(this.config);
+    const server = await Server.make(this.config);
     ['SIGINT', 'SIGTERM'].forEach((sig) => {
       process.once(sig, async () => {
         await server.shutdown();

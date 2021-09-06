@@ -27,16 +27,22 @@ import { Validation } from './validation';
 
 export class Server {
   private readonly config: Config;
-  private readonly businessProtocol: Processor;
-  private readonly feeder: Feeder;
+  private processor: Processor = {} as Processor;
+  private feeder: Feeder = {} as Feeder;
   private readonly validation: Validation;
   private readonly webSocketServer: WebSocketServer;
   private webSocketFeed: WebSocket | undefined;
 
-  constructor(config: Config) {
+  public static async make(config: Config): Promise<Server> {
+    const s = new Server(config);
+    s.processor = await Processor.make(config);
+    s.feeder = await Feeder.make(config);
+    // do the init of stuff
+    return s;
+  }
+
+  private constructor(config: Config) {
     this.config = config;
-    this.businessProtocol = new Processor(this.config);
-    this.feeder = new Feeder(this.config);
     this.validation = Validation.make();
 
     Logger.info(`divaprotocol ${this.config.VERSION} instantiating...`);
@@ -61,11 +67,11 @@ export class Server {
         // incoming from client, like subscription, orders, contracts etc.
         // it must be JSON
         try {
-          await this.businessProtocol.process(JSON.parse(message.toString())).then(res =>
-              this.webSocketServer.clients.forEach((ws) => {
-                ws.send(JSON.stringify(res));
-              })
-          );
+          const obj: any = await this.processor.process(JSON.parse(message.toString()));
+          this.webSocketServer.clients.forEach((ws) => {
+            Logger.trace(obj);
+            ws.send(JSON.stringify(obj));
+          })
         } catch (error: any) {
           Logger.trace(error);
         }
