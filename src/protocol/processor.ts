@@ -38,8 +38,9 @@ export class Processor {
 
   async process(message: Message) {
     switch (message.command) {
-      case 'add':
       case 'delete':
+        message.amount = -message.amount;
+      case 'add':
         // 1. create the new order book
         // 2. send the new order book to the blockchain (transaction)
         // 3. if blockchain result is

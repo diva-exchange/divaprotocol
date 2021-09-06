@@ -31,6 +31,7 @@ export type Configuration = {
   url_api_chain?: string;
   my_public_key?: string;
   contracts_array?: Array<string>;
+  precision?: number;
 };
 
 const DEFAULT_IP = '127.0.0.1';
@@ -49,6 +50,7 @@ export class Config {
   public readonly path_app: string;
   public readonly per_message_deflate: boolean;
   public readonly path_keys: string;
+  public readonly precision: number = 9;
   public my_public_key: string = '';
   public contracts_array: Array<string> = ['BTC_XMR', 'BTC_ETH', 'BTC_ZEC'];
 

@@ -53,13 +53,14 @@ export class OrderBook {
     if (!this.arrayBook[contract]) {
       throw Error('OrderBook.updateBook(): Unsupported contract');
     }
-    //@FIXME precision
-    const newPrice: string = new Big(price).toFixed(9);
-    const newAmount: string = new Big(
+
+    const newPrice: string = new Big(price).toFixed(this.config.precision);
+    let newAmount: string = new Big(
       this.arrayBook[contract][type].get(newPrice) || 0
     )
       .plus(amount)
-      .toFixed(9);
+      .toFixed(this.config.precision);
+    newAmount = parseFloat(newAmount)>0?newAmount:'0';
     this.arrayBook[contract][type].set(newPrice, newAmount);
   }
 
