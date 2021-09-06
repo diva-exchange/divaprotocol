@@ -53,9 +53,14 @@ export class Feeder {
       if (t.origin == this.config.my_public_key) {
         for (const c of t.commands) {
           //@TODO update order book with confirmation of the order
-          //this.orderBook.updateBook();
+
+          const ns = c.ns.split(':',3)[2];
+          if (this.orderBook.get(ns) === JSON.parse(base64url.decode(c.base64url))) {
+            this.orderBook.confirmOrder(ns);
+          }
           const decodedData = JSON.parse(base64url.decode(c.base64url));
-          Logger.trace(decodedData);
+          Logger.info(this.orderBook.get(ns));
+          return decodedData;
         }
       }
     }

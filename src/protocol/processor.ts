@@ -52,13 +52,15 @@ export class Processor {
           message.price,
           message.amount
         );
-        return await this.storeOrderBookOnChain(message);
+        await this.storeOrderBookOnChain(message);
+        break;
       case 'contract':
       case 'subscribe':
+        return await this.orderBook.get(message.contract);
+        break;
       case 'unsubscribe':
         //@FIXME
         return;
-      // return await this.orderBook.getSubscribe(message.channel, message.contract);
       default:
         throw Error('Processor.process(): Invalid Command');
     }

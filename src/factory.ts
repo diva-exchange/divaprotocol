@@ -22,7 +22,7 @@ import { Logger } from './logger';
 
 export class Factory {
   public my_public_key: string = '';
-  private url_api_chain: string;
+  private readonly url_api_chain: string;
 
   constructor(urlApiChain: string) {
     this.url_api_chain = urlApiChain;

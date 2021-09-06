@@ -26,7 +26,7 @@ import base64url from 'base64-url';
 export class OrderBook {
   private readonly config: Config;
   private readonly arrayBook: {
-    [key: string]: { buy: Map<string, string>; sell: Map<string, string> };
+    [key: string]: { buy: Map<string, string>; sell: Map<string, string>; status: number };
   };
 
   public static make(config: Config): OrderBook {
@@ -37,9 +37,9 @@ export class OrderBook {
     this.config = config;
     //@FIXME load the order books from the chain
     this.arrayBook = {
-      BTC_ETH: { buy: new Map(), sell: new Map() },
-      BTC_XMR: { buy: new Map(), sell: new Map() },
-      BTC_ZEC: { buy: new Map(), sell: new Map() },
+      BTC_ETH: { buy: new Map(), sell: new Map(), status: 0 },
+      BTC_XMR: { buy: new Map(), sell: new Map(), status: 0 },
+      BTC_ZEC: { buy: new Map(), sell: new Map(), status: 0 },
     };
     this.loadOrderBookFromChain();
   }
@@ -49,7 +49,7 @@ export class OrderBook {
     type: 'buy' | 'sell',
     price: number,
     amount: number
-  ) {
+  ): void {
     if (!this.arrayBook[contract]) {
       throw Error('OrderBook.updateBook(): Unsupported contract');
     }
@@ -62,9 +62,10 @@ export class OrderBook {
       .toFixed(this.config.precision);
     newAmount = parseFloat(newAmount)>0?newAmount:'0';
     this.arrayBook[contract][type].set(newPrice, newAmount);
+    this.arrayBook[contract]['status'] = 0;
   }
 
-  get(contract: string): {
+  public get(contract: string): {
     buy: Map<string, string>;
     sell: Map<string, string>;
   } {
@@ -74,9 +75,9 @@ export class OrderBook {
     return this.arrayBook[contract];
   }
 
-  serialize(contract: string): string {
+  public serialize(contract: string): string {
     if (!this.arrayBook[contract]) {
-      throw Error('OrderBook.get(): Unsupported contract');
+      throw Error('OrderBook.serialize(): Unsupported contract');
     }
     return JSON.stringify({
       buy: [...this.arrayBook[contract].buy.entries()],
@@ -84,7 +85,11 @@ export class OrderBook {
     });
   }
 
-  private async loadOrderBookFromChain() {
+  public confirmOrder(contract: string) {
+    this.arrayBook[contract]['status'] = 1;
+  }
+
+  private async loadOrderBookFromChain(): Promise<void> {
     for (const contract of this.config.contracts_array) {
       const url: string =
         this.config.url_api_chain +

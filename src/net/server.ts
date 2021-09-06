@@ -61,7 +61,11 @@ export class Server {
         // incoming from client, like subscription, orders, contracts etc.
         // it must be JSON
         try {
-          await this.businessProtocol.process(JSON.parse(message.toString()));
+          await this.businessProtocol.process(JSON.parse(message.toString())).then(res =>
+              this.webSocketServer.clients.forEach((ws) => {
+                ws.send(JSON.stringify(res));
+              })
+          );
         } catch (error: any) {
           Logger.trace(error);
         }
