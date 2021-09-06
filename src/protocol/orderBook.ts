@@ -23,10 +23,16 @@ import get from 'simple-get';
 import { Logger } from '../logger';
 import base64url from 'base64-url';
 
+const STATUS_ORDER_UNCONFIRMED = 0;
+const STATUS_ORDER_CONFIRMED = 1;
+
 export class OrderBook {
   private readonly config: Config;
-  private readonly arrayBook: {
-    [key: string]: { buy: { [price: string]: string }; sell: { [price: string]: string }; status: number };
+  private readonly arrayBookNostro: {
+    [key: string]: { buy: { [price: string]: { [status: number]: string } }; sell: { [price: string]: { [status: number]: string } } };
+  };
+  private readonly arrayBookMarket: {
+    [key: string]: { buy: { [price: string]: string }; sell: { [price: string]: string } };
   };
 
   public static async make(config: Config): Promise<OrderBook> {
@@ -38,10 +44,16 @@ export class OrderBook {
   private constructor(config: Config) {
     this.config = config;
     //@FIXME load the order books from the chain
-    this.arrayBook = {
-      BTC_ETH: { buy: {}, sell: {}, status: 0 },
-      BTC_XMR: { buy: {}, sell: {}, status: 0 },
-      BTC_ZEC: { buy: {}, sell: {}, status: 0 },
+    this.arrayBookNostro = {
+      BTC_ETH: { buy: {}, sell: {}},
+      BTC_XMR: { buy: {}, sell: {}},
+      BTC_ZEC: { buy: {}, sell: {}},
+    };
+
+    this.arrayBookMarket = {
+      BTC_ETH: { buy: {}, sell: {} },
+      BTC_XMR: { buy: {}, sell: {} },
+      BTC_ZEC: { buy: {}, sell: {} },
     };
   }
 
@@ -51,35 +63,36 @@ export class OrderBook {
     price: number,
     amount: number
   ): void {
-    if (!this.arrayBook[contract]) {
+    if (!this.arrayBookNostro[contract]) {
       throw Error('OrderBook.updateBook(): Unsupported contract');
     }
 
     const newPrice: string = new Big(price).toFixed(this.config.precision);
+    this.arrayBookNostro[contract][type][newPrice] = this.arrayBookNostro[contract][type][newPrice] || {};
     let newAmount: string = new Big(
-      this.arrayBook[contract][type][newPrice] || 0
+      this.arrayBookNostro[contract][type][newPrice][STATUS_ORDER_UNCONFIRMED] || 0
     )
       .plus(amount)
       .toFixed(this.config.precision);
-    newAmount = parseFloat(newAmount)>0?newAmount:'0';
-    this.arrayBook[contract][type][newPrice] = newAmount;
-    this.arrayBook[contract]['status'] = 0;
+
+    Logger.trace(this.arrayBookNostro[contract][type]);
+    this.arrayBookNostro[contract][type][newPrice][STATUS_ORDER_UNCONFIRMED] = new Big(amount).toFixed(this.config.precision);
   }
 
   public get(contract: string): string {
-    if (!this.arrayBook[contract]) {
+    if (!this.arrayBookNostro[contract]) {
       throw Error('OrderBook.get(): Unsupported contract');
     }
     return JSON.stringify({
       channel: 'nostro',
       contract: contract,
-      buy: this.arrayBook[contract].buy,
-      sell: this.arrayBook[contract].sell,
+      buy: this.arrayBookNostro[contract].buy,
+      sell: this.arrayBookNostro[contract].sell,
     });
   }
 
   public confirmOrder(contract: string) {
-    this.arrayBook[contract]['status'] = 1;
+    //this.arrayBook[contract]['status'] = 1;
   }
 
   private async loadOrderBookFromChain(): Promise<void> {
@@ -109,9 +122,8 @@ export class OrderBook {
           const obj: { buy: { [price: string]: string }; sell: { [price: string]: string } } = JSON.parse(
               base64url.decode(data)
           );
-          this.arrayBook[contract].buy = obj.buy;
-          this.arrayBook[contract].sell = obj.sell;
-          this.arrayBook[contract].status = 1;
+          this.arrayBookNostro[contract].buy[1] = obj.buy;
+          this.arrayBookNostro[contract].sell[1] = obj.sell;
         }
         resolve();
       });

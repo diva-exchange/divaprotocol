@@ -46,11 +46,6 @@ export class Processor {
       case 'delete':
         message.amount = -message.amount;
       case 'add':
-        // 1. create the new order book
-        // 2. send the new order book to the blockchain (transaction)
-        // 3. if blockchain result is
-        //    3a. OK: store the orderbook in the state, send the new order book to subscribers and return
-        //    3b. ERROR: throw error and crash -> later: retry? or...?
         this.orderBook.updateBook(
           message.contract,
           message.type,
