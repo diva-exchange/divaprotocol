@@ -67,10 +67,11 @@ export class Server {
         // incoming from client, like subscription, orders, contracts etc.
         // it must be JSON
         try {
-          const obj: any = await this.processor.process(JSON.parse(message.toString()));
+          //@FIXME separate process and return order book part!!
+          const obj: string = await this.processor.process(JSON.parse(message.toString()));
           this.webSocketServer.clients.forEach((ws) => {
             Logger.trace(obj);
-            ws.send(JSON.stringify(obj));
+            ws.send(obj);
           })
         } catch (error: any) {
           Logger.trace(error);

@@ -66,22 +66,13 @@ export class OrderBook {
     this.arrayBook[contract]['status'] = 0;
   }
 
-  public get(contract: string): {
-    buy: { [price: string]: string };
-    sell: { [price: string]: string };
-    status: number;
-  } {
+  public get(contract: string): string {
     if (!this.arrayBook[contract]) {
       throw Error('OrderBook.get(): Unsupported contract');
     }
-    return this.arrayBook[contract];
-  }
-
-  public serialize(contract: string): string {
-    if (!this.arrayBook[contract]) {
-      throw Error('OrderBook.serialize(): Unsupported contract');
-    }
     return JSON.stringify({
+      channel: 'nostro',
+      contract: contract,
       buy: this.arrayBook[contract].buy,
       sell: this.arrayBook[contract].sell,
     });
@@ -118,8 +109,6 @@ export class OrderBook {
           const obj: { buy: { [price: string]: string }; sell: { [price: string]: string } } = JSON.parse(
               base64url.decode(data)
           );
-          Logger.trace(obj.buy);
-          Logger.trace(obj.sell);
           this.arrayBook[contract].buy = obj.buy;
           this.arrayBook[contract].sell = obj.sell;
           this.arrayBook[contract].status = 1;

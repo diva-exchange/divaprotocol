@@ -41,7 +41,7 @@ export class Processor {
     this.db = Db.make(this.config);
   }
 
-  async process(message: Message) {
+  async process(message: Message): Promise<string> {
     switch (message.command) {
       case 'delete':
         message.amount = -message.amount;
@@ -65,10 +65,11 @@ export class Processor {
         return this.orderBook.get(message.contract);
       case 'unsubscribe':
         //@FIXME
-        return;
+        return '';
       default:
         throw Error('Processor.process(): Invalid Command');
     }
+    return '';
   }
 
   private async storeOrderBookOnChain(message: Message) {
@@ -82,7 +83,7 @@ export class Processor {
           command: 'data',
           ns: nameSpace,
           base64url: base64url.encode(
-            this.orderBook.serialize(message.contract)
+            this.orderBook.get(message.contract)
           ),
         },
       ],

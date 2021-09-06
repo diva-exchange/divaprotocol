@@ -30,8 +30,6 @@ export class Feeder {
   private readonly db: Db;
   private orderBook: OrderBook = {} as OrderBook;
 
-  private precision = 9;
-
   public static async make(config: Config): Promise<Feeder> {
     const f = new Feeder(config);
     if (!f.orderBook) {
@@ -61,12 +59,12 @@ export class Feeder {
         for (const c of t.commands) {
           //@TODO update order book with confirmation of the order
 
-          const ns = c.ns.split(':',3)[2];
-          if (this.orderBook.get(ns) === JSON.parse(base64url.decode(c.base64url))) {
-            this.orderBook.confirmOrder(ns);
-          }
+          const contract = c.ns.split(':',3)[2];
+          // if (this.orderBook.get(ns) === JSON.parse(base64url.decode(c.base64url))) {
+          //   this.orderBook.confirmOrder(ns);
+          // }
           const decodedData = JSON.parse(base64url.decode(c.base64url));
-          Logger.info(this.orderBook.get(ns));
+          //Logger.info(this.orderBook.get(contract));
           return decodedData;
         }
       }
