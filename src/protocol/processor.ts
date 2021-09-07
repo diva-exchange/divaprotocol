@@ -24,15 +24,18 @@ import { Db } from '../db';
 import base64url from 'base64-url';
 import { OrderBook } from './orderBook';
 import { Message } from './struct';
+import { Topic } from './topic';
 
 export class Processor {
   public readonly config: Config;
   private readonly db: Db;
   private orderBook: OrderBook = {} as OrderBook;
+  private topic: Topic = {} as Topic;
 
   public static async make(config: Config): Promise<Processor> {
     const p = new Processor(config);
     p.orderBook = await OrderBook.make(config);
+    p.topic = Topic.make();
     return p;
   }
 
@@ -54,13 +57,19 @@ export class Processor {
         );
         this.storeOrderBookOnChain(message);
         return '';
+        break;
       case 'contract':
         return '';
+        break;
       case 'subscribe':
+        this.topic.subscribeTopic(message.channel, message.contract);
         return this.orderBook.get(message.contract);
-      case 'unsubscribe':
-        //@FIXME
         return '';
+        break;
+      case 'unsubscribe':
+        this.topic.unsubscribeTopic(message.channel, message.contract);
+        return '';
+        break;
       default:
         throw Error('Processor.process(): Invalid Command');
     }

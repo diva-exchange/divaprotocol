@@ -20,19 +20,19 @@
 import { Config } from '../config';
 import { Db } from '../db';
 import { BlockStruct } from './struct';
-import base64url from 'base64-url';
 import { OrderBook } from './orderBook';
+import { Topic } from './topic';
 
 export class Feeder {
   private readonly config: Config;
   private readonly db: Db;
   private orderBook: OrderBook = {} as OrderBook;
+  private topic: Topic = {} as Topic;
 
   static async make(config: Config): Promise<Feeder> {
     const f = new Feeder(config);
-    if (!f.orderBook) {
-      f.orderBook = await OrderBook.make(config);
-    }
+    f.orderBook = await OrderBook.make(config);
+    f.topic = Topic.make();
     return f;
   }
 
@@ -56,19 +56,25 @@ export class Feeder {
       if (t.origin == this.config.my_public_key) {
         for (const c of t.commands) {
           //@TODO update order book with confirmation of the order
-
-          //const contract = c.ns.split(':', 3)[2];
-          // if (this.orderBook.get(ns) === JSON.parse(base64url.decode(c.base64url))) {
-          //   this.orderBook.confirmOrder(ns);
-          // }
-          const decodedData = JSON.parse(base64url.decode(c.base64url));
-          //Logger.info(this.orderBook.get(contract));
-          return decodedData;
+          const contract = c.ns.split(':', 3)[2];
+          //const decodedData = JSON.parse(base64url.decode(c.base64url));
+          //console.log(this.orderBook.get(contract));
+          //return decodedData;
         }
       }
     }
   }
 
+  public getSubscribedData() {
+    //@TODO extend it with market data
+    let requiredOrderBook: String = '';
+
+    this.topic.getTopics().forEach((topic) => {
+      requiredOrderBook += this.orderBook.get(topic.contract);
+    });
+    return requiredOrderBook;
+    return '';
+  }
   /*
   private async addContract(data: CommandContract) {
     await this.db.updateByKey('asset:' + data.contract, {});

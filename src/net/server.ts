@@ -70,12 +70,12 @@ export class Server {
         Logger.trace(`WebSocketServer received: ${message.toString()}`);
 
         try {
-          const msg: string = await this.processor.process(
-            JSON.parse(message.toString())
-          );
-          if (msg) {
+          //const msg: string =
+          await this.processor.process(JSON.parse(message.toString()));
+          const feed = this.feeder.getSubscribedData();
+          if (feed) {
             this.webSocketServer.clients.forEach((ws) => {
-              ws.send(msg);
+              ws.send(feed);
             });
           }
         } catch (error: any) {
@@ -123,15 +123,15 @@ export class Server {
           if (c.command === 'data' && c.ns.match('^DivaExchange.')) {
             //@FIXME logging
             Logger.trace('WebSocketFeed received: ' + JSON.stringify(c));
+            //await this.feeder.process(block);
+            await this.feeder.process(block);
+            const feed = this.feeder.getSubscribedData();
 
-            const feed = await this.feeder.process(block);
-
-            // if it qualifies, forward the relevant object
-            this.webSocketServer.clients.forEach((ws) => {
-              // probably, here should be a stringified object instead of the binary message
-              // probably, only to specific subscribers
-              ws.send(JSON.stringify(feed));
-            });
+            if (feed) {
+              this.webSocketServer.clients.forEach((ws) => {
+                ws.send(feed);
+              });
+            }
           }
         });
       });

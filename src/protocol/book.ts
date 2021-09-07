@@ -73,12 +73,18 @@ export class Book {
       case TYPE_BUY:
         return this.mapBuy.set(
           id,
-          new Map().set(new Big(price).toFixed(PRECISION), new Big(amount).toFixed(PRECISION))
+          new Map().set(
+            new Big(price).toFixed(PRECISION),
+            new Big(amount).toFixed(PRECISION)
+          )
         );
       case TYPE_SELL:
         return this.mapSell.set(
           id,
-          new Map().set(new Big(price).toFixed(PRECISION), new Big(amount).toFixed(PRECISION))
+          new Map().set(
+            new Big(price).toFixed(PRECISION),
+            new Big(amount).toFixed(PRECISION)
+          )
         );
       default:
         throw new Error('Book.set(): invalid type');
