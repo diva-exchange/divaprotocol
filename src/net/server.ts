@@ -37,7 +37,6 @@ export class Server {
     const s = new Server(config);
     s.processor = await Processor.make(config);
     s.feeder = await Feeder.make(config);
-    // do the init of stuff
     return s;
   }
 
@@ -61,23 +60,20 @@ export class Server {
       });
       ws.on('message', async (message: Buffer) => {
         if (!Validation.make().validate(message)) {
+          //@FIXME logging
+          Logger.trace(`Message validation failed: ${message.toString()}`);
           return;
         }
 
         //@FIXME logging
-        Logger.trace(
-          `received to webSocketServer ( 127.0.0.1 : 19720) : ${message.toString()}`
-        );
+        Logger.trace(`WebSocketServer received: ${message.toString()}`);
 
-        // incoming from client, like subscription, orders, contracts etc.
-        // it must be JSON
         try {
-          //@FIXME separate process and return order book part!!
-          const obj: string = await this.processor.process(
+          const msg: string = await this.processor.process(
             JSON.parse(message.toString())
           );
           this.webSocketServer.clients.forEach((ws) => {
-            ws.send(obj);
+            ws.send(msg);
           });
         } catch (error: any) {
           //@FIXME logging
@@ -112,7 +108,9 @@ export class Server {
     this.webSocketFeed.on('message', async (message: Buffer) => {
       const block = JSON.parse(message.toString());
       //@FIXME logging
-      Logger.trace('Feeder part: ' + JSON.stringify(block.tx[0].commands[0]));
+      Logger.trace(
+        'WebSocketFeed received: ' + JSON.stringify(block)
+      );
 
       const feed = await this.feeder.process(block);
 

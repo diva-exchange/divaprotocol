@@ -30,7 +30,7 @@ export class OrderBook {
   private readonly config: Config;
   private readonly arrayNostro: { [contract: string]: Book } = {};
 
-  public static async make(config: Config): Promise<OrderBook> {
+  static async make(config: Config): Promise<OrderBook> {
     const ob = new OrderBook(config);
     await ob.loadOrderBookFromChain();
     return ob;
@@ -44,24 +44,21 @@ export class OrderBook {
     });
   }
 
-  public updateBook(
-    contract: string,
-    type: tBuySell,
-    price: number,
-    amount: number
-  ) {
+  update(contract: string, type: tBuySell, price: number, amount: number) {
     if (!this.arrayNostro[contract]) {
-      throw new Error('OrderBook.updateBook(): invalid contract');
+      throw new Error('OrderBook.update(): invalid contract');
     }
     switch (type) {
       case 'buy':
         return this.arrayNostro[contract].buyUnconfirmed(price, amount);
       case 'sell':
         return this.arrayNostro[contract].sellUnconfirmed(price, amount);
+      default:
+        throw new Error('OrderBook.update(): invalid type');
     }
   }
 
-  public get(contract: string): string {
+  get(contract: string): string {
     if (!this.arrayNostro[contract]) {
       throw Error('OrderBook.get(): Unsupported contract');
     }

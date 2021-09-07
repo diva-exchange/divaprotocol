@@ -28,7 +28,7 @@ export class Feeder {
   private readonly db: Db;
   private orderBook: OrderBook = {} as OrderBook;
 
-  public static async make(config: Config): Promise<Feeder> {
+  static async make(config: Config): Promise<Feeder> {
     const f = new Feeder(config);
     if (!f.orderBook) {
       f.orderBook = await OrderBook.make(config);
@@ -41,16 +41,16 @@ export class Feeder {
     this.db = Db.make(this.config);
   }
 
-  public async shutdown() {
+  async shutdown() {
     await this.db.shutdown();
   }
 
-  public async clear() {
+  async clear() {
     await this.db.clear();
   }
 
   //@FIXME what's the return value of the feeder processing data from the blockchain?
-  public async process(block: BlockStruct) {
+  async process(block: BlockStruct) {
     for (const t of block.tx) {
       // const channel: string = t.origin == this.config.my_public_key ? 'nostro' : 'market';
       if (t.origin == this.config.my_public_key) {

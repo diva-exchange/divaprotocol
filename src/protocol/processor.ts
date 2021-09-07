@@ -44,15 +44,14 @@ export class Processor {
   async process(message: Message): Promise<string> {
     switch (message.command) {
       case 'delete':
-        message.amount = -message.amount;
       case 'add':
-        this.orderBook.updateBook(
+        this.orderBook.update(
           message.contract,
           message.type,
           message.price,
-          message.amount
+          message.command === 'delete' ? -1 * message.amount : message.amount
         );
-        await this.storeOrderBookOnChain(message);
+        this.storeOrderBookOnChain(message);
         break;
       case 'contract':
         break;
@@ -67,7 +66,7 @@ export class Processor {
     return '';
   }
 
-  private async storeOrderBookOnChain(message: Message) {
+  private storeOrderBookOnChain(message: Message) {
     const nameSpace: string = 'DivaExchange:OrderBook:' + message.contract;
     const opts = {
       method: 'PUT',
@@ -82,16 +81,11 @@ export class Processor {
       ],
       json: true,
     };
-    return new Promise((resolve, reject) => {
-      get.concat(opts, (error: Error, res: any) => {
-        if (error) {
-          //@FIXME logging
-          Logger.trace(error);
-          reject(error);
-          return;
-        }
-        resolve(res);
-      });
+    get.concat(opts, (error: Error) => {
+      if (error) {
+        //@FIXME logging and error handling
+        Logger.trace(error);
+      }
     });
   }
 }

@@ -60,7 +60,9 @@ export class Validation {
       switch (m.command) {
         case 'add':
         case 'delete':
+          return this.validateOrder(m);
         case 'subscribe':
+          return this.validateSubscribe(m);
         case 'unsubscribe':
           return true;
         default:
