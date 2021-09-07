@@ -65,13 +65,17 @@ export class Server {
         }
 
         //@FIXME logging
-        Logger.trace(`received to webSocketServer ( 127.0.0.1 : 19720) : ${message.toString()}`);
+        Logger.trace(
+          `received to webSocketServer ( 127.0.0.1 : 19720) : ${message.toString()}`
+        );
 
         // incoming from client, like subscription, orders, contracts etc.
         // it must be JSON
         try {
           //@FIXME separate process and return order book part!!
-          const obj: string = await this.processor.process(JSON.parse(message.toString()));
+          const obj: string = await this.processor.process(
+            JSON.parse(message.toString())
+          );
           this.webSocketServer.clients.forEach((ws) => {
             ws.send(obj);
           });

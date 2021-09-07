@@ -17,7 +17,7 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-import {Big} from 'big.js';
+import { Big } from 'big.js';
 
 const REGEX_CONTRACT = '^[A-Z0-9]{2,6}_[A-Z0-9]{2,6}$';
 
@@ -31,17 +31,15 @@ const PRECISION = 8;
 type tRecord = {
   price: string;
   amount: string;
-  status: number
 };
 
 export type tBook = {
   contract: string;
-  buy: Array<tRecord>,
-  sell: Array<tRecord>
-}
+  buy: Array<tRecord>;
+  sell: Array<tRecord>;
+};
 
 export class Book {
-
   private readonly contract: string;
 
   private mapBuyConfirmed: Map<string, string> = new Map();
@@ -77,7 +75,12 @@ export class Book {
     this.set(STATUS_UNCONFIRMED, TYPE_SELL, price, amount);
   }
 
-  private set(status: number, type: string, price: string | number, amount: string | number) {
+  private set(
+    status: number,
+    type: string,
+    price: string | number,
+    amount: string | number
+  ) {
     let book;
     switch (status + type) {
       case STATUS_UNCONFIRMED + TYPE_BUY:
@@ -108,19 +111,18 @@ export class Book {
     const sell: Array<tRecord> = [];
 
     this.mapBuyConfirmed.forEach((v, k) => {
-      buy.push({ price: k, amount: v, status: STATUS_CONFIRMED });
+      buy.push({ price: k, amount: v });
     });
     this.mapBuyUnconfirmed.forEach((v, k) => {
-      buy.push({ price: k, amount: v, status: STATUS_UNCONFIRMED });
+      buy.push({ price: k, amount: v });
     });
     this.mapSellConfirmed.forEach((v, k) => {
-      sell.push({ price: k, amount: v, status: STATUS_CONFIRMED });
+      sell.push({ price: k, amount: v });
     });
     this.mapSellUnconfirmed.forEach((v, k) => {
-      sell.push({ price: k, amount: v, status: STATUS_UNCONFIRMED });
+      sell.push({ price: k, amount: v });
     });
 
     return { contract: this.contract, buy: buy, sell: sell };
   }
-
 }

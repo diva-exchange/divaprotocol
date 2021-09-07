@@ -77,9 +77,7 @@ export class Processor {
           seq: message.seq,
           command: 'data',
           ns: nameSpace,
-          base64url: base64url.encode(
-            this.orderBook.get(message.contract)
-          ),
+          base64url: base64url.encode(this.orderBook.get(message.contract)),
         },
       ],
       json: true,

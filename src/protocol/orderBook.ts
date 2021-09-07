@@ -21,14 +21,14 @@ import { Config } from '../config';
 import get from 'simple-get';
 import { Logger } from '../logger';
 import base64url from 'base64-url';
-import {Book} from './book';
-import {Validation} from '../net/validation';
+import { Book, tBook } from './book';
+import { Validation } from '../net/validation';
 
 type tBuySell = 'buy' | 'sell';
 
 export class OrderBook {
   private readonly config: Config;
-  private readonly aNostro: { [contract: string]: Book } = {};
+  private readonly arrayNostro: { [contract: string]: Book } = {};
 
   public static async make(config: Config): Promise<OrderBook> {
     const ob = new OrderBook(config);
@@ -39,38 +39,37 @@ export class OrderBook {
   private constructor(config: Config) {
     this.config = config;
 
-    this.aNostro = {
-      BTC_ETH: Book.make('BTC_ETH'),
-      BTC_XMR: Book.make('BTC_XMR'),
-      BTC_ZEC: Book.make('BTC_ZEC'),
-    };
+    this.config.contracts_array.forEach((contract) => {
+      this.arrayNostro[contract] = Book.make(contract);
+    });
   }
 
-  public updateBook(contract: string, type: tBuySell, price: number, amount: number) {
-    if (!this.aNostro[contract]) {
+  public updateBook(
+    contract: string,
+    type: tBuySell,
+    price: number,
+    amount: number
+  ) {
+    if (!this.arrayNostro[contract]) {
       throw new Error('OrderBook.updateBook(): invalid contract');
     }
     switch (type) {
       case 'buy':
-        return this.aNostro[contract].buyUnconfirmed(price, amount);
+        return this.arrayNostro[contract].buyUnconfirmed(price, amount);
       case 'sell':
-        return this.aNostro[contract].sellUnconfirmed(price, amount);
+        return this.arrayNostro[contract].sellUnconfirmed(price, amount);
     }
   }
 
   public get(contract: string): string {
-    if (!this.aNostro[contract]) {
+    if (!this.arrayNostro[contract]) {
       throw Error('OrderBook.get(): Unsupported contract');
     }
-    return JSON.stringify(this.aNostro[contract].get());
-  }
-
-  public confirmOrder(contract: string) {
-    //this.arrayBook[contract]['status'] = 1;
+    return JSON.stringify(this.arrayNostro[contract].get());
   }
 
   private async loadOrderBookFromChain(): Promise<void> {
-    for (const contract of this.config.contracts_array) {
+    for (const contract of Object.keys(this.arrayNostro)) {
       try {
         await this.fetch(contract);
       } catch (error: any) {
@@ -90,13 +89,19 @@ export class OrderBook {
     return new Promise((resolve, reject) => {
       get.concat(url, (error: Error, res: any, data: any) => {
         if (error || res.statusCode !== 200) {
-          reject(error ||res.statusCode);
+          reject(error || res.statusCode);
         }
         try {
-          // validate here
-          console.log(Validation.make().validateBook(JSON.parse(base64url.decode(data))));
+          const book: tBook = JSON.parse(base64url.decode(data));
+          if (Validation.make().validateBook(book)) {
+            book.buy.forEach((r) => {
+              this.arrayNostro[book.contract].buyConfirmed(r.price, r.amount);
+            });
+            book.sell.forEach((r) => {
+              this.arrayNostro[book.contract].sellConfirmed(r.price, r.amount);
+            });
+          }
         } catch (error: any) {
-          console.log('rejected');
           reject(error);
         }
         resolve();

@@ -48,7 +48,9 @@ export class Validation {
     this.validateContract = this.ajv.compile(schemaContract);
     this.validateOrder = this.ajv.compile(schemaOrder);
     this.validateSubscribe = this.ajv.compile(schemaSubscribe);
-    this.validateBook = this.ajv.addSchema(schemaRecordBuySell).compile(schemaBook);
+    this.validateBook = this.ajv
+      .addSchema(schemaRecordBuySell)
+      .compile(schemaBook);
   }
 
   //@FIXME add validation
