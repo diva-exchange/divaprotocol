@@ -82,7 +82,7 @@ export class OrderBook {
     }
   }
 
-  private fetch(contract: string): Promise<void> {
+  private async fetch(contract: string): Promise<void> {
     const url: string =
       this.config.url_api_chain +
       '/state/' +
