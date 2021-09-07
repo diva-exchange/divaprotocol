@@ -24,6 +24,7 @@ import { Feeder } from '../protocol/feeder';
 import { Processor } from '../protocol/processor';
 import Buffer from 'buffer';
 import { Validation } from './validation';
+import { BlockStruct } from '../protocol/struct';
 
 export class Server {
   private readonly config: Config;
@@ -106,19 +107,31 @@ export class Server {
     });
 
     this.webSocketFeed.on('message', async (message: Buffer) => {
-      const block = JSON.parse(message.toString());
-      //@FIXME logging
-      Logger.trace(
-        'WebSocketFeed received: ' + JSON.stringify(block)
-      );
+      let block: BlockStruct;
+      try {
+        block = JSON.parse(message.toString());
+      } catch (error: any) {
+        //@FIXME logging
+        Logger.trace(error);
+        return;
+      }
 
-      const feed = await this.feeder.process(block);
+      block.tx.forEach((tx) => {
+        tx.commands.forEach(async (c) => {
+          if (c.command === 'data' && c.ns.match('^DivaExchange.')) {
+            //@FIXME logging
+            Logger.trace('WebSocketFeed received: ' + JSON.stringify(c));
 
-      // if it qualifies, forward the relevant object
-      this.webSocketServer.clients.forEach((ws) => {
-        // probably, here should be a stringified object instead of the binary message
-        // probably, only to specific subscribers
-        ws.send(JSON.stringify(feed));
+            const feed = await this.feeder.process(block);
+
+            // if it qualifies, forward the relevant object
+            this.webSocketServer.clients.forEach((ws) => {
+              // probably, here should be a stringified object instead of the binary message
+              // probably, only to specific subscribers
+              ws.send(JSON.stringify(feed));
+            });
+          }
+        });
       });
     });
   }
