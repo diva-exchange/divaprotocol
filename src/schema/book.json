@@ -9,10 +9,10 @@
       "pattern": "^[A-Z0-9]{2,6}_[A-Z0-9]{2,6}$"
     },
     "buy": {
-      "$ref": "recordBuySell.json"
+      "$ref": "bookBuySell.json"
     },
     "sell": {
-      "$ref": "recordBuySell.json"
+      "$ref": "bookBuySell.json"
     }
   },
   "additionalProperties": false,

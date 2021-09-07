@@ -28,8 +28,8 @@ const PRECISION = 8;
 
 type tRecord = {
   id: number;
-  price: string;
-  amount: string;
+  p: string;
+  a: string;
 };
 
 export type tBook = {
@@ -41,8 +41,8 @@ export type tBook = {
 export class Book {
   private readonly contract: string;
 
-  private mapBuy: Map<string, Map<number, string>> = new Map();
-  private mapSell: Map<string, Map<number, string>> = new Map();
+  private mapBuy: Map<number, Map<string, string>> = new Map();
+  private mapSell: Map<number, Map<string, string>> = new Map();
 
   static make(contract: string): Book {
     if (!contract.match(REGEX_CONTRACT)) {
@@ -69,41 +69,40 @@ export class Book {
     price: string | number,
     amount: string | number
   ) {
-    let book;
     switch (type) {
       case TYPE_BUY:
-        book = this.mapBuy;
-        break;
+        return this.mapBuy.set(
+          id,
+          new Map().set(
+            new Big(price).toFixed(PRECISION),
+            new Big(new Big(amount).toFixed(PRECISION))
+          )
+        );
       case TYPE_SELL:
-        book = this.mapSell;
-        break;
+        return this.mapSell.set(
+          id,
+          new Map().set(
+            new Big(price).toFixed(PRECISION),
+            new Big(new Big(amount).toFixed(PRECISION))
+          )
+        );
       default:
-        throw new Error('Book.set(): invalid status/type');
+        throw new Error('Book.set(): invalid type');
     }
-
-    price = new Big(price).toFixed(PRECISION);
-    amount = new Big(amount).toFixed(PRECISION);
-
-    //const a = new Big(book.get(price) || '0').toFixed(PRECISION);
-    const priceAndId: Map<number, string> = new Map<number, string>().set(
-      id,
-      new Big(amount).toFixed(PRECISION)
-    );
-    book.set(price, priceAndId);
   }
 
   get(): tBook {
     const buy: Array<tRecord> = [];
     const sell: Array<tRecord> = [];
 
-    this.mapBuy.forEach((v, k) => {
-      v.forEach((value, key) => {
-        buy.push({ id: key, price: k, amount: value });
+    this.mapBuy.forEach((map, id) => {
+      map.forEach((amount, price) => {
+        buy.push({ id: id, p: price, a: amount });
       });
     });
-    this.mapBuy.forEach((v, k) => {
-      v.forEach((value, key) => {
-        sell.push({ id: key, price: k, amount: value });
+    this.mapSell.forEach((map, id) => {
+      map.forEach((amount, price) => {
+        sell.push({ id: id, p: price, a: amount });
       });
     });
 

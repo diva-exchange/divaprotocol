@@ -22,7 +22,7 @@ import schemaContract from '../schema/contract.json';
 import schemaOrder from '../schema/order.json';
 import schemaSubscribe from '../schema/subscribe.json';
 import schemaBook from '../schema/book.json';
-import schemaRecordBuySell from '../schema/recordBuySell.json';
+import schemaBookBuySell from '../schema/bookBuySell.json';
 import { Logger } from '../logger';
 import { Message } from '../protocol/struct';
 
@@ -49,7 +49,7 @@ export class Validation {
     this.validateOrder = this.ajv.compile(schemaOrder);
     this.validateSubscribe = this.ajv.compile(schemaSubscribe);
     this.validateBook = this.ajv
-      .addSchema(schemaRecordBuySell)
+      .addSchema(schemaBookBuySell)
       .compile(schemaBook);
   }
 

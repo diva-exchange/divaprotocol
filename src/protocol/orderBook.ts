@@ -98,10 +98,10 @@ export class OrderBook {
           const book: tBook = JSON.parse(base64url.decode(data));
           if (Validation.make().validateBook(book)) {
             book.buy.forEach((r) => {
-              this.arrayNostro[book.contract].buy(r.id, r.price, r.amount);
+              this.arrayNostro[book.contract].buy(r.id, r.p, r.a);
             });
             book.sell.forEach((r) => {
-              this.arrayNostro[book.contract].sell(r.id, r.price, r.amount);
+              this.arrayNostro[book.contract].sell(r.id, r.p, r.a);
             });
           }
         } catch (error: any) {

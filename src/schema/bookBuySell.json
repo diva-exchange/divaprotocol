@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "/schema/recordBuySell.json",
+  "$id": "/schema/bookBuySell.json",
 
   "type": "array",
   "items":
@@ -11,19 +11,20 @@
         "type": "number",
         "minimum": 1
       },
-      "price": {
+      "p": {
         "type": "string",
         "pattern": "^[0-9]+.[0-9]+$"
       },
-      "amount": {
+      "a": {
         "type": "string",
         "pattern": "^[0-9]+.[0-9]+$"
       }
     },
     "additionalProperties": false,
     "required": [
-      "price",
-      "amount"
+      "id",
+      "p",
+      "a"
     ]
   },
   "uniqueItems": true

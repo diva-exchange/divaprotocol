@@ -73,9 +73,11 @@ export class Server {
           const msg: string = await this.processor.process(
             JSON.parse(message.toString())
           );
-          this.webSocketServer.clients.forEach((ws) => {
-            ws.send(msg);
-          });
+          if (msg) {
+            this.webSocketServer.clients.forEach((ws) => {
+              ws.send(msg);
+            });
+          }
         } catch (error: any) {
           //@FIXME logging
           Logger.trace(error);

@@ -53,9 +53,9 @@ export class Processor {
           message.command === 'delete' ? -1 * message.amount : message.amount
         );
         this.storeOrderBookOnChain(message);
-        break;
+        return '';
       case 'contract':
-        break;
+        return '';
       case 'subscribe':
         return this.orderBook.get(message.contract);
       case 'unsubscribe':
@@ -64,7 +64,6 @@ export class Processor {
       default:
         throw Error('Processor.process(): Invalid Command');
     }
-    return '';
   }
 
   private storeOrderBookOnChain(message: Message) {
