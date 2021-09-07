@@ -44,15 +44,21 @@ export class OrderBook {
     });
   }
 
-  update(contract: string, type: tBuySell, price: number, amount: number) {
+  update(
+    id: number,
+    contract: string,
+    type: tBuySell,
+    price: number,
+    amount: number
+  ) {
     if (!this.arrayNostro[contract]) {
       throw new Error('OrderBook.update(): invalid contract');
     }
     switch (type) {
       case 'buy':
-        return this.arrayNostro[contract].buy(price, amount);
+        return this.arrayNostro[contract].buy(id, price, amount);
       case 'sell':
-        return this.arrayNostro[contract].sell(price, amount);
+        return this.arrayNostro[contract].sell(id, price, amount);
       default:
         throw new Error('OrderBook.update(): invalid type');
     }
@@ -92,10 +98,10 @@ export class OrderBook {
           const book: tBook = JSON.parse(base64url.decode(data));
           if (Validation.make().validateBook(book)) {
             book.buy.forEach((r) => {
-              this.arrayNostro[book.contract].buy(r.price, r.amount);
+              this.arrayNostro[book.contract].buy(r.id, r.price, r.amount);
             });
             book.sell.forEach((r) => {
-              this.arrayNostro[book.contract].sell(r.price, r.amount);
+              this.arrayNostro[book.contract].sell(r.id, r.price, r.amount);
             });
           }
         } catch (error: any) {

@@ -25,6 +25,10 @@
     "contract": {
       "type": "string",
       "pattern": "^[a-zA-Z0-9._-]{1,64}$"
+    },
+    "id": {
+      "type": "number",
+      "minimum": 1
     }
   },
   "additionalProperties": false,

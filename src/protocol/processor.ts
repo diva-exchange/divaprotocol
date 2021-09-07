@@ -46,6 +46,7 @@ export class Processor {
       case 'delete':
       case 'add':
         this.orderBook.update(
+          message.id,
           message.contract,
           message.type,
           message.price,

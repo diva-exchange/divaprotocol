@@ -57,7 +57,7 @@ export class Feeder {
         for (const c of t.commands) {
           //@TODO update order book with confirmation of the order
 
-          const contract = c.ns.split(':', 3)[2];
+          //const contract = c.ns.split(':', 3)[2];
           // if (this.orderBook.get(ns) === JSON.parse(base64url.decode(c.base64url))) {
           //   this.orderBook.confirmOrder(ns);
           // }
