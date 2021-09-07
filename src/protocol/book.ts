@@ -21,8 +21,6 @@ import { Big } from 'big.js';
 
 const REGEX_CONTRACT = '^[A-Z0-9]{2,6}_[A-Z0-9]{2,6}$';
 
-const STATUS_UNCONFIRMED = 0;
-const STATUS_CONFIRMED = 0;
 const TYPE_BUY = 'buy';
 const TYPE_SELL = 'sell';
 
@@ -42,11 +40,8 @@ export type tBook = {
 export class Book {
   private readonly contract: string;
 
-  private mapBuyConfirmed: Map<string, string> = new Map();
-  private mapSellConfirmed: Map<string, string> = new Map();
-
-  private mapBuyUnconfirmed: Map<string, string> = new Map();
-  private mapSellUnconfirmed: Map<string, string> = new Map();
+  private mapBuy: Map<string, string> = new Map();
+  private mapSell: Map<string, string> = new Map();
 
   static make(contract: string): Book {
     if (!contract.match(REGEX_CONTRACT)) {
@@ -59,41 +54,26 @@ export class Book {
     this.contract = contract;
   }
 
-  buyConfirmed(price: string | number, amount: string | number) {
-    this.set(STATUS_CONFIRMED, TYPE_BUY, price, amount);
+  buy(price: string | number, amount: string | number) {
+    this.set(TYPE_BUY, price, amount);
   }
 
-  sellConfirmed(price: string | number, amount: string | number) {
-    this.set(STATUS_CONFIRMED, TYPE_SELL, price, amount);
-  }
-
-  buyUnconfirmed(price: string | number, amount: string | number) {
-    this.set(STATUS_UNCONFIRMED, TYPE_BUY, price, amount);
-  }
-
-  sellUnconfirmed(price: string | number, amount: string | number) {
-    this.set(STATUS_UNCONFIRMED, TYPE_SELL, price, amount);
+  sell(price: string | number, amount: string | number) {
+    this.set(TYPE_SELL, price, amount);
   }
 
   private set(
-    status: number,
     type: string,
     price: string | number,
     amount: string | number
   ) {
     let book;
-    switch (status + type) {
-      case STATUS_UNCONFIRMED + TYPE_BUY:
-        book = this.mapBuyUnconfirmed;
+    switch (type) {
+      case TYPE_BUY:
+        book = this.mapBuy;
         break;
-      case STATUS_UNCONFIRMED + TYPE_SELL:
-        book = this.mapSellUnconfirmed;
-        break;
-      case STATUS_CONFIRMED + TYPE_BUY:
-        book = this.mapBuyConfirmed;
-        break;
-      case STATUS_CONFIRMED + TYPE_SELL:
-        book = this.mapSellConfirmed;
+      case TYPE_SELL:
+        book = this.mapSell;
         break;
       default:
         throw new Error('Book.set(): invalid status/type');
@@ -110,16 +90,10 @@ export class Book {
     const buy: Array<tRecord> = [];
     const sell: Array<tRecord> = [];
 
-    this.mapBuyConfirmed.forEach((v, k) => {
+    this.mapBuy.forEach((v, k) => {
       buy.push({ price: k, amount: v });
     });
-    this.mapBuyUnconfirmed.forEach((v, k) => {
-      buy.push({ price: k, amount: v });
-    });
-    this.mapSellConfirmed.forEach((v, k) => {
-      sell.push({ price: k, amount: v });
-    });
-    this.mapSellUnconfirmed.forEach((v, k) => {
+    this.mapSell.forEach((v, k) => {
       sell.push({ price: k, amount: v });
     });
 

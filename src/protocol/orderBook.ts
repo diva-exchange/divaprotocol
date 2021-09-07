@@ -50,9 +50,9 @@ export class OrderBook {
     }
     switch (type) {
       case 'buy':
-        return this.arrayNostro[contract].buyUnconfirmed(price, amount);
+        return this.arrayNostro[contract].buy(price, amount);
       case 'sell':
-        return this.arrayNostro[contract].sellUnconfirmed(price, amount);
+        return this.arrayNostro[contract].sell(price, amount);
       default:
         throw new Error('OrderBook.update(): invalid type');
     }
@@ -92,10 +92,10 @@ export class OrderBook {
           const book: tBook = JSON.parse(base64url.decode(data));
           if (Validation.make().validateBook(book)) {
             book.buy.forEach((r) => {
-              this.arrayNostro[book.contract].buyConfirmed(r.price, r.amount);
+              this.arrayNostro[book.contract].buy(r.price, r.amount);
             });
             book.sell.forEach((r) => {
-              this.arrayNostro[book.contract].sellConfirmed(r.price, r.amount);
+              this.arrayNostro[book.contract].sell(r.price, r.amount);
             });
           }
         } catch (error: any) {
