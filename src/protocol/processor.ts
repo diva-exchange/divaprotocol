@@ -87,6 +87,7 @@ export class Processor {
     return new Promise((resolve, reject) => {
       get.concat(opts, (error: Error, res: any) => {
         if (error) {
+          //@FIXME logging
           Logger.trace(error);
           reject(error);
           return;

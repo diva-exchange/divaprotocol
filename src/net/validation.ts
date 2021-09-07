@@ -21,17 +21,26 @@ import Ajv, { ValidateFunction } from 'ajv';
 import schemaContract from '../schema/contract.json';
 import schemaOrder from '../schema/order.json';
 import schemaSubscribe from '../schema/subscribe.json';
+import schemaBook from '../schema/book.json';
+import schemaRecordBuySell from '../schema/recordBuySell.json';
 import { Logger } from '../logger';
 import { Message } from '../protocol/struct';
 
 export class Validation {
+  private static instance: Validation;
+
   private ajv: Ajv;
   private validateContract: ValidateFunction;
   private validateOrder: ValidateFunction;
   private validateSubscribe: ValidateFunction;
 
-  public static make() {
-    return new Validation();
+  public validateBook: ValidateFunction;
+
+  static make() {
+    if (!Validation.instance) {
+      Validation.instance = new Validation();
+    }
+    return Validation.instance;
   }
 
   private constructor() {
@@ -39,9 +48,11 @@ export class Validation {
     this.validateContract = this.ajv.compile(schemaContract);
     this.validateOrder = this.ajv.compile(schemaOrder);
     this.validateSubscribe = this.ajv.compile(schemaSubscribe);
+    this.validateBook = this.ajv.addSchema(schemaRecordBuySell).compile(schemaBook);
   }
 
-  public validate(message: Buffer): boolean {
+  //@FIXME add validation
+  validate(message: Buffer): boolean {
     try {
       const m = JSON.parse(message.toString()) as Message;
       switch (m.command) {

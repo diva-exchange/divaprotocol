@@ -18,22 +18,17 @@
  */
 
 import { Config } from '../config';
-import Big from 'big.js';
 import get from 'simple-get';
 import { Logger } from '../logger';
 import base64url from 'base64-url';
+import {Book} from './book';
+import {Validation} from '../net/validation';
 
-const STATUS_ORDER_UNCONFIRMED = 0;
-const STATUS_ORDER_CONFIRMED = 1;
+type tBuySell = 'buy' | 'sell';
 
 export class OrderBook {
   private readonly config: Config;
-  private readonly arrayBookNostro: {
-    [key: string]: { buy: { [price: string]: { [status: number]: string } }; sell: { [price: string]: { [status: number]: string } } };
-  };
-  private readonly arrayBookMarket: {
-    [key: string]: { buy: { [price: string]: string }; sell: { [price: string]: string } };
-  };
+  private readonly aNostro: { [contract: string]: Book } = {};
 
   public static async make(config: Config): Promise<OrderBook> {
     const ob = new OrderBook(config);
@@ -43,52 +38,31 @@ export class OrderBook {
 
   private constructor(config: Config) {
     this.config = config;
-    //@FIXME load the order books from the chain
-    this.arrayBookNostro = {
-      BTC_ETH: { buy: {}, sell: {}},
-      BTC_XMR: { buy: {}, sell: {}},
-      BTC_ZEC: { buy: {}, sell: {}},
-    };
 
-    this.arrayBookMarket = {
-      BTC_ETH: { buy: {}, sell: {} },
-      BTC_XMR: { buy: {}, sell: {} },
-      BTC_ZEC: { buy: {}, sell: {} },
+    this.aNostro = {
+      BTC_ETH: Book.make('BTC_ETH'),
+      BTC_XMR: Book.make('BTC_XMR'),
+      BTC_ZEC: Book.make('BTC_ZEC'),
     };
   }
 
-  public updateBook(
-    contract: string,
-    type: 'buy' | 'sell',
-    price: number,
-    amount: number
-  ): void {
-    if (!this.arrayBookNostro[contract]) {
-      throw Error('OrderBook.updateBook(): Unsupported contract');
+  public updateBook(contract: string, type: tBuySell, price: number, amount: number) {
+    if (!this.aNostro[contract]) {
+      throw new Error('OrderBook.updateBook(): invalid contract');
     }
-
-    const newPrice: string = new Big(price).toFixed(this.config.precision);
-    this.arrayBookNostro[contract][type][newPrice] = this.arrayBookNostro[contract][type][newPrice] || {};
-    let newAmount: string = new Big(
-      this.arrayBookNostro[contract][type][newPrice][STATUS_ORDER_UNCONFIRMED] || 0
-    )
-      .plus(amount)
-      .toFixed(this.config.precision);
-
-    Logger.trace(this.arrayBookNostro[contract][type]);
-    this.arrayBookNostro[contract][type][newPrice][STATUS_ORDER_UNCONFIRMED] = new Big(amount).toFixed(this.config.precision);
+    switch (type) {
+      case 'buy':
+        return this.aNostro[contract].buyUnconfirmed(price, amount);
+      case 'sell':
+        return this.aNostro[contract].sellUnconfirmed(price, amount);
+    }
   }
 
   public get(contract: string): string {
-    if (!this.arrayBookNostro[contract]) {
+    if (!this.aNostro[contract]) {
       throw Error('OrderBook.get(): Unsupported contract');
     }
-    return JSON.stringify({
-      channel: 'nostro',
-      contract: contract,
-      buy: this.arrayBookNostro[contract].buy,
-      sell: this.arrayBookNostro[contract].sell,
-    });
+    return JSON.stringify(this.aNostro[contract].get());
   }
 
   public confirmOrder(contract: string) {
@@ -100,6 +74,7 @@ export class OrderBook {
       try {
         await this.fetch(contract);
       } catch (error: any) {
+        //@FIXME logging
         Logger.trace(error);
       }
     }
@@ -114,16 +89,15 @@ export class OrderBook {
       contract;
     return new Promise((resolve, reject) => {
       get.concat(url, (error: Error, res: any, data: any) => {
-        if (error) {
-          reject(error);
+        if (error || res.statusCode !== 200) {
+          reject(error ||res.statusCode);
         }
-        if (res.statusCode === 200) {
-          //@FIXME type any need to be solved
-          const obj: { buy: { [price: string]: string }; sell: { [price: string]: string } } = JSON.parse(
-              base64url.decode(data)
-          );
-          this.arrayBookNostro[contract].buy[1] = obj.buy;
-          this.arrayBookNostro[contract].sell[1] = obj.sell;
+        try {
+          // validate here
+          console.log(Validation.make().validateBook(JSON.parse(base64url.decode(data))));
+        } catch (error: any) {
+          console.log('rejected');
+          reject(error);
         }
         resolve();
       });
