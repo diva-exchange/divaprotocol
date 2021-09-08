@@ -21,19 +21,15 @@ import { Config } from '../config';
 import { Db } from '../db';
 import { BlockStruct } from './struct';
 import { OrderBook } from './orderBook';
-import { Topic } from './topic';
 
 export class Feeder {
   private readonly config: Config;
   private readonly db: Db;
   private orderBook: OrderBook = {} as OrderBook;
-  private topic: Topic = {} as Topic;
-  public static sendSubscribeList: boolean = false;
 
   static async make(config: Config): Promise<Feeder> {
     const f = new Feeder(config);
     f.orderBook = await OrderBook.make(config);
-    f.topic = Topic.make();
     return f;
   }
 
@@ -52,7 +48,6 @@ export class Feeder {
 
   //@FIXME what's the return value of the feeder processing data from the blockchain?
   async process(block: BlockStruct) {
-    Feeder.sendSubscribeList = true;
     for (const t of block.tx) {
       // const channel: string = t.origin == this.config.my_public_key ? 'nostro' : 'market';
       if (t.origin == this.config.my_public_key) {
@@ -67,34 +62,6 @@ export class Feeder {
     }
   }
 
-  public getSubscribedData() {
-    //@TODO fix the json formating
-    if (Feeder.sendSubscribeList) {
-      let requiredOrderBookNostro: Array<JSON> = [];
-      let requiredOrderBookMarket: Array<JSON> = [];
-      this.topic.getTopics().forEach((topic) => {
-        if (topic.channel === 'nostro') {
-          requiredOrderBookNostro = requiredOrderBookNostro.concat(
-            JSON.parse(this.orderBook.getNostro(topic.contract))
-          );
-        }
-        if (topic.channel === 'market') {
-          requiredOrderBookMarket = requiredOrderBookMarket.concat(
-            JSON.parse(this.orderBook.getMarket(topic.contract))
-          );
-        }
-      });
-      Feeder.sendSubscribeList = false;
-      return (
-        '{nostro:' +
-        JSON.stringify(requiredOrderBookNostro) +
-        ', market:' +
-        JSON.stringify(requiredOrderBookMarket) +
-        '}'
-      );
-    }
-    return '';
-  }
   /*
   private async addContract(data: CommandContract) {
     await this.db.updateByKey('asset:' + data.contract, {});

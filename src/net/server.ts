@@ -25,6 +25,8 @@ import { Processor } from '../protocol/processor';
 import Buffer from 'buffer';
 import { Validation } from './validation';
 import { BlockStruct } from '../protocol/struct';
+import { OrderBook } from '../protocol/orderBook';
+import { SubscribeManager, iSubscribe } from '../protocol/subscribeManager';
 
 export class Server {
   private readonly config: Config;
@@ -33,11 +35,15 @@ export class Server {
   private readonly validation: Validation;
   private readonly webSocketServer: WebSocketServer;
   private webSocketFeed: WebSocket | undefined;
+  private subscribeManager: SubscribeManager = {} as SubscribeManager;
+  private orderBook: OrderBook = {} as OrderBook;
 
   public static async make(config: Config): Promise<Server> {
     const s = new Server(config);
     s.processor = await Processor.make(config);
     s.feeder = await Feeder.make(config);
+    s.subscribeManager = await SubscribeManager.make();
+    s.orderBook = await OrderBook.make(config);
     return s;
   }
 
@@ -71,12 +77,34 @@ export class Server {
 
         try {
           await this.processor.process(JSON.parse(message.toString()));
-          const feed = this.feeder.getSubscribedData();
-          if (feed) {
-            this.webSocketServer.clients.forEach((ws) => {
-              ws.send(feed);
-            });
-          }
+          this.subscribeManager.setSockets(ws, JSON.parse(message.toString()));
+
+          const sub: Map<WebSocket, iSubscribe> =
+            this.subscribeManager.getSubscriptions();
+
+          sub.forEach((data, ws) => {
+            if (data.market.size > 0) {
+              data.market.forEach((contract) => {
+                ws.send(
+                  JSON.stringify({ market: this.orderBook.getMarket(contract) })
+                );
+              });
+            }
+            if (data.nostro.size > 0) {
+              data.nostro.forEach((contract) => {
+                ws.send(
+                  JSON.stringify({ nostro: this.orderBook.getNostro(contract) })
+                );
+              });
+            }
+          });
+          // const feed = this.feeder.getSubscribedData(ws);
+          // if (feed) {
+          //   this.webSocketServer.clients.forEach((ws) => {
+          //     console.log(ws);
+          //     //ws.send(feed);
+          //   });
+          // }
         } catch (error: any) {
           //@FIXME logging
           Logger.trace(error);
@@ -124,7 +152,7 @@ export class Server {
             Logger.trace('WebSocketFeed received: ' + JSON.stringify(c));
             //await this.feeder.process(block);
             await this.feeder.process(block);
-            const feed = this.feeder.getSubscribedData();
+            const feed = ''; //this.feeder.getSubscribedData();
 
             if (feed) {
               this.webSocketServer.clients.forEach((ws) => {
@@ -142,6 +170,7 @@ export class Server {
     await this.feeder.shutdown();
     return new Promise((resolve) => {
       this.webSocketServer.clients.forEach((ws) => {
+        this.subscribeManager.deleteSockets(ws);
         ws.terminate();
       });
       this.webSocketServer.close(resolve);

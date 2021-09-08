@@ -68,18 +68,18 @@ export class OrderBook {
     }
   }
 
-  getNostro(contract: string): string {
+  getNostro(contract: string): tBook {
     if (!this.arrayNostro[contract]) {
       throw Error('OrderBook.getNostro(): Unsupported contract');
     }
-    return JSON.stringify(this.arrayNostro[contract].get());
+    return this.arrayNostro[contract].get();
   }
 
-  getMarket(contract: string): string {
+  getMarket(contract: string): tBook {
     if (!this.arrayMarket[contract]) {
       throw Error('OrderBook.getMarket(): Unsupported contract');
     }
-    return JSON.stringify(this.arrayMarket[contract].get());
+    return this.arrayMarket[contract].get();
   }
 
   private async loadOrderBookFromChain(): Promise<void> {
