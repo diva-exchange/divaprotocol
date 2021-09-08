@@ -35,12 +35,20 @@ export class Topic {
   }
 
   public subscribeTopic(channel: string, contract: string) {
-    this._topics.push({ channel: channel, contract: contract });
+    let addNew: boolean = true;
+    this._topics.forEach((item, index) => {
+      if (item.channel === channel &&  item.contract === contract ) {
+        addNew = false;
+      }
+    });
+    if (addNew) {
+      this._topics.push({ channel: channel, contract: contract });
+    }
   }
 
   public unsubscribeTopic(channel: string, contract: string) {
     this._topics.forEach((item, index) => {
-      if (item === { channel: channel, contract: contract }) {
+      if (item.channel === channel &&  item.contract === contract ) {
         this._topics.splice(index, 1);
       }
     });

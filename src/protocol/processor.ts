@@ -25,6 +25,7 @@ import base64url from 'base64-url';
 import { OrderBook } from './orderBook';
 import { Message } from './struct';
 import { Topic } from './topic';
+import { Feeder } from "./feeder";
 
 export class Processor {
   public readonly config: Config;
@@ -48,6 +49,7 @@ export class Processor {
     switch (message.command) {
       case 'delete':
       case 'add':
+        Feeder.sendSubscribeList= true;
         this.orderBook.update(
           message.id,
           message.contract,
@@ -62,11 +64,13 @@ export class Processor {
         return '';
         break;
       case 'subscribe':
+        Feeder.sendSubscribeList= true;
         this.topic.subscribeTopic(message.channel, message.contract);
         return this.orderBook.get(message.contract);
         return '';
         break;
       case 'unsubscribe':
+        Feeder.sendSubscribeList= false;
         this.topic.unsubscribeTopic(message.channel, message.contract);
         return '';
         break;

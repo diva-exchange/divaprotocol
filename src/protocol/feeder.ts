@@ -28,6 +28,7 @@ export class Feeder {
   private readonly db: Db;
   private orderBook: OrderBook = {} as OrderBook;
   private topic: Topic = {} as Topic;
+  public static sendSubscribeList: boolean = false;
 
   static async make(config: Config): Promise<Feeder> {
     const f = new Feeder(config);
@@ -51,6 +52,7 @@ export class Feeder {
 
   //@FIXME what's the return value of the feeder processing data from the blockchain?
   async process(block: BlockStruct) {
+    Feeder.sendSubscribeList = true;
     for (const t of block.tx) {
       // const channel: string = t.origin == this.config.my_public_key ? 'nostro' : 'market';
       if (t.origin == this.config.my_public_key) {
@@ -67,12 +69,14 @@ export class Feeder {
 
   public getSubscribedData() {
     //@TODO extend it with market data
-    let requiredOrderBook: String = '';
-
-    this.topic.getTopics().forEach((topic) => {
-      requiredOrderBook += this.orderBook.get(topic.contract);
-    });
-    return requiredOrderBook;
+    if (Feeder.sendSubscribeList) {
+      let requiredOrderBook: String = '';
+      this.topic.getTopics().forEach((topic) => {
+        requiredOrderBook += this.orderBook.get(topic.contract);
+      });
+      Feeder.sendSubscribeList = false;
+      return requiredOrderBook;
+    }
     return '';
   }
   /*

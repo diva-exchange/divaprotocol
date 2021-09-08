@@ -70,7 +70,6 @@ export class Server {
         Logger.trace(`WebSocketServer received: ${message.toString()}`);
 
         try {
-          //const msg: string =
           await this.processor.process(JSON.parse(message.toString()));
           const feed = this.feeder.getSubscribedData();
           if (feed) {
