@@ -68,14 +68,30 @@ export class Feeder {
   }
 
   public getSubscribedData() {
-    //@TODO extend it with market data
+    //@TODO fix the json formating
     if (Feeder.sendSubscribeList) {
-      let requiredOrderBook: String = '';
+      let requiredOrderBookNostro: Array<JSON> = [];
+      let requiredOrderBookMarket: Array<JSON> = [];
       this.topic.getTopics().forEach((topic) => {
-        requiredOrderBook += this.orderBook.get(topic.contract);
+        if (topic.channel === 'nostro') {
+          requiredOrderBookNostro = requiredOrderBookNostro.concat(
+            JSON.parse(this.orderBook.getNostro(topic.contract))
+          );
+        }
+        if (topic.channel === 'market') {
+          requiredOrderBookMarket = requiredOrderBookMarket.concat(
+            JSON.parse(this.orderBook.getMarket(topic.contract))
+          );
+        }
       });
       Feeder.sendSubscribeList = false;
-      return requiredOrderBook;
+      return (
+        '{nostro:' +
+        JSON.stringify(requiredOrderBookNostro) +
+        ', market:' +
+        JSON.stringify(requiredOrderBookMarket) +
+        '}'
+      );
     }
     return '';
   }

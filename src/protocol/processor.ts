@@ -25,7 +25,7 @@ import base64url from 'base64-url';
 import { OrderBook } from './orderBook';
 import { Message } from './struct';
 import { Topic } from './topic';
-import { Feeder } from "./feeder";
+import { Feeder } from './feeder';
 
 export class Processor {
   public readonly config: Config;
@@ -45,11 +45,11 @@ export class Processor {
     this.db = Db.make(this.config);
   }
 
-  async process(message: Message): Promise<string> {
+  async process(message: Message): Promise<void> {
     switch (message.command) {
       case 'delete':
       case 'add':
-        Feeder.sendSubscribeList= true;
+        Feeder.sendSubscribeList = true;
         this.orderBook.update(
           message.id,
           message.contract,
@@ -58,21 +58,16 @@ export class Processor {
           message.command === 'delete' ? -1 * message.amount : message.amount
         );
         this.storeOrderBookOnChain(message);
-        return '';
         break;
       case 'contract':
-        return '';
         break;
       case 'subscribe':
-        Feeder.sendSubscribeList= true;
+        Feeder.sendSubscribeList = true;
         this.topic.subscribeTopic(message.channel, message.contract);
-        return this.orderBook.get(message.contract);
-        return '';
         break;
       case 'unsubscribe':
-        Feeder.sendSubscribeList= false;
+        Feeder.sendSubscribeList = false;
         this.topic.unsubscribeTopic(message.channel, message.contract);
-        return '';
         break;
       default:
         throw Error('Processor.process(): Invalid Command');
@@ -89,7 +84,9 @@ export class Processor {
           seq: message.seq,
           command: 'data',
           ns: nameSpace,
-          base64url: base64url.encode(this.orderBook.get(message.contract)),
+          base64url: base64url.encode(
+            this.orderBook.getNostro(message.contract)
+          ),
         },
       ],
       json: true,

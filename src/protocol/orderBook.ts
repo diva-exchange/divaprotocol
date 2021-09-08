@@ -29,10 +29,11 @@ type tBuySell = 'buy' | 'sell';
 export class OrderBook {
   private readonly config: Config;
   private readonly arrayNostro: { [contract: string]: Book } = {};
+  private readonly arrayMarket: { [contract: string]: Book } = {};
 
   static async make(config: Config): Promise<OrderBook> {
     const ob = new OrderBook(config);
-    await ob.loadOrderBookFromChain();
+    await ob.fetchAllFromChain();
     return ob;
   }
 
@@ -41,6 +42,7 @@ export class OrderBook {
 
     this.config.contracts_array.forEach((contract) => {
       this.arrayNostro[contract] = Book.make(contract);
+      this.arrayMarket[contract] = Book.make(contract);
     });
   }
 
@@ -56,19 +58,28 @@ export class OrderBook {
     }
     switch (type) {
       case 'buy':
-        return this.arrayNostro[contract].buy(id, price, amount);
+        this.arrayNostro[contract].buy(id, price, amount);
+        break;
       case 'sell':
-        return this.arrayNostro[contract].sell(id, price, amount);
+        this.arrayNostro[contract].sell(id, price, amount);
+        break;
       default:
         throw new Error('OrderBook.update(): invalid type');
     }
   }
 
-  get(contract: string): string {
+  getNostro(contract: string): string {
     if (!this.arrayNostro[contract]) {
-      throw Error('OrderBook.get(): Unsupported contract');
+      throw Error('OrderBook.getNostro(): Unsupported contract');
     }
     return JSON.stringify(this.arrayNostro[contract].get());
+  }
+
+  getMarket(contract: string): string {
+    if (!this.arrayMarket[contract]) {
+      throw Error('OrderBook.getMarket(): Unsupported contract');
+    }
+    return JSON.stringify(this.arrayMarket[contract].get());
   }
 
   private async loadOrderBookFromChain(): Promise<void> {
@@ -106,6 +117,54 @@ export class OrderBook {
           }
         } catch (error: any) {
           reject(error);
+        }
+        resolve();
+      });
+    });
+  }
+
+  private async fetchAllFromChain(): Promise<void> {
+    const url: string = this.config.url_api_chain + '/state/';
+    return new Promise((resolve, reject) => {
+      get.concat(url, (error: Error, res: any, data: any) => {
+        if (error || res.statusCode !== 200) {
+          reject(error || res.statusCode);
+        }
+        if (data) {
+          const allData = [...JSON.parse(data)];
+          allData.forEach((element) => {
+            const keyArray: Array<string> = element.key
+              .toString()
+              .split(':', 4);
+            if (
+              keyArray[1] === 'DivaExchange' &&
+              keyArray[2] === 'OrderBook' &&
+              this.config.contracts_array.includes(keyArray[3])
+            ) {
+              try {
+                const book: tBook = JSON.parse(base64url.decode(element.value));
+                if (Validation.make().validateBook(book)) {
+                  if (keyArray[0] === this.config.my_public_key) {
+                    book.buy.forEach((r) => {
+                      this.arrayNostro[book.contract].buy(r.id, r.p, r.a);
+                    });
+                    book.sell.forEach((r) => {
+                      this.arrayNostro[book.contract].sell(r.id, r.p, r.a);
+                    });
+                  } else {
+                    book.buy.forEach((r) => {
+                      this.arrayMarket[book.contract].buy(r.id, r.p, r.a);
+                    });
+                    book.sell.forEach((r) => {
+                      this.arrayMarket[book.contract].sell(r.id, r.p, r.a);
+                    });
+                  }
+                }
+              } catch (error: any) {
+                reject(error);
+              }
+            }
+          });
         }
         resolve();
       });
