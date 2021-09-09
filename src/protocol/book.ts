@@ -34,6 +34,7 @@ type tRecord = {
 
 export type tBook = {
   contract: string;
+  channel: string;
   buy: Array<tRecord>;
   sell: Array<tRecord>;
 };
@@ -106,6 +107,6 @@ export class Book {
       });
     });
 
-    return { contract: this.contract, buy: buy, sell: sell };
+    return { contract: this.contract, channel: '', buy: buy, sell: sell };
   }
 }

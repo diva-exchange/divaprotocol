@@ -85,26 +85,19 @@ export class Server {
           sub.forEach((data, ws) => {
             if (data.market.size > 0) {
               data.market.forEach((contract) => {
-                ws.send(
-                  JSON.stringify({ market: this.orderBook.getMarket(contract) })
-                );
+                const msg = this.orderBook.getMarket(contract);
+                msg.channel = 'market';
+                ws.send(JSON.stringify(msg));
               });
             }
             if (data.nostro.size > 0) {
               data.nostro.forEach((contract) => {
-                ws.send(
-                  JSON.stringify({ nostro: this.orderBook.getNostro(contract) })
-                );
+                const msg = this.orderBook.getNostro(contract);
+                msg.channel = 'nostro';
+                ws.send(JSON.stringify(msg));
               });
             }
           });
-          // const feed = this.feeder.getSubscribedData(ws);
-          // if (feed) {
-          //   this.webSocketServer.clients.forEach((ws) => {
-          //     console.log(ws);
-          //     //ws.send(feed);
-          //   });
-          // }
         } catch (error: any) {
           //@FIXME logging
           Logger.trace(error);

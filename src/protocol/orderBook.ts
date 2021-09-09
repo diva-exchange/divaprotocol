@@ -151,14 +151,13 @@ export class OrderBook {
                     book.sell.forEach((r) => {
                       this.arrayNostro[book.contract].sell(r.id, r.p, r.a);
                     });
-                  } else {
-                    book.buy.forEach((r) => {
-                      this.arrayMarket[book.contract].buy(r.id, r.p, r.a);
-                    });
-                    book.sell.forEach((r) => {
-                      this.arrayMarket[book.contract].sell(r.id, r.p, r.a);
-                    });
                   }
+                  book.buy.forEach((r) => {
+                    this.arrayMarket[book.contract].buy(r.id, r.p, r.a);
+                  });
+                  book.sell.forEach((r) => {
+                    this.arrayMarket[book.contract].sell(r.id, r.p, r.a);
+                  });
                 }
               } catch (error: any) {
                 reject(error);
