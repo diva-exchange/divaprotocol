@@ -29,23 +29,25 @@ export class OrderBook {
   private readonly config: Config;
   private readonly arrayNostro: { [contract: string]: Book } = {};
   private readonly arrayMarket: { [contract: string]: Book } = {};
+  private static ob: OrderBook;
 
   static async make(config: Config): Promise<OrderBook> {
-    const ob = new OrderBook(config);
-    await ob.fetchAllFromChain();
-    return ob;
+    if (!this.ob) {
+      this.ob = new OrderBook(config);
+      await this.ob.fetchAllFromChain();
+    }
+    return this.ob;
   }
 
   private constructor(config: Config) {
     this.config = config;
-
     this.config.contracts_array.forEach((contract) => {
-      this.arrayNostro[contract] = Book.make(contract);
-      this.arrayMarket[contract] = Book.make(contract);
+      this.arrayNostro[contract] = Book.make(contract, 'nostro');
+      this.arrayMarket[contract] = Book.make(contract, 'market');
     });
   }
 
-  updateNostro(
+  public updateNostro(
     id: number,
     contract: string,
     type: tBuySell,
@@ -67,7 +69,7 @@ export class OrderBook {
     }
   }
 
-  updateMarket(
+  public updateMarket(
     id: number,
     contract: string,
     type: tBuySell,
@@ -89,14 +91,14 @@ export class OrderBook {
     }
   }
 
-  getNostro(contract: string): tBook {
+  public getNostro(contract: string): tBook {
     if (!this.arrayNostro[contract]) {
       throw Error('OrderBook.getNostro(): Unsupported contract');
     }
     return this.arrayNostro[contract].get();
   }
 
-  getMarket(contract: string): tBook {
+  public getMarket(contract: string): tBook {
     if (!this.arrayMarket[contract]) {
       throw Error('OrderBook.getMarket(): Unsupported contract');
     }

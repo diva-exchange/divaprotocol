@@ -100,7 +100,6 @@ export class Server {
                 msg.channel === 'market'
               ) {
                 const marketBook = this.orderBook.getMarket(msg.contract);
-                marketBook.channel = 'market';
                 ws.send(JSON.stringify(marketBook));
               }
               if (
@@ -108,7 +107,6 @@ export class Server {
                 msg.channel === 'nostro'
               ) {
                 const nostroBook = this.orderBook.getNostro(msg.contract);
-                nostroBook.channel = 'nostro';
                 ws.send(JSON.stringify(nostroBook));
               }
             });
@@ -160,14 +158,18 @@ export class Server {
             Logger.trace('WebSocketFeed received: ' + JSON.stringify(c));
 
             await this.feeder.process(block);
-            //@TODO get contract c.ns.split(':',3)[2] and foreach websockets who are interested => send
-            // const feed = ''; //this.feeder.getSubscribedData();
-            //
-            // if (feed) {
-            //   this.webSocketServer.clients.forEach((ws) => {
-            //     ws.send(feed);
-            //   });
-            // }
+
+            const sub: Map<WebSocket, iSubscribe> =
+              this.subscribeManager.getSubscriptions();
+
+            const contract: string = c.ns.split(':', 3)[2];
+
+            sub.forEach((subscribe, ws) => {
+              if (subscribe.market.has(contract)) {
+                const marketBook = this.orderBook.getMarket(contract);
+                ws.send(JSON.stringify(marketBook));
+              }
+            });
           }
         });
       });

@@ -23,7 +23,6 @@ import { BlockStruct } from './struct';
 import { OrderBook } from './orderBook';
 import base64url from 'base64-url';
 import { tRecord } from './book';
-import { Big } from 'big.js';
 
 export class Feeder {
   private readonly config: Config;
@@ -53,84 +52,29 @@ export class Feeder {
     for (const t of block.tx) {
       if (t.origin == this.config.my_public_key) {
         for (const c of t.commands) {
-          //const contract = c.ns.split(':', 3)[2];
-          // const decodedData = JSON.parse(base64url.decode(c.base64url));
-          // decodedData.buy.forEach((value: tRecord, index: tRecord) => {
-          //   this.orderBook.updateMarket(value.id, decodedData.contract, 'buy', value.p, value.a);
-          // });
-          // decodedData.sell.forEach((value: tRecord, index: tRecord) => {
-          //   this.orderBook.updateMarket(value.id, decodedData.contract, 'sell', value.p, value.a);
-          // });
+          if (c.command === 'data' && c.ns.includes('DivaExchange:OrderBook')) {
+            const decodedJsonData = JSON.parse(base64url.decode(c.base64url));
+            decodedJsonData.buy.forEach((value: tRecord) => {
+              this.orderBook.updateMarket(
+                value.id,
+                decodedJsonData.contract,
+                'buy',
+                value.p,
+                value.a
+              );
+            });
+            decodedJsonData.sell.forEach((value: tRecord) => {
+              this.orderBook.updateMarket(
+                value.id,
+                decodedJsonData.contract,
+                'sell',
+                value.p,
+                value.a
+              );
+            });
+          }
         }
       }
     }
   }
-
-  /*
-  private async addContract(data: CommandContract) {
-    await this.db.updateByKey('asset:' + data.contract, {});
-  }
-
-  private async deleteContract(data: CommandContract) {
-    await this.db.deleteByKeyPart(data.contract);
-  }
-
-  private async addMarketOrder(data: CommandOrder) {
-    data = Feeder.deleteDotFromTheEnd(data);
-    const key: string = this.getMarketOrderKey(data);
-    const mapKey: string = data.price.toString();
-    const currentMap: Map<string, string> = new Map(
-      await this.db.getValueByKey(key)
-    );
-    const amountString: string = currentMap.get(mapKey) || '0';
-    const amount = new Big(amountString || 0).toNumber();
-    const newAmount = new Big(data.amount || 0)
-      .plus(amount)
-      .toFixed(this.precision);
-    currentMap.set(mapKey, newAmount);
-    Logger.trace(JSON.stringify([...currentMap.entries()]));
-    await this.db.updateByKey(key, [...currentMap.entries()]);
-  }
-
-  private async deleteMarketOrder(data: CommandOrder) {
-    data = Feeder.deleteDotFromTheEnd(data);
-    const key: string = this.getMarketOrderKey(data);
-    const mapKey: string = data.price.toString();
-    const currentMap: Map<string, string> = new Map(
-      await this.db.getValueByKey(key)
-    );
-    const amountString: string = currentMap.get(mapKey) || '0';
-    const amount = new Big(amountString || 0).toNumber();
-    if (amount > 0) {
-      if (parseFloat(data.amount) >= amount) {
-        currentMap.delete(key);
-      } else {
-        currentMap.set(
-          key,
-          new Big(amount || 0)
-            .minus(new Big(data.amount || 0))
-            .toFixed(this.precision)
-        );
-      }
-    }
-    await this.db.updateByKey(key, [...currentMap.entries()]);
-  }
-
-  private getMarketOrderKey(data: CommandOrder): string {
-    const key = 'order_market:' + data.contract + ':' + data.type;
-    return key;
-  }
-
-  //@FIXME there cannot be any "invalid" data in the feeder
-  //  Reason: the feeder only accepts or drops data - but never fixes it
-  private static deleteDotFromTheEnd(data: CommandOrder) {
-    if (data.price[data.price.length - 1] === '.') {
-      data.price = data.price.slice(0, -1);
-    }
-    if (data.amount[data.amount.length - 1] === '.') {
-      data.amount = data.amount.slice(0, -1);
-    }
-    return data;
-  }
-  */
 }

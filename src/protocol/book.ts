@@ -34,26 +34,28 @@ export type tRecord = {
 
 export type tBook = {
   contract: string;
-  channel: 'market' | 'nostro';
+  channel: string;
   buy: Array<tRecord>;
   sell: Array<tRecord>;
 };
 
 export class Book {
   private readonly contract: string;
+  private readonly channel: string;
 
   private mapBuy: Map<number, Map<string, string>> = new Map();
   private mapSell: Map<number, Map<string, string>> = new Map();
 
-  static make(contract: string): Book {
+  static make(contract: string, channel: string): Book {
     if (!contract.match(REGEX_CONTRACT)) {
       throw new Error('Book.make(): invalid contract');
     }
-    return new Book(contract);
+    return new Book(contract, channel);
   }
 
-  private constructor(contract: string) {
+  private constructor(contract: string, channel: string) {
     this.contract = contract;
+    this.channel = channel;
   }
 
   buy(id: number, price: string | number, amount: string | number) {
@@ -107,6 +109,11 @@ export class Book {
       });
     });
 
-    return { contract: this.contract, channel: 'nostro', buy: buy, sell: sell };
+    return {
+      contract: this.contract,
+      channel: this.channel,
+      buy: buy,
+      sell: sell,
+    };
   }
 }
