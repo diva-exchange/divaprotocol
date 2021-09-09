@@ -26,7 +26,7 @@ const TYPE_SELL = 'sell';
 
 const PRECISION = 8;
 
-type tRecord = {
+export type tRecord = {
   id: number;
   p: string;
   a: string;
@@ -34,7 +34,7 @@ type tRecord = {
 
 export type tBook = {
   contract: string;
-  channel: string;
+  channel: 'market' | 'nostro';
   buy: Array<tRecord>;
   sell: Array<tRecord>;
 };
@@ -107,6 +107,6 @@ export class Book {
       });
     });
 
-    return { contract: this.contract, channel: '', buy: buy, sell: sell };
+    return { contract: this.contract, channel: 'nostro', buy: buy, sell: sell };
   }
 }

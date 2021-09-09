@@ -24,7 +24,7 @@ import { Feeder } from '../protocol/feeder';
 import { Processor } from '../protocol/processor';
 import Buffer from 'buffer';
 import { Validation } from './validation';
-import { BlockStruct } from '../protocol/struct';
+import { BlockStruct, Message } from '../protocol/struct';
 import { OrderBook } from '../protocol/orderBook';
 import { SubscribeManager, iSubscribe } from '../protocol/subscribeManager';
 
@@ -75,29 +75,44 @@ export class Server {
         //@FIXME logging
         Logger.trace(`WebSocketServer received: ${message.toString()}`);
 
+        let msg: Message;
         try {
-          await this.processor.process(JSON.parse(message.toString()));
-          this.subscribeManager.setSockets(ws, JSON.parse(message.toString()));
+          msg = JSON.parse(message.toString());
+        } catch (error: any) {
+          //@FIXME logging
+          Logger.trace(error);
+          return;
+        }
 
-          const sub: Map<WebSocket, iSubscribe> =
-            this.subscribeManager.getSubscriptions();
+        try {
+          await this.processor.process(msg);
 
-          sub.forEach((data, ws) => {
-            if (data.market.size > 0) {
-              data.market.forEach((contract) => {
-                const msg = this.orderBook.getMarket(contract);
-                msg.channel = 'market';
-                ws.send(JSON.stringify(msg));
-              });
-            }
-            if (data.nostro.size > 0) {
-              data.nostro.forEach((contract) => {
-                const msg = this.orderBook.getNostro(contract);
-                msg.channel = 'nostro';
-                ws.send(JSON.stringify(msg));
-              });
-            }
-          });
+          if (msg.command === 'subscribe' || msg.command === 'unsubscribe') {
+            this.subscribeManager.setSockets(ws, msg);
+          }
+          if (msg.command === 'subscribe') {
+            const sub: Map<WebSocket, iSubscribe> =
+              this.subscribeManager.getSubscriptions();
+
+            sub.forEach((subscribe, ws) => {
+              if (
+                subscribe.market.has(msg.contract) &&
+                msg.channel === 'market'
+              ) {
+                const marketBook = this.orderBook.getMarket(msg.contract);
+                marketBook.channel = 'market';
+                ws.send(JSON.stringify(marketBook));
+              }
+              if (
+                subscribe.nostro.has(msg.contract) &&
+                msg.channel === 'nostro'
+              ) {
+                const nostroBook = this.orderBook.getNostro(msg.contract);
+                nostroBook.channel = 'nostro';
+                ws.send(JSON.stringify(nostroBook));
+              }
+            });
+          }
         } catch (error: any) {
           //@FIXME logging
           Logger.trace(error);
@@ -143,15 +158,16 @@ export class Server {
           if (c.command === 'data' && c.ns.match('^DivaExchange.')) {
             //@FIXME logging
             Logger.trace('WebSocketFeed received: ' + JSON.stringify(c));
-            //await this.feeder.process(block);
-            await this.feeder.process(block);
-            const feed = ''; //this.feeder.getSubscribedData();
 
-            if (feed) {
-              this.webSocketServer.clients.forEach((ws) => {
-                ws.send(feed);
-              });
-            }
+            await this.feeder.process(block);
+            //@TODO get contract c.ns.split(':',3)[2] and foreach websockets who are interested => send
+            // const feed = ''; //this.feeder.getSubscribedData();
+            //
+            // if (feed) {
+            //   this.webSocketServer.clients.forEach((ws) => {
+            //     ws.send(feed);
+            //   });
+            // }
           }
         });
       });

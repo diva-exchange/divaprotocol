@@ -21,6 +21,9 @@ import { Config } from '../config';
 import { Db } from '../db';
 import { BlockStruct } from './struct';
 import { OrderBook } from './orderBook';
+import base64url from 'base64-url';
+import { tRecord } from './book';
+import { Big } from 'big.js';
 
 export class Feeder {
   private readonly config: Config;
@@ -46,17 +49,18 @@ export class Feeder {
     await this.db.clear();
   }
 
-  //@FIXME what's the return value of the feeder processing data from the blockchain?
   async process(block: BlockStruct) {
     for (const t of block.tx) {
-      // const channel: string = t.origin == this.config.my_public_key ? 'nostro' : 'market';
       if (t.origin == this.config.my_public_key) {
         for (const c of t.commands) {
-          //@TODO update order book with confirmation of the order
-          const contract = c.ns.split(':', 3)[2];
-          //const decodedData = JSON.parse(base64url.decode(c.base64url));
-          //console.log(this.orderBook.get(contract));
-          //return decodedData;
+          //const contract = c.ns.split(':', 3)[2];
+          // const decodedData = JSON.parse(base64url.decode(c.base64url));
+          // decodedData.buy.forEach((value: tRecord, index: tRecord) => {
+          //   this.orderBook.updateMarket(value.id, decodedData.contract, 'buy', value.p, value.a);
+          // });
+          // decodedData.sell.forEach((value: tRecord, index: tRecord) => {
+          //   this.orderBook.updateMarket(value.id, decodedData.contract, 'sell', value.p, value.a);
+          // });
         }
       }
     }

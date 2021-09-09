@@ -19,7 +19,6 @@
 
 import { Config } from '../config';
 import get from 'simple-get';
-import { Logger } from '../logger';
 import base64url from 'base64-url';
 import { Book, tBook } from './book';
 import { Validation } from '../net/validation';
@@ -46,7 +45,7 @@ export class OrderBook {
     });
   }
 
-  update(
+  updateNostro(
     id: number,
     contract: string,
     type: tBuySell,
@@ -68,6 +67,28 @@ export class OrderBook {
     }
   }
 
+  updateMarket(
+    id: number,
+    contract: string,
+    type: tBuySell,
+    price: string,
+    amount: string
+  ) {
+    if (!this.arrayMarket[contract]) {
+      throw new Error('OrderBook.update(): invalid contract');
+    }
+    switch (type) {
+      case 'buy':
+        this.arrayMarket[contract].buy(id, price, amount);
+        break;
+      case 'sell':
+        this.arrayMarket[contract].sell(id, price, amount);
+        break;
+      default:
+        throw new Error('OrderBook.update(): invalid type');
+    }
+  }
+
   getNostro(contract: string): tBook {
     if (!this.arrayNostro[contract]) {
       throw Error('OrderBook.getNostro(): Unsupported contract');
@@ -80,47 +101,6 @@ export class OrderBook {
       throw Error('OrderBook.getMarket(): Unsupported contract');
     }
     return this.arrayMarket[contract].get();
-  }
-
-  private async loadOrderBookFromChain(): Promise<void> {
-    for (const contract of Object.keys(this.arrayNostro)) {
-      try {
-        await this.fetch(contract);
-      } catch (error: any) {
-        //@FIXME logging
-        Logger.trace(error);
-      }
-    }
-  }
-
-  private async fetch(contract: string): Promise<void> {
-    const url: string =
-      this.config.url_api_chain +
-      '/state/' +
-      this.config.my_public_key +
-      ':DivaExchange:OrderBook:' +
-      contract;
-    return new Promise((resolve, reject) => {
-      get.concat(url, (error: Error, res: any, data: any) => {
-        if (error || res.statusCode !== 200) {
-          reject(error || res.statusCode);
-        }
-        try {
-          const book: tBook = JSON.parse(base64url.decode(data));
-          if (Validation.make().validateBook(book)) {
-            book.buy.forEach((r) => {
-              this.arrayNostro[book.contract].buy(r.id, r.p, r.a);
-            });
-            book.sell.forEach((r) => {
-              this.arrayNostro[book.contract].sell(r.id, r.p, r.a);
-            });
-          }
-        } catch (error: any) {
-          reject(error);
-        }
-        resolve();
-      });
-    });
   }
 
   private async fetchAllFromChain(): Promise<void> {
@@ -143,8 +123,12 @@ export class OrderBook {
             ) {
               try {
                 const book: tBook = JSON.parse(base64url.decode(element.value));
+                book.channel =
+                  keyArray[0] === this.config.my_public_key
+                    ? 'nostro'
+                    : 'market';
                 if (Validation.make().validateBook(book)) {
-                  if (keyArray[0] === this.config.my_public_key) {
+                  if (book.channel === 'nostro') {
                     book.buy.forEach((r) => {
                       this.arrayNostro[book.contract].buy(r.id, r.p, r.a);
                     });

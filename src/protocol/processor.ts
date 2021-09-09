@@ -45,7 +45,7 @@ export class Processor {
     switch (message.command) {
       case 'delete':
       case 'add':
-        this.orderBook.update(
+        this.orderBook.updateNostro(
           message.id,
           message.contract,
           message.type,
