@@ -55,6 +55,7 @@ export class Processor {
           message.price,
           message.amount
         );
+        this.sendSubscriptions(message.contract, 'nostro');
         this.storeOrderBookOnChain(message);
         break;
       case 'add':
@@ -65,13 +66,14 @@ export class Processor {
           message.price,
           message.amount
         );
+        this.sendSubscriptions(message.contract, 'nostro');
         this.storeOrderBookOnChain(message);
         break;
       case 'contract':
         break;
       case 'subscribe':
         this.subscribeManager.setSockets(ws, message);
-        this.sendSubscriptions(message);
+        this.sendSubscriptions(message.contract, message.channel);
         break;
       case 'unsubscribe':
         this.subscribeManager.setSockets(ws, message);
@@ -81,23 +83,17 @@ export class Processor {
     }
   }
 
-  private sendSubscriptions(message: Message) {
+  private sendSubscriptions(contract: string, channel: string) {
     const sub: Map<WebSocket, iSubscribe> =
       this.subscribeManager.getSubscriptions();
 
     sub.forEach((subscribe, ws) => {
-      if (
-        subscribe.market.has(message.contract) &&
-        message.channel === 'market'
-      ) {
-        const marketBook = this.orderBook.getMarket(message.contract);
+      if (subscribe.market.has(contract) && channel === 'market') {
+        const marketBook = this.orderBook.getMarket(contract);
         ws.send(JSON.stringify(marketBook));
       }
-      if (
-        subscribe.nostro.has(message.contract) &&
-        message.channel === 'nostro'
-      ) {
-        const nostroBook = this.orderBook.getNostro(message.contract);
+      if (subscribe.nostro.has(contract) && channel === 'nostro') {
+        const nostroBook = this.orderBook.getNostro(contract);
         ws.send(JSON.stringify(nostroBook));
       }
     });

@@ -22,16 +22,19 @@ import { Db } from '../db';
 import { BlockStruct } from './struct';
 import { OrderBook } from './orderBook';
 import base64url from 'base64-url';
-import { tRecord } from './book';
+import WebSocket from 'ws';
+import { SubscribeManager, iSubscribe } from '../protocol/subscribeManager';
 
 export class Feeder {
   private readonly config: Config;
   private readonly db: Db;
   private orderBook: OrderBook = {} as OrderBook;
+  private subscribeManager: SubscribeManager = {} as SubscribeManager;
 
   static async make(config: Config): Promise<Feeder> {
     const f = new Feeder(config);
     f.orderBook = await OrderBook.make(config);
+    f.subscribeManager = await SubscribeManager.make();
     return f;
   }
 
@@ -54,23 +57,16 @@ export class Feeder {
         for (const c of t.commands) {
           if (c.command === 'data' && c.ns.includes('DivaExchange:OrderBook')) {
             const decodedJsonData = JSON.parse(base64url.decode(c.base64url));
-            decodedJsonData.buy.forEach((value: tRecord) => {
-              this.orderBook.updateMarket(
-                value.id,
-                decodedJsonData.contract,
-                'buy',
-                value.p,
-                value.a
-              );
-            });
-            decodedJsonData.sell.forEach((value: tRecord) => {
-              this.orderBook.updateMarket(
-                value.id,
-                decodedJsonData.contract,
-                'sell',
-                value.p,
-                value.a
-              );
+            const contract: string = decodedJsonData.contract;
+            await this.orderBook.updateMarket(decodedJsonData.contract);
+            const sub: Map<WebSocket, iSubscribe> =
+              this.subscribeManager.getSubscriptions();
+
+            sub.forEach((subscribe, ws) => {
+              if (subscribe.market.has(contract)) {
+                const marketBook = this.orderBook.getMarket(contract);
+                ws.send(JSON.stringify(marketBook));
+              }
             });
           }
         }

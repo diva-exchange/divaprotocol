@@ -22,6 +22,7 @@ import get from 'simple-get';
 import base64url from 'base64-url';
 import { Book, tBook } from './book';
 import { Validation } from '../net/validation';
+import { Logger } from '../logger';
 
 type tBuySell = 'buy' | 'sell';
 
@@ -34,7 +35,7 @@ export class OrderBook {
   static async make(config: Config): Promise<OrderBook> {
     if (!this.ob) {
       this.ob = new OrderBook(config);
-      await this.ob.fetchAllFromChain();
+      await this.ob.populateCompleteOrderBookFromChain();
     }
     return this.ob;
   }
@@ -91,25 +92,36 @@ export class OrderBook {
     }
   }
 
-  public updateMarket(
-    id: number,
-    contract: string,
-    type: tBuySell,
-    price: string,
-    amount: string
-  ) {
+  public async updateMarket(contract: string) {
     if (!this.arrayMarket[contract]) {
       throw new Error('OrderBook.update(): invalid contract');
     }
-    switch (type) {
-      case 'buy':
-        this.arrayMarket[contract].buy(id, price, amount);
-        break;
-      case 'sell':
-        this.arrayMarket[contract].sell(id, price, amount);
-        break;
-      default:
-        throw new Error('OrderBook.update(): invalid type');
+    const currentState: string = await this.getState();
+    if (currentState) {
+      this.arrayMarket[contract] = Book.make(contract, 'market');
+      const allData = [...JSON.parse(currentState)];
+      allData.forEach((element) => {
+        const keyArray: Array<string> = element.key.toString().split(':', 4);
+        if (
+          keyArray[1] === 'DivaExchange' &&
+          keyArray[2] === 'OrderBook' &&
+          keyArray[3] === contract
+        ) {
+          try {
+            const book: tBook = JSON.parse(base64url.decode(element.value));
+            if (Validation.make().validateBook(book)) {
+              book.buy.forEach((r) => {
+                this.arrayMarket[book.contract].buy(r.id, r.p, r.a);
+              });
+              book.sell.forEach((r) => {
+                this.arrayMarket[book.contract].sell(r.id, r.p, r.a);
+              });
+            }
+          } catch (error: any) {
+            Logger.error(error);
+          }
+        }
+      });
     }
   }
 
@@ -127,53 +139,53 @@ export class OrderBook {
     return this.arrayMarket[contract].get();
   }
 
-  private async fetchAllFromChain(): Promise<void> {
+  private async populateCompleteOrderBookFromChain(): Promise<void> {
+    const data: string = await this.getState();
+    if (data) {
+      const allData = [...JSON.parse(data)];
+      allData.forEach((element) => {
+        const keyArray: Array<string> = element.key.toString().split(':', 4);
+        if (
+          keyArray[1] === 'DivaExchange' &&
+          keyArray[2] === 'OrderBook' &&
+          this.config.contracts_array.includes(keyArray[3])
+        ) {
+          try {
+            const book: tBook = JSON.parse(base64url.decode(element.value));
+            book.channel =
+              keyArray[0] === this.config.my_public_key ? 'nostro' : 'market';
+            if (Validation.make().validateBook(book)) {
+              if (book.channel === 'nostro') {
+                book.buy.forEach((r) => {
+                  this.arrayNostro[book.contract].buy(r.id, r.p, r.a);
+                });
+                book.sell.forEach((r) => {
+                  this.arrayNostro[book.contract].sell(r.id, r.p, r.a);
+                });
+              }
+              book.buy.forEach((r) => {
+                this.arrayMarket[book.contract].buy(r.id, r.p, r.a);
+              });
+              book.sell.forEach((r) => {
+                this.arrayMarket[book.contract].sell(r.id, r.p, r.a);
+              });
+            }
+          } catch (error: any) {
+            Logger.error(error);
+          }
+        }
+      });
+    }
+  }
+
+  private getState(): Promise<string> {
     const url: string = this.config.url_api_chain + '/state/';
     return new Promise((resolve, reject) => {
       get.concat(url, (error: Error, res: any, data: any) => {
         if (error || res.statusCode !== 200) {
           reject(error || res.statusCode);
         }
-        if (data) {
-          const allData = [...JSON.parse(data)];
-          allData.forEach((element) => {
-            const keyArray: Array<string> = element.key
-              .toString()
-              .split(':', 4);
-            if (
-              keyArray[1] === 'DivaExchange' &&
-              keyArray[2] === 'OrderBook' &&
-              this.config.contracts_array.includes(keyArray[3])
-            ) {
-              try {
-                const book: tBook = JSON.parse(base64url.decode(element.value));
-                book.channel =
-                  keyArray[0] === this.config.my_public_key
-                    ? 'nostro'
-                    : 'market';
-                if (Validation.make().validateBook(book)) {
-                  if (book.channel === 'nostro') {
-                    book.buy.forEach((r) => {
-                      this.arrayNostro[book.contract].buy(r.id, r.p, r.a);
-                    });
-                    book.sell.forEach((r) => {
-                      this.arrayNostro[book.contract].sell(r.id, r.p, r.a);
-                    });
-                  }
-                  book.buy.forEach((r) => {
-                    this.arrayMarket[book.contract].buy(r.id, r.p, r.a);
-                  });
-                  book.sell.forEach((r) => {
-                    this.arrayMarket[book.contract].sell(r.id, r.p, r.a);
-                  });
-                }
-              } catch (error: any) {
-                reject(error);
-              }
-            }
-          });
-        }
-        resolve();
+        resolve(data);
       });
     });
   }

@@ -26,7 +26,7 @@ import Buffer from 'buffer';
 import { Validation } from './validation';
 import { BlockStruct, Message } from '../protocol/struct';
 import { OrderBook } from '../protocol/orderBook';
-import { SubscribeManager, iSubscribe } from '../protocol/subscribeManager';
+import { SubscribeManager } from '../protocol/subscribeManager';
 
 export class Server {
   private readonly config: Config;
@@ -127,18 +127,6 @@ export class Server {
             Logger.trace('WebSocketFeed received: ' + JSON.stringify(c));
 
             await this.feeder.process(block);
-
-            const sub: Map<WebSocket, iSubscribe> =
-              this.subscribeManager.getSubscriptions();
-
-            const contract: string = c.ns.split(':', 3)[2];
-
-            sub.forEach((subscribe, ws) => {
-              if (subscribe.market.has(contract)) {
-                const marketBook = this.orderBook.getMarket(contract);
-                ws.send(JSON.stringify(marketBook));
-              }
-            });
           }
         });
       });
