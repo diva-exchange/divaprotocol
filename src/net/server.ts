@@ -78,42 +78,11 @@ export class Server {
         let msg: Message;
         try {
           msg = JSON.parse(message.toString());
+          await this.processor.process(msg, ws);
         } catch (error: any) {
           //@FIXME logging
           Logger.trace(error);
           return;
-        }
-
-        try {
-          await this.processor.process(msg);
-
-          if (msg.command === 'subscribe' || msg.command === 'unsubscribe') {
-            this.subscribeManager.setSockets(ws, msg);
-          }
-          if (msg.command === 'subscribe') {
-            const sub: Map<WebSocket, iSubscribe> =
-              this.subscribeManager.getSubscriptions();
-
-            sub.forEach((subscribe, ws) => {
-              if (
-                subscribe.market.has(msg.contract) &&
-                msg.channel === 'market'
-              ) {
-                const marketBook = this.orderBook.getMarket(msg.contract);
-                ws.send(JSON.stringify(marketBook));
-              }
-              if (
-                subscribe.nostro.has(msg.contract) &&
-                msg.channel === 'nostro'
-              ) {
-                const nostroBook = this.orderBook.getNostro(msg.contract);
-                ws.send(JSON.stringify(nostroBook));
-              }
-            });
-          }
-        } catch (error: any) {
-          //@FIXME logging
-          Logger.trace(error);
         }
       });
     });

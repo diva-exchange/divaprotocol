@@ -24,15 +24,19 @@ import { Db } from '../db';
 import base64url from 'base64-url';
 import { OrderBook } from './orderBook';
 import { Message } from './struct';
+import WebSocket from 'ws';
+import { SubscribeManager, iSubscribe } from './subscribeManager';
 
 export class Processor {
   public readonly config: Config;
   private readonly db: Db;
   private orderBook: OrderBook = {} as OrderBook;
+  private subscribeManager: SubscribeManager = {} as SubscribeManager;
 
   public static async make(config: Config): Promise<Processor> {
     const p = new Processor(config);
     p.orderBook = await OrderBook.make(config);
+    p.subscribeManager = await SubscribeManager.make();
     return p;
   }
 
@@ -41,28 +45,62 @@ export class Processor {
     this.db = Db.make(this.config);
   }
 
-  async process(message: Message): Promise<void> {
+  async process(message: Message, ws: WebSocket): Promise<void> {
     switch (message.command) {
       case 'delete':
-      case 'add':
-        this.orderBook.updateNostro(
+        this.orderBook.deleteNostro(
           message.id,
           message.contract,
           message.type,
           message.price,
-          message.command === 'delete' ? -1 * message.amount : message.amount
+          message.amount
+        );
+        this.storeOrderBookOnChain(message);
+        break;
+      case 'add':
+        this.orderBook.addNostro(
+          message.id,
+          message.contract,
+          message.type,
+          message.price,
+          message.amount
         );
         this.storeOrderBookOnChain(message);
         break;
       case 'contract':
         break;
       case 'subscribe':
+        this.subscribeManager.setSockets(ws, message);
+        this.sendSubscriptions(message);
         break;
       case 'unsubscribe':
+        this.subscribeManager.setSockets(ws, message);
         break;
       default:
         throw Error('Processor.process(): Invalid Command');
     }
+  }
+
+  private sendSubscriptions(message: Message) {
+    const sub: Map<WebSocket, iSubscribe> =
+      this.subscribeManager.getSubscriptions();
+
+    sub.forEach((subscribe, ws) => {
+      if (
+        subscribe.market.has(message.contract) &&
+        message.channel === 'market'
+      ) {
+        const marketBook = this.orderBook.getMarket(message.contract);
+        ws.send(JSON.stringify(marketBook));
+      }
+      if (
+        subscribe.nostro.has(message.contract) &&
+        message.channel === 'nostro'
+      ) {
+        const nostroBook = this.orderBook.getNostro(message.contract);
+        ws.send(JSON.stringify(nostroBook));
+      }
+    });
   }
 
   private storeOrderBookOnChain(message: Message) {

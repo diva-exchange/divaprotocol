@@ -47,7 +47,7 @@ export class OrderBook {
     });
   }
 
-  public updateNostro(
+  public addNostro(
     id: number,
     contract: string,
     type: tBuySell,
@@ -63,6 +63,28 @@ export class OrderBook {
         break;
       case 'sell':
         this.arrayNostro[contract].sell(id, price, amount);
+        break;
+      default:
+        throw new Error('OrderBook.update(): invalid type');
+    }
+  }
+
+  deleteNostro(
+    id: number,
+    contract: string,
+    type: 'buy' | 'sell',
+    price: number,
+    amount: number
+  ) {
+    if (!this.arrayMarket[contract]) {
+      throw new Error('OrderBook.update(): invalid contract');
+    }
+    switch (type) {
+      case 'buy':
+        this.arrayMarket[contract].buy(id, price, amount);
+        break;
+      case 'sell':
+        this.arrayMarket[contract].sell(id, price, amount);
         break;
       default:
         throw new Error('OrderBook.update(): invalid type');

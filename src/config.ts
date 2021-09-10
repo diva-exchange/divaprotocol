@@ -50,7 +50,6 @@ export class Config {
   public readonly path_app: string;
   public readonly per_message_deflate: boolean;
   public readonly path_keys: string;
-  public readonly precision: number = 9;
   public my_public_key: string = '';
   public contracts_array: Array<string> = ['BTC_XMR', 'BTC_ETH', 'BTC_ZEC'];
 
