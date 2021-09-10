@@ -76,15 +76,15 @@ export class OrderBook {
     price: number,
     amount: number
   ) {
-    if (!this.arrayMarket[contract]) {
+    if (!this.arrayNostro[contract]) {
       throw new Error('OrderBook.update(): invalid contract');
     }
     switch (type) {
       case 'buy':
-        this.arrayMarket[contract].buy(id, price, amount);
+        this.arrayNostro[contract].deleteBuy(id, price, amount);
         break;
       case 'sell':
-        this.arrayMarket[contract].sell(id, price, amount);
+        this.arrayNostro[contract].deleteSell(id, price, amount);
         break;
       default:
         throw new Error('OrderBook.update(): invalid type');

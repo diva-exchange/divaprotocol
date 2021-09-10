@@ -66,6 +66,36 @@ export class Book {
     this.set(id, TYPE_SELL, price, amount);
   }
 
+  deleteBuy(id: number, price: string | number, amount: string | number) {
+    if (this.mapBuy.size > 0 && this.mapBuy.has(id)) {
+      //@FIXME remove ts-ignore
+      // @ts-ignore
+      const newAmount = new Big(this.mapBuy.get(id).get(price) || '0')
+        .minus(amount)
+        .toFixed(PRECISION);
+      if (new Big(newAmount).toNumber() > 0) {
+        this.set(id, TYPE_BUY, price, newAmount);
+      } else {
+        this.mapBuy.delete(id);
+      }
+    }
+  }
+
+  deleteSell(id: number, price: string | number, amount: string | number) {
+    if (this.mapSell.size > 0 && this.mapSell.has(id)) {
+      //@FIXME remove ts-ignore
+      // @ts-ignore
+      const newAmount = new Big(this.mapSell.get(id).get(price) || '0')
+        .minus(amount)
+        .toFixed(PRECISION);
+      if (new Big(newAmount).toNumber() > 0) {
+        this.set(id, TYPE_BUY, price, newAmount);
+      } else {
+        this.mapSell.delete(id);
+      }
+    }
+  }
+
   private set(
     id: number,
     type: string,
