@@ -44,14 +44,17 @@ export class SubscribeManager {
         market: new Set<string>(),
       });
     }
-    //@FIXME remove ts ignore
-    if (message.channel === 'nostro') {
-      // @ts-ignore
-      this._subscriptions.get(webSocket).nostro.add(message.contract);
+
+    const subscribe: iSubscribe = this._subscriptions.get(webSocket) || {
+      nostro: new Set<string>(),
+      market: new Set<string>(),
+    };
+
+    if (message.channel === 'nostro'  ) {
+      subscribe.nostro.add(message.contract);
     }
     if (message.channel === 'market') {
-      // @ts-ignore
-      this._subscriptions.get(webSocket).market.add(message.contract);
+      subscribe.market.add(message.contract);
     }
   }
 
