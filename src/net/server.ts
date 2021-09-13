@@ -94,7 +94,7 @@ export class Server {
     });
   }
 
-  initFeed() {
+  public initFeed() {
     this.webSocketFeed = new WebSocket(this.config.url_block_feed, {
       followRedirects: false,
     });
@@ -133,9 +133,9 @@ export class Server {
     });
   }
 
-  async shutdown() {
-    await this.feeder.clear();
-    await this.feeder.shutdown();
+  public async shutdown() {
+    // await this.feeder.clear();
+    // await this.feeder.shutdown();
     return new Promise((resolve) => {
       this.webSocketServer.clients.forEach((ws) => {
         this.subscribeManager.deleteSockets(ws);

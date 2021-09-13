@@ -23,7 +23,7 @@ import { BlockStruct } from './struct';
 import { OrderBook } from './orderBook';
 import base64url from 'base64-url';
 import WebSocket from 'ws';
-import { SubscribeManager, iSubscribe } from '../protocol/subscribeManager';
+import { SubscribeManager, iSubscribe } from './subscribeManager';
 
 export class Feeder {
   private readonly config: Config;
@@ -43,15 +43,7 @@ export class Feeder {
     this.db = Db.make(this.config);
   }
 
-  async shutdown() {
-    await this.db.shutdown();
-  }
-
-  async clear() {
-    await this.db.clear();
-  }
-
-  async process(block: BlockStruct) {
+  public async process(block: BlockStruct): Promise<void> {
     for (const t of block.tx) {
       if (t.origin == this.config.my_public_key) {
         for (const c of t.commands) {

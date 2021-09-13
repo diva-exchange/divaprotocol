@@ -58,17 +58,30 @@ export class Book {
     this.channel = channel;
   }
 
-  buy(id: number, price: string | number, amount: string | number) {
+  public buy(
+    id: number,
+    price: string | number,
+    amount: string | number
+  ): void {
     this.set(id, TYPE_BUY, price, amount);
   }
 
-  sell(id: number, price: string | number, amount: string | number) {
+  public sell(
+    id: number,
+    price: string | number,
+    amount: string | number
+  ): void {
     this.set(id, TYPE_SELL, price, amount);
   }
 
-  deleteBuy(id: number, price: string | number, amount: string | number) {
+  public deleteBuy(
+    id: number,
+    price: string | number,
+    amount: string | number
+  ): void {
     if (this.mapBuy.size > 0 && this.mapBuy.has(id)) {
-      const existingMapBuy: Map<string, string> = this.mapBuy.get(id) || new Map<string, string>();
+      const existingMapBuy: Map<string, string> =
+        this.mapBuy.get(id) || new Map<string, string>();
       const newAmount = new Big(existingMapBuy.get(price.toString()) || '0')
         .minus(amount)
         .toFixed(PRECISION);
@@ -80,9 +93,14 @@ export class Book {
     }
   }
 
-  deleteSell(id: number, price: string | number, amount: string | number) {
+  public deleteSell(
+    id: number,
+    price: string | number,
+    amount: string | number
+  ): void {
     if (this.mapSell.size > 0 && this.mapSell.has(id)) {
-      const existingMapSell: Map<string, string> = this.mapSell.get(id) || new Map<string, string>();
+      const existingMapSell: Map<string, string> =
+        this.mapSell.get(id) || new Map<string, string>();
       const newAmount = new Big(existingMapSell.get(price.toString()) || '0')
         .minus(amount)
         .toFixed(PRECISION);
@@ -99,7 +117,7 @@ export class Book {
     type: string,
     price: string | number,
     amount: string | number
-  ) {
+  ): Map<number, Map<string, string>> {
     switch (type) {
       case TYPE_BUY:
         return this.mapBuy.set(
@@ -122,7 +140,7 @@ export class Book {
     }
   }
 
-  get(): tBook {
+  public get(): tBook {
     const buy: Array<tRecord> = [];
     const sell: Array<tRecord> = [];
 

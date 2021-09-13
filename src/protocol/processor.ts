@@ -45,7 +45,7 @@ export class Processor {
     this.db = Db.make(this.config);
   }
 
-  async process(message: Message, ws: WebSocket): Promise<void> {
+  public async process(message: Message, ws: WebSocket): Promise<void> {
     switch (message.command) {
       case 'delete':
         this.orderBook.deleteNostro(
@@ -83,7 +83,7 @@ export class Processor {
     }
   }
 
-  private sendSubscriptions(contract: string, channel: string) {
+  private sendSubscriptions(contract: string, channel: string): void {
     const sub: Map<WebSocket, iSubscribe> =
       this.subscribeManager.getSubscriptions();
 
@@ -99,7 +99,7 @@ export class Processor {
     });
   }
 
-  private storeOrderBookOnChain(message: Message) {
+  private storeOrderBookOnChain(message: Message): void {
     const nameSpace: string = 'DivaExchange:OrderBook:' + message.contract;
     const opts = {
       method: 'PUT',

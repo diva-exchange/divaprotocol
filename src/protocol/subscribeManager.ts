@@ -50,7 +50,7 @@ export class SubscribeManager {
       market: new Set<string>(),
     };
 
-    if (message.channel === 'nostro'  ) {
+    if (message.channel === 'nostro') {
       subscribe.nostro.add(message.contract);
     }
     if (message.channel === 'market') {
@@ -62,7 +62,7 @@ export class SubscribeManager {
     return this._subscriptions;
   }
 
-  public deleteSockets(websocket: WebSocket) {
+  public deleteSockets(websocket: WebSocket): void {
     this._subscriptions.delete(websocket);
   }
 }

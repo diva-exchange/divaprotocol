@@ -54,7 +54,7 @@ export class OrderBook {
     type: tBuySell,
     price: number,
     amount: number
-  ) {
+  ): void {
     if (!this.arrayNostro[contract]) {
       throw new Error('OrderBook.update(): invalid contract');
     }
@@ -70,13 +70,13 @@ export class OrderBook {
     }
   }
 
-  deleteNostro(
+  public deleteNostro(
     id: number,
     contract: string,
     type: 'buy' | 'sell',
     price: number,
     amount: number
-  ) {
+  ): void {
     if (!this.arrayNostro[contract]) {
       throw new Error('OrderBook.update(): invalid contract');
     }
@@ -92,7 +92,7 @@ export class OrderBook {
     }
   }
 
-  public async updateMarket(contract: string) {
+  public async updateMarket(contract: string): Promise<void> {
     if (!this.arrayMarket[contract]) {
       throw new Error('OrderBook.update(): invalid contract');
     }
