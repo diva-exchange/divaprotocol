@@ -68,9 +68,8 @@ export class Book {
 
   deleteBuy(id: number, price: string | number, amount: string | number) {
     if (this.mapBuy.size > 0 && this.mapBuy.has(id)) {
-      //@FIXME remove ts-ignore
-      // @ts-ignore
-      const newAmount = new Big(this.mapBuy.get(id).get(price) || '0')
+      const existingMapBuy: Map<string, string> = this.mapBuy.get(id) || new Map<string, string>();
+      const newAmount = new Big(existingMapBuy.get(price.toString()) || '0')
         .minus(amount)
         .toFixed(PRECISION);
       if (new Big(newAmount).toNumber() > 0) {
@@ -83,9 +82,8 @@ export class Book {
 
   deleteSell(id: number, price: string | number, amount: string | number) {
     if (this.mapSell.size > 0 && this.mapSell.has(id)) {
-      //@FIXME remove ts-ignore
-      // @ts-ignore
-      const newAmount = new Big(this.mapSell.get(id).get(price) || '0')
+      const existingMapSell: Map<string, string> = this.mapSell.get(id) || new Map<string, string>();
+      const newAmount = new Big(existingMapSell.get(price.toString()) || '0')
         .minus(amount)
         .toFixed(PRECISION);
       if (new Big(newAmount).toNumber() > 0) {
