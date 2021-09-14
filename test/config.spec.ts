@@ -44,23 +44,10 @@ class TestConfig {
 
   @test
   configPathExist() {
-    fs.rmdirSync(__dirname + '/blockstore', { recursive: true });
     fs.rmdirSync(__dirname + '/state', { recursive: true });
     fs.rmdirSync(__dirname + '/keys', { recursive: true });
     const c = new Config({ path_app: __dirname } as Configuration);
     expect(c.ip).is.not.empty;
-    fs.copyFileSync(
-      __dirname + '/../blockstore/.gitignore',
-      __dirname + '/blockstore/.gitignore'
-    );
-    fs.copyFileSync(
-      __dirname + '/../state/.gitignore',
-      __dirname + '/state/.gitignore'
-    );
-    fs.copyFileSync(
-      __dirname + '/../keys/.gitignore',
-      __dirname + '/keys/.gitignore'
-    );
   }
 
   @test

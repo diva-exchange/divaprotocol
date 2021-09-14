@@ -26,5 +26,4 @@ PROJECT_PATH=`pwd`/
 
 # tests
 rm -rf ${PROJECT_PATH}keys/*
-rm -rf ${PROJECT_PATH}blockstore/*
 rm -rf ${PROJECT_PATH}state/*

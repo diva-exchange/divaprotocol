@@ -20,11 +20,12 @@
 import { suite, test, slow, timeout } from '@testdeck/mocha';
 import chai, { expect } from 'chai';
 import chaiHttp from 'chai-http';
-import path from 'path';
 
 import { Server } from '../../src/net/server';
 import { Config } from '../../src/config';
-import fs from 'fs';
+import { Factory } from '../../src/factory';
+import WebSocket from 'ws';
+import Buffer from 'buffer';
 
 chai.use(chaiHttp);
 
@@ -33,89 +34,129 @@ const IP = '127.0.0.1';
 
 @suite
 class TestServer {
-  static mapConfigServer: Map<string, Config> = new Map();
-  static mapServer: Map<string, Server> = new Map();
+  static server: Server;
+  static config: Config;
+  static testWebsocket: WebSocket;
 
-  // @timeout(20000)
-  // static before(): Promise<void> {
-  //
-  //     const config = new Config({
-  //       ip: IP,
-  //       port: BASE_PORT,
-  //       path_state: path.join(__dirname, '../state'),
-  //       path_blockstore: path.join(__dirname, '../blockstore'),
-  //       path_keys: path.join(__dirname, '../keys')
-  //     });
-  //
-  //     const publicKey = "test"
-  //     this.mapConfigServer.set(publicKey, config);
-  //
-  //   return new Promise((resolve) => {
-  //     setTimeout(resolve, 9000);
-  //
-  //     for (const pk of TestServer.mapConfigServer.keys()) {
-  //       (async () => {
-  //         await TestServer.createServer(pk);
-  //       })();
-  //     }
-  //   });
-  // }
-  //
-  // @timeout(60000)
-  // static after(): Promise<void> {
-  //   return new Promise((resolve) => {
-  //     let c = TestServer.mapServer.size;
-  //     TestServer.mapServer.forEach(async (s) => {
-  //       await s.shutdown();
-  //       c--;
-  //       if (!c) {
-  //         setTimeout(resolve, 500);
-  //       }
-  //     });
-  //   });
-  // }
-  //
-  // static async createServer(publicKey: string) {
-  //   const s = new Server(
-  //     new Config({
-  //       ...TestServer.mapConfigServer.get(publicKey),
-  //       ...{
-  //         path_genesis: path.join(__dirname, '../genesis/block.json'),
-  //         path_blockstore: path.join(__dirname, '../blockstore'),
-  //         path_state: path.join(__dirname, '../state'),
-  //         path_keys: path.join(__dirname, '../keys'),
-  //       },
-  //     })
-  //   );
-  //   //await s.start();
-  //   TestServer.mapServer.set(publicKey, s);
-  //   return s;
-  // }
-  //
-  // @test
-  // @slow(399000)
-  // @timeout(400000)
-  // async default404() {
-  //   const config = [...TestServer.mapConfigServer.values()][0];
-  //   const res = await chai.request(`http://${config.ip}:${config.port}`).get('/');
-  //   expect(res).to.have.status(404);
-  //   await TestServer.wait(2000);
-  // }
-  //
-  // @test
-  // @slow(399000)
-  // @timeout(400000)
-  // async token() {
-  //   const config = [...TestServer.mapConfigServer.values()][0];
-  //   const res = await chai.request(`http://${config.ip}:${config.port}`).get('/showToken');
-  //   expect(res).to.have.status(200);
-  //   await TestServer.wait(9000);
-  // }
-  //
-  // private static async wait(s: number) {
-  //   // wait a bit
-  //   await new Promise((resolve) => {
-  //     setTimeout(resolve, s, true);
-  //   });
-  // }
+  @timeout(10000)
+  static before(): Promise<void> {
+    this.config = new Config({
+      ip: IP,
+      port: BASE_PORT,
+    });
+
+    return new Promise(async (resolve) => {
+      setTimeout(resolve, 5000);
+      this.server = await Server.make(this.config);
+      this.testWebsocket = new WebSocket(
+            `ws://${TestServer.config.ip}:${TestServer.config.port}/`
+        );
+    });
+  }
+
+  @timeout(7000)
+  static after(): Promise<void> {
+    return new Promise((resolve) => {
+      this.server.shutdown();
+      this.testWebsocket.terminate();
+      resolve();
+    });
+  }
+
+  @test
+  @slow(4000)
+  @timeout(5000)
+  async default426() {
+    await TestServer.wait(3000);
+    const res = chai
+      .request(`ws://${TestServer.config.ip}:${TestServer.config.port}`)
+      .get('/');
+    expect(res); // Upgrade Required
+  }
+
+  @test
+  async testPublicKey() {
+    const publicKey = await new Factory(
+      TestServer.config.url_api_chain
+    ).getPublicKey();
+    expect(publicKey).to.match(/^[A-Za-z0-9_-]{43}$/);
+  }
+
+  @test
+  subscribeToNostroBTCXMR() {
+    const subscribe = {
+      channel: 'nostro',
+      command: 'subscribe',
+      contract: 'BTC_XMR',
+    };
+    TestServer.testWebsocket.send(JSON.stringify(subscribe));
+  }
+
+  @test
+  subscribeToMarketBTCXMR() {
+    const subscribe = {
+      channel: 'market',
+      command: 'subscribe',
+      contract: 'BTC_XMR',
+    };
+    TestServer.testWebsocket.send(JSON.stringify(subscribe));
+  }
+
+  @test
+  @slow(6000)
+  @timeout(7000)
+  buyOrderTest(done) {
+    const orderObject = {
+      seq: 1,
+      command: 'add',
+      type: 'buy',
+      price: '10.987654',
+      amount: '5.098765',
+      contract: 'BTC_XMR',
+      id: 123456789,
+    };
+    const responseBuyObj: Array<Object> = [{ id: 123456789, p: '10.98765400', a: '5.09876500' }];
+
+    TestServer.testWebsocket.send(JSON.stringify(orderObject));
+
+    TestServer.testWebsocket.on('message', async (message: Buffer) => {
+      const response = JSON.parse(message.toString());
+      expect(response.channel).equal('nostro');
+      expect(response.contract).equal('BTC_XMR');
+      expect(response.sell).instanceOf(Array);
+      expect(response.buy).to.be.an("Array").to.deep.include.members(responseBuyObj);
+    });
+    done();
+  }
+
+  @test
+  @slow(6000)
+  @timeout(7000)
+  buyDeleteTest(done) {
+    const orderObject = {
+      seq: 1,
+      command: 'delete',
+      type: 'buy',
+      price: '10.987654',
+      amount: '5.098765',
+      contract: 'BTC_XMR',
+      id: 123456789,
+    };
+    const responseObject = {};
+
+    TestServer.testWebsocket.send(JSON.stringify(orderObject));
+    TestServer.testWebsocket.on('message', async (message: Buffer) => {
+      const response = JSON.parse(message.toString());
+      expect(response.channel).equal('nostro');
+      expect(response.contract).equal('BTC_XMR');
+    });
+    done();
+  }
+
+  private static async wait(s: number) {
+    // wait a bit
+    await new Promise((resolve) => {
+      setTimeout(resolve, s, true);
+    });
+  }
 }
