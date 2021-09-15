@@ -45,22 +45,20 @@ export class Feeder {
 
   public async process(block: BlockStruct): Promise<void> {
     for (const t of block.tx) {
-      if (t.origin == this.config.my_public_key) {
-        for (const c of t.commands) {
-          if (c.command === 'data' && c.ns.includes('DivaExchange:OrderBook')) {
-            const decodedJsonData = JSON.parse(base64url.decode(c.base64url));
-            const contract: string = decodedJsonData.contract;
-            await this.orderBook.updateMarket(decodedJsonData.contract);
-            const sub: Map<WebSocket, iSubscribe> =
-              this.subscribeManager.getSubscriptions();
+      for (const c of t.commands) {
+        if (c.command === 'data' && c.ns.includes('DivaExchange:OrderBook')) {
+          const decodedJsonData = JSON.parse(base64url.decode(c.base64url));
+          const contract: string = decodedJsonData.contract;
+          await this.orderBook.updateMarket(decodedJsonData.contract);
+          const sub: Map<WebSocket, iSubscribe> =
+            this.subscribeManager.getSubscriptions();
 
-            sub.forEach((subscribe, ws) => {
-              if (subscribe.market.has(contract)) {
-                const marketBook = this.orderBook.getMarket(contract);
-                ws.send(JSON.stringify(marketBook));
-              }
-            });
-          }
+          sub.forEach((subscribe, ws) => {
+            if (subscribe.market.has(contract)) {
+              const marketBook = this.orderBook.getMarket(contract);
+              ws.send(JSON.stringify(marketBook));
+            }
+          });
         }
       }
     }

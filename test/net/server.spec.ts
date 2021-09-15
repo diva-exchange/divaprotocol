@@ -49,8 +49,8 @@ class TestServer {
       setTimeout(resolve, 5000);
       this.server = await Server.make(this.config);
       this.testWebsocket = new WebSocket(
-            `ws://${TestServer.config.ip}:${TestServer.config.port}/`
-        );
+        `ws://${TestServer.config.ip}:${TestServer.config.port}/`
+      );
     });
   }
 
@@ -115,7 +115,9 @@ class TestServer {
       contract: 'BTC_XMR',
       id: 123456789,
     };
-    const responseBuyObj: Array<Object> = [{ id: 123456789, p: '10.98765400', a: '5.09876500' }];
+    const responseBuyObj: Array<Object> = [
+      { id: 123456789, p: '10.98765400', a: '5.09876500' },
+    ];
 
     TestServer.testWebsocket.send(JSON.stringify(orderObject));
 
@@ -124,7 +126,9 @@ class TestServer {
       expect(response.channel).equal('nostro');
       expect(response.contract).equal('BTC_XMR');
       expect(response.sell).instanceOf(Array);
-      expect(response.buy).to.be.an("Array").to.deep.include.members(responseBuyObj);
+      expect(response.buy)
+        .to.be.an('Array')
+        .to.deep.include.members(responseBuyObj);
     });
     done();
   }

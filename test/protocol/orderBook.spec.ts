@@ -31,134 +31,178 @@ const IP = '127.0.0.1';
 
 @suite
 class TestOderBook {
-    static config: Config;
-    static orderBook: OrderBook;
-    private expectedBuyObj: Array<Object> = [{ id: 123456789, p: '10.98765400', a: '5.09876500' }];
-    private expectedSellObj: Array<Object> = [{ id: 987654321, p: '17.98765400', a: '75.09876500' }];
-    private notExistContract: string = 'NOT_EXIST';
+  static config: Config;
+  static orderBook: OrderBook;
+  private expectedBuyObj: Array<Object> = [
+    { id: 123456789, p: '10.98765400', a: '5.09876500' },
+  ];
+  private expectedSellObj: Array<Object> = [
+    { id: 987654321, p: '17.98765400', a: '75.09876500' },
+  ];
+  private notExistContract: string = 'NOT_EXIST';
 
-    @timeout(10000)
-    static before(): Promise<void> {
-        this.config = new Config({
-            ip: IP,
-            port: BASE_PORT,
-        });
+  @timeout(10000)
+  static before(): Promise<void> {
+    this.config = new Config({
+      ip: IP,
+      port: BASE_PORT,
+    });
 
-        return new Promise(async (resolve) => {
-            setTimeout(resolve, 5000);
-            this.orderBook = await OrderBook.make(this.config);
-        });
-    }
+    return new Promise(async (resolve) => {
+      setTimeout(resolve, 5000);
+      this.orderBook = await OrderBook.make(this.config);
+    });
+  }
 
-    @timeout(7000)
-    static after(): Promise<void> {
-        return new Promise((resolve) => {
-            resolve();
-        });
-    }
+  @timeout(7000)
+  static after(): Promise<void> {
+    return new Promise((resolve) => {
+      resolve();
+    });
+  }
 
-    @test
-    testAddNostroFail(done) {
-        // CONTRACT DOES NOT EXIST
-        expect(() => {
-            TestOderBook.orderBook.addNostro(123456789, this.notExistContract, 'buy', 10.987654, 5.098765);
-        }).to.throw('OrderBook.update(): invalid contract');
-        done();
-    }
+  @test
+  testAddNostroFail() {
+    // CONTRACT DOES NOT EXIST
+    expect(() => {
+      TestOderBook.orderBook.addNostro(
+        123456789,
+        this.notExistContract,
+        'buy',
+        10.987654,
+        5.098765
+      );
+    }).to.throw('OrderBook.update(): invalid contract');
+  }
 
-    @test
-    testAddNostroBuy() {
-        // BUY
-        TestOderBook.orderBook.addNostro(123456789,'BTC_XMR', 'buy', 10.987654, 5.098765);
-        const orderBookNostroBuy = TestOderBook.orderBook.getNostro('BTC_XMR').buy;
+  @test
+  testAddNostroBuy() {
+    // BUY
+    TestOderBook.orderBook.addNostro(
+      123456789,
+      'BTC_XMR',
+      'buy',
+      10.987654,
+      5.098765
+    );
+    const orderBookNostroBuy = TestOderBook.orderBook.getNostro('BTC_XMR').buy;
 
-        expect(orderBookNostroBuy).to.be.instanceOf(Array);
-        expect(orderBookNostroBuy).to.deep.include.members(this.expectedBuyObj);
-    }
+    expect(orderBookNostroBuy).to.be.instanceOf(Array);
+    expect(orderBookNostroBuy).to.deep.include.members(this.expectedBuyObj);
+  }
 
-    @test
-    testAddNostroSell() {
-        // SELL
-        TestOderBook.orderBook.addNostro(987654321,'BTC_XMR', 'sell', 17.987654, 75.098765);
-        const orderBookNostroSell = TestOderBook.orderBook.getNostro('BTC_XMR').sell;
+  @test
+  testAddNostroSell() {
+    // SELL
+    TestOderBook.orderBook.addNostro(
+      987654321,
+      'BTC_XMR',
+      'sell',
+      17.987654,
+      75.098765
+    );
+    const orderBookNostroSell =
+      TestOderBook.orderBook.getNostro('BTC_XMR').sell;
 
-        expect(orderBookNostroSell).to.be.instanceOf(Array);
-        expect(orderBookNostroSell).to.deep.include.members(this.expectedSellObj);
-    }
+    expect(orderBookNostroSell).to.be.instanceOf(Array);
+    expect(orderBookNostroSell).to.deep.include.members(this.expectedSellObj);
+  }
 
-    @test
-    testUpdateMarketFail(done) {
-        // CONTRACT DOES NOT EXIST
-        expect(() => {
-            TestOderBook.orderBook.updateMarket(this.notExistContract).then((result)=> {
-                expect(result).to.throw('OrderBook.update(): invalid contract');
-            });
-        });
-        done();
-    }
+  @test
+  testUpdateMarketFail() {
+    return TestOderBook.orderBook
+      .updateMarket(this.notExistContract)
+      .then((result) => {
+        throw new Error('CONTRACT DOES NOT EXIST');
+      })
+      .catch((err) => {
+        expect(err).to.be.instanceOf(Error);
+        expect(err.message).to.equal('OrderBook.update(): invalid contract');
+      });
+  }
 
-    @test
-    testUpdateMarket(done) {
+  @test
+  testUpdateMarket() {
+    TestOderBook.orderBook.updateMarket('BTC_ETH').then((result) => {
+      const orderBookMarket = TestOderBook.orderBook.getMarket('BTC_XMR');
 
-        TestOderBook.orderBook.updateMarket('BTC_ETH').then((result) => {
-            const orderBookMarket = TestOderBook.orderBook.getMarket('BTC_XMR');
+      expect(orderBookMarket).to.be.instanceOf(Object);
+      expect(orderBookMarket)
+        .to.have.property('buy')
+        .to.eql(this.expectedBuyObj);
+      expect(orderBookMarket)
+        .to.have.property('sell')
+        .to.eql(this.expectedSellObj);
+    });
+  }
 
-            expect(orderBookMarket).to.be.instanceOf(Object);
-            expect(orderBookMarket).to.have.property('buy').to.eql(this.expectedBuyObj);
-            expect(orderBookMarket).to.have.property('sell').to.eql(this.expectedSellObj);
-        });
-        done();
-    }
+  @test
+  testDeleteNostroFail() {
+    // CONTRACT DOES NOT EXIST
+    expect(() => {
+      TestOderBook.orderBook.deleteNostro(
+        123456789,
+        this.notExistContract,
+        'buy',
+        10.987654,
+        5.098765
+      );
+    }).to.throw('OrderBook.update(): invalid contract');
+  }
 
-    @test
-    testDeleteNostroFail() {
-        // CONTRACT DOES NOT EXIST
-        expect(() => {
-            TestOderBook.orderBook.deleteNostro(123456789,this.notExistContract, 'buy', 10.987654, 5.098765);
-        }).to.throw('OrderBook.update(): invalid contract');
-    }
+  @test
+  testDeleteNostroBuy() {
+    // BUY
 
-    @test
-    testDeleteNostroBuy() {
-        // BUY
+    TestOderBook.orderBook.deleteNostro(
+      123456789,
+      'BTC_XMR',
+      'buy',
+      10.987654,
+      5.098765
+    );
+    const orderBookNostroBuy = TestOderBook.orderBook.getNostro('BTC_XMR');
 
-        TestOderBook.orderBook.deleteNostro(123456789,'BTC_XMR', 'buy', 10.987654, 5.098765);
-        const orderBookNostroBuy = TestOderBook.orderBook.getNostro('BTC_XMR');
+    expect(orderBookNostroBuy).to.be.instanceOf(Object);
+    expect(orderBookNostroBuy).to.have.property('buy').to.eql([]);
+  }
 
-        expect(orderBookNostroBuy).to.be.instanceOf(Object);
-        expect(orderBookNostroBuy).to.have.property('buy').to.eql([]);
-    }
+  @test
+  testDeleteNostroSell() {
+    // SELL
+    TestOderBook.orderBook.deleteNostro(
+      987654321,
+      'BTC_XMR',
+      'sell',
+      17.987654,
+      75.098765
+    );
+    const orderBookNostroSell = TestOderBook.orderBook.getNostro('BTC_XMR');
 
-    @test
-    testDeleteNostroSell() {
-        // SELL
-        TestOderBook.orderBook.deleteNostro(987654321,'BTC_XMR', 'sell', 17.987654, 75.098765);
-        const orderBookNostroSell = TestOderBook.orderBook.getNostro('BTC_XMR');
+    expect(orderBookNostroSell).to.be.instanceOf(Object);
+    expect(orderBookNostroSell).to.have.property('sell').to.eql([]);
+  }
 
-        expect(orderBookNostroSell).to.be.instanceOf(Object);
-        expect(orderBookNostroSell).to.have.property('sell').to.eql([]);
-    }
+  @test
+  testGetNostroFail() {
+    // CONTRACT DOES NOT EXIST
+    expect(() => {
+      TestOderBook.orderBook.getNostro(this.notExistContract);
+    }).to.throw('OrderBook.getNostro(): Unsupported contract');
+  }
 
-    @test
-    testGetNostroFail() {
-        // CONTRACT DOES NOT EXIST
-        expect(() => {
-            TestOderBook.orderBook.getNostro(this.notExistContract);
-        }).to.throw('OrderBook.getNostro(): Unsupported contract');
-    }
+  @test
+  testGetMarketFail() {
+    // CONTRACT DOES NOT EXIST
+    expect(() => {
+      TestOderBook.orderBook.getMarket(this.notExistContract);
+    }).to.throw('OrderBook.getMarket(): Unsupported contract');
+  }
 
-    @test
-    testGetMarketFail() {
-        // CONTRACT DOES NOT EXIST
-        expect(() => {
-            TestOderBook.orderBook.getMarket(this.notExistContract);
-        }).to.throw('OrderBook.getMarket(): Unsupported contract');
-    }
-
-    private static async wait(s: number) {
-        // wait a bit
-        await new Promise((resolve) => {
-            setTimeout(resolve, s, true);
-        });
-    }
+  private static async wait(s: number) {
+    // wait a bit
+    await new Promise((resolve) => {
+      setTimeout(resolve, s, true);
+    });
+  }
 }
