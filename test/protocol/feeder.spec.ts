@@ -20,7 +20,7 @@
 import { suite, test, slow, timeout } from '@testdeck/mocha';
 import chai, { expect } from 'chai';
 import chaiHttp from 'chai-http';
-import chaiSpies from 'chai-spies';
+import sinonChai from 'sinon-chai';
 
 import { Config } from '../../src/config';
 import { Feeder } from '../../src/protocol/feeder';
@@ -28,9 +28,10 @@ import { BlockStruct } from '../../src/protocol/struct';
 import { SubscribeManager } from '../../src/protocol/subscribeManager';
 import base64url from 'base64-url';
 import { OrderBook } from '../../src/protocol/orderBook';
+import sinon from 'sinon';
 
 chai.use(chaiHttp);
-chai.use(chaiSpies);
+chai.use(sinonChai);
 
 const BASE_PORT = 19720;
 const IP = '127.0.0.1';
@@ -97,17 +98,22 @@ class TestFeeder {
 
   @test
   async testFeedProcess() {
-    await TestFeeder.feeder.process(TestFeeder.testBlock).then((result) => {
-      const sm = TestFeeder.subscribeManager.getSubscriptions();
+    let spyOderBook = sinon.spy(TestFeeder.orderBook, 'updateMarket');
+    let spySubscribeManager = sinon.spy(TestFeeder.subscribeManager, 'getSubscriptions');
 
+    await TestFeeder.feeder.process(TestFeeder.testBlock).then((result) => {
       const market = TestFeeder.orderBook.getMarket(TestFeeder.data.contract);
       expect(market).to.be.an('object');
       expect(market)
-        .to.have.property('contract')
-        .to.eql(TestFeeder.data.contract);
+          .to.have.property('contract')
+          .to.eql(TestFeeder.data.contract);
       expect(market).to.have.property('channel').to.eql('market');
       expect(market).to.have.property('buy').to.be.an('array');
       expect(market).to.have.property('sell').to.be.an('array');
     });
+    expect(spyOderBook).to.have.been.calledOnceWith(TestFeeder.data.contract);
+    expect(spySubscribeManager).to.have.been.called;
+    spyOderBook.restore();
+    spySubscribeManager.restore();
   }
 }
