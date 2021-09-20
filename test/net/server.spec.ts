@@ -103,8 +103,6 @@ class TestServer {
   }
 
   @test
-  @slow(6000)
-  @timeout(7000)
   buyOrderTest(done) {
     const orderObject = {
       seq: 1,
@@ -134,8 +132,6 @@ class TestServer {
   }
 
   @test
-  @slow(6000)
-  @timeout(7000)
   buyDeleteTest(done) {
     const orderObject = {
       seq: 1,
@@ -146,7 +142,6 @@ class TestServer {
       contract: 'BTC_XMR',
       id: 123456789,
     };
-    const responseObject = {};
 
     TestServer.testWebsocket.send(JSON.stringify(orderObject));
     TestServer.testWebsocket.on('message', async (message: Buffer) => {

@@ -55,9 +55,9 @@ class TestDb {
   }
 
   @test
-  testUpdateByKeyFail() {
+  async testUpdateByKeyFail() {
     expect(TestDb.dbInstance).to.be.instanceOf(TestDb.dbClass);
-    return TestDb.dbInstance
+    return await TestDb.dbInstance
       .updateByKey()
       .then((result) => {
         throw new Error('KEY DOES NOT EXIST');
@@ -69,9 +69,9 @@ class TestDb {
   }
 
   @test
-  testUpdateByKey() {
+  async testUpdateByKey() {
     expect(TestDb.dbInstance).to.be.instanceOf(TestDb.dbClass);
-    return TestDb.dbInstance
+    return await TestDb.dbInstance
       .updateByKey('key', {})
       .then((result) => {
         throw new Error('');
