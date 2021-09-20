@@ -17,52 +17,76 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-import {suite, slow, timeout, test} from '@testdeck/mocha';
+import { suite, slow, timeout, test } from '@testdeck/mocha';
 import chai, { expect } from 'chai';
 import sinonChai from 'sinon-chai';
 import { Config } from '../src/config';
 import rewire from 'rewire';
+import { createSandbox } from 'sinon';
 
-const db = rewire("../src/db");
+const db = rewire('../src/db');
 
 chai.use(sinonChai);
 
 @suite
 class TestDb {
-    static config: Config;
-    static dbClass;
-    static dbInstance;
+  static config: Config;
+  static dbClass;
+  static dbInstance;
+  static sandbox = createSandbox();
+  static findByKey;
 
-    static before() {
-        this.config = new Config({});
-        this.dbClass = db.__get__('Db');
-        this.dbInstance = this.dbClass.make(TestDb.config);
-    }
+  @timeout(10000)
+  static before() {
+    const sampleData = { test: 'test' };
+    this.config = new Config({});
+    this.dbClass = db.__get__('Db');
+    this.dbInstance = this.dbClass.make(TestDb.config);
+    this.findByKey = this.sandbox
+      .stub(this.dbInstance, 'getValueByKey')
+      .resolves(sampleData);
+  }
 
-    static after() {
+  @timeout(10000)
+  static after() {
+    this.sandbox.restore();
+    this.dbInstance.shutdown();
+    this.dbInstance.clear();
+  }
 
+  @test
+  testUpdateByKeyFail() {
+    expect(TestDb.dbInstance).to.be.instanceOf(TestDb.dbClass);
+    return TestDb.dbInstance
+      .updateByKey()
+      .then((result) => {
+        throw new Error('KEY DOES NOT EXIST');
+      })
+      .catch((err) => {
+        expect(err).to.be.instanceOf(Error);
+        expect(err.message).to.equal('KEY DOES NOT EXIST');
+      });
+  }
 
-    }
-/*
-    @test
-    testUpdateByKeyFail() {
-        expect(TestDb.dbInstance).to.be.instanceOf(TestDb.dbClass);
-        return  TestDb.dbInstance.updateByKey().then((result) => {
-            throw new Error('KEY DOES NOT EXIST');
-        }).catch((err) => {
-            expect(err).to.be.instanceOf(Error);
-            expect(err.message).to.equal('KEY DOES NOT EXIST');
-        });
-    }
+  @test
+  testUpdateByKey() {
+    expect(TestDb.dbInstance).to.be.instanceOf(TestDb.dbClass);
+    return TestDb.dbInstance
+      .updateByKey('key', {})
+      .then((result) => {
+        throw new Error('');
+      })
+      .catch((err) => {
+        expect(err).to.be.instanceOf(Error);
+      });
+  }
 
-    @test
-    testUpdateByKey() {
-
-        expect(TestDb.dbInstance).to.be.instanceOf(TestDb.dbClass);
-        return  TestDb.dbInstance.updateByKey('key', {}).then((result) => {
-            throw new Error('');
-        }).catch((err) => {
-            expect(err).to.be.instanceOf(Error);
-        });
-    }*/
+  @test
+  async testGetByKey() {
+    await TestDb.dbInstance.getValueByKey('1').then((result) => {
+      expect(TestDb.findByKey).to.be.calledOnceWith('1');
+      expect(result).to.be.a('Object');
+      expect(result).to.have.property('test').to.equal('test');
+    });
+  }
 }
