@@ -27,7 +27,7 @@ import { Feeder } from '../../src/protocol/feeder';
 import { BlockStruct } from '../../src/protocol/struct';
 import { SubscribeManager } from '../../src/protocol/subscribeManager';
 import base64url from 'base64-url';
-import { OrderBook } from '../../src/protocol/orderBook';
+import { OrderBook } from '../../src/orderBook/orderBook';
 import sinon from 'sinon';
 
 chai.use(chaiHttp);

@@ -18,9 +18,9 @@
  */
 
 import { Config } from '../config';
-import { Db } from '../db';
+import { Db } from '../util/db';
 import { BlockStruct } from './struct';
-import { OrderBook } from './orderBook';
+import { OrderBook } from '../orderBook/orderBook';
 import base64url from 'base64-url';
 import WebSocket from 'ws';
 import { SubscribeManager, iSubscribe } from './subscribeManager';

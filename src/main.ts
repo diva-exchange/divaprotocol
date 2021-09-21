@@ -19,7 +19,7 @@
 
 import { Server } from './net/server';
 import { Config, Configuration } from './config';
-import { Factory } from './factory';
+import { Factory } from './util/factory';
 
 const c: Configuration = {} as Configuration;
 

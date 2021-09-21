@@ -22,14 +22,15 @@ import get from 'simple-get';
 import base64url from 'base64-url';
 import { Book, tBook } from './book';
 import { Validation } from '../net/validation';
-import { Logger } from '../logger';
+import { Logger } from '../util/logger';
+import {MarketBook, tMarketBook} from "./marketBook";
 
 type tBuySell = 'buy' | 'sell';
 
 export class OrderBook {
   private readonly config: Config;
   private readonly arrayNostro: { [contract: string]: Book } = {};
-  private readonly arrayMarket: { [contract: string]: Book } = {};
+  private readonly arrayMarket: { [contract: string]: MarketBook } = {};
   private static ob: OrderBook;
 
   static async make(config: Config): Promise<OrderBook> {
@@ -43,8 +44,8 @@ export class OrderBook {
   private constructor(config: Config) {
     this.config = config;
     this.config.contracts_array.forEach((contract) => {
-      this.arrayNostro[contract] = Book.make(contract, 'nostro');
-      this.arrayMarket[contract] = Book.make(contract, 'market');
+      this.arrayNostro[contract] = Book.make(contract);
+      this.arrayMarket[contract] = MarketBook.make(contract);
     });
   }
 
@@ -98,7 +99,7 @@ export class OrderBook {
     }
     const currentState: string = await this.getState();
     if (currentState) {
-      this.arrayMarket[contract] = Book.make(contract, 'market');
+      this.arrayMarket[contract] = MarketBook.make(contract);
       const allData = [...JSON.parse(currentState)];
       allData.forEach((element) => {
         const keyArray: Array<string> = element.key.toString().split(':', 4);
@@ -111,10 +112,10 @@ export class OrderBook {
             const book: tBook = JSON.parse(base64url.decode(element.value));
             if (Validation.make().validateBook(book)) {
               book.buy.forEach((r) => {
-                this.arrayMarket[book.contract].buy(r.id, r.p, r.a);
+                this.arrayMarket[book.contract].buy(r.p, r.a);
               });
               book.sell.forEach((r) => {
-                this.arrayMarket[book.contract].sell(r.id, r.p, r.a);
+                this.arrayMarket[book.contract].sell(r.p, r.a);
               });
             }
           } catch (error: any) {
@@ -132,7 +133,7 @@ export class OrderBook {
     return this.arrayNostro[contract].get();
   }
 
-  public getMarket(contract: string): tBook {
+  public getMarket(contract: string): tMarketBook {
     if (!this.arrayMarket[contract]) {
       throw Error('OrderBook.getMarket(): Unsupported contract');
     }
@@ -152,10 +153,10 @@ export class OrderBook {
         ) {
           try {
             const book: tBook = JSON.parse(base64url.decode(element.value));
-            book.channel =
+            const channel =
               keyArray[0] === this.config.my_public_key ? 'nostro' : 'market';
             if (Validation.make().validateBook(book)) {
-              if (book.channel === 'nostro') {
+              if (channel === 'nostro') {
                 book.buy.forEach((r) => {
                   this.arrayNostro[book.contract].buy(r.id, r.p, r.a);
                 });
@@ -164,10 +165,10 @@ export class OrderBook {
                 });
               }
               book.buy.forEach((r) => {
-                this.arrayMarket[book.contract].buy(r.id, r.p, r.a);
+                this.arrayMarket[book.contract].buy(r.p, r.a);
               });
               book.sell.forEach((r) => {
-                this.arrayMarket[book.contract].sell(r.id, r.p, r.a);
+                this.arrayMarket[book.contract].sell(r.p, r.a);
               });
             }
           } catch (error: any) {

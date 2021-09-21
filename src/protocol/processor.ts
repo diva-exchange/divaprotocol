@@ -18,11 +18,11 @@
  */
 
 import { Config } from '../config';
-import { Logger } from '../logger';
+import { Logger } from '../util/logger';
 import get from 'simple-get';
-import { Db } from '../db';
+import { Db } from '../util/db';
 import base64url from 'base64-url';
-import { OrderBook } from './orderBook';
+import { OrderBook } from '../orderBook/orderBook';
 import { Message } from './struct';
 import WebSocket from 'ws';
 import { SubscribeManager, iSubscribe } from './subscribeManager';

@@ -22,7 +22,7 @@ import chai, { expect } from 'chai';
 import chaiHttp from 'chai-http';
 
 import { Config } from '../../src/config';
-import { OrderBook } from '../../src/protocol/orderBook';
+import { OrderBook } from '../../src/orderBook/orderBook';
 
 chai.use(chaiHttp);
 

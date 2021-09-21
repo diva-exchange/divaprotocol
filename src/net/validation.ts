@@ -23,7 +23,7 @@ import schemaOrder from '../schema/order.json';
 import schemaSubscribe from '../schema/subscribe.json';
 import schemaBook from '../schema/book.json';
 import schemaBookBuySell from '../schema/bookBuySell.json';
-import { Logger } from '../logger';
+import { Logger } from '../util/logger';
 import { Message } from '../protocol/struct';
 
 export class Validation {

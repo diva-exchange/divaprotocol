@@ -18,14 +18,14 @@
  */
 
 import { Config } from '../config';
-import { Logger } from '../logger';
+import { Logger } from '../util/logger';
 import WebSocket, { Server as WebSocketServer } from 'ws';
 import { Feeder } from '../protocol/feeder';
 import { Processor } from '../protocol/processor';
 import Buffer from 'buffer';
 import { Validation } from './validation';
 import { BlockStruct, Message } from '../protocol/struct';
-import { OrderBook } from '../protocol/orderBook';
+import { OrderBook } from '../orderBook/orderBook';
 import { SubscribeManager } from '../protocol/subscribeManager';
 
 export class Server {
