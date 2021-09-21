@@ -23,7 +23,7 @@ import base64url from 'base64-url';
 import { Book, tBook } from './book';
 import { Validation } from '../net/validation';
 import { Logger } from '../util/logger';
-import {MarketBook, tMarketBook} from "./marketBook";
+import { MarketBook, tMarketBook } from './marketBook';
 
 type tBuySell = 'buy' | 'sell';
 

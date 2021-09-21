@@ -55,17 +55,11 @@ export class MarketBook {
     this.contract = contract;
   }
 
-  public buy(
-    price: string | number,
-    amount: string | number
-  ): void {
+  public buy(price: string | number, amount: string | number): void {
     this.set(TYPE_BUY, price, amount);
   }
 
-  public sell(
-    price: string | number,
-    amount: string | number
-  ): void {
+  public sell(price: string | number, amount: string | number): void {
     this.set(TYPE_SELL, price, amount);
   }
 
@@ -77,34 +71,30 @@ export class MarketBook {
     const convertedPrice = new Big(price).toFixed(PRECISION);
     const convertedAmount = new Big(amount).toFixed(PRECISION);
     switch (type) {
-      case TYPE_BUY:
+      case TYPE_BUY: {
         const existingBuyAmount = this.mapBuy.get(convertedPrice);
         const newBuyAmount = new Big(existingBuyAmount || 0)
-            .plus(convertedAmount)
-            .toFixed(PRECISION);
+          .plus(convertedAmount)
+          .toFixed(PRECISION);
         if (new Big(newBuyAmount).toNumber() > 0) {
-          this.mapBuy.set(
-              convertedPrice,
-              newBuyAmount
-          );
+          this.mapBuy.set(convertedPrice, newBuyAmount);
         } else {
           this.mapBuy.delete(convertedPrice);
         }
         return this.mapBuy;
-      case TYPE_SELL:
+      }
+      case TYPE_SELL: {
         const existingSellAmount = this.mapSell.get(convertedPrice);
         const newSellAmount = new Big(existingSellAmount || 0)
-            .plus(convertedAmount)
-            .toFixed(PRECISION);
+          .plus(convertedAmount)
+          .toFixed(PRECISION);
         if (new Big(newSellAmount).toNumber() > 0) {
-          this.mapSell.set(
-              convertedPrice,
-              newSellAmount
-          );
+          this.mapSell.set(convertedPrice, newSellAmount);
         } else {
           this.mapSell.delete(convertedPrice);
         }
         return this.mapSell;
+      }
       default:
         throw new Error('MarketBook.countNewPrice(): invalid type');
     }
@@ -118,7 +108,7 @@ export class MarketBook {
       buy.push({ p: price, a: amount });
     });
     this.mapSell.forEach((amount, price) => {
-        sell.push({ p: price, a: amount });
+      sell.push({ p: price, a: amount });
     });
 
     return {
