@@ -20,11 +20,11 @@
 import { suite, slow, timeout, test } from '@testdeck/mocha';
 import chai, { expect } from 'chai';
 import sinonChai from 'sinon-chai';
-import { Config } from '../src/config';
+import { Config } from '../../src/config';
 import rewire from 'rewire';
 import { createSandbox } from 'sinon';
 
-const db = rewire('../src/db');
+const db = rewire('../../src/util/db');
 
 chai.use(sinonChai);
 
@@ -39,7 +39,9 @@ class TestDb {
   @timeout(10000)
   static before() {
     const sampleData = { test: 'test' };
-    this.config = new Config({});
+    this.config = new Config({
+      path_state: '../state/',
+    });
     this.dbClass = db.__get__('Db');
     this.dbInstance = this.dbClass.make(TestDb.config);
     this.findByKey = this.sandbox
