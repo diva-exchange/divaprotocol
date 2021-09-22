@@ -40,10 +40,10 @@ class TestDb {
   static before() {
     const sampleData = { test0: 'test0' };
     this.config = new Config({
-      path_state: '../state/',
+      path_state: 'test/state/',
     });
     this.dbClass = db.__get__('Db');
-    this.dbInstance = this.dbClass.make(TestDb.config);
+    this.dbInstance = this.dbClass.make(this.config);
     this.findByKey = this.sandbox
       .stub(this.dbInstance, 'getValueByKey')
       .resolves(sampleData);
