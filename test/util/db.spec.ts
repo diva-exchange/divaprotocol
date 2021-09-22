@@ -38,7 +38,7 @@ class TestDb {
 
   @timeout(10000)
   static before() {
-    const sampleData = { test: 'test' };
+    const sampleData = { test0: 'test0' };
     this.config = new Config({
       path_state: '../state/',
     });
@@ -73,22 +73,36 @@ class TestDb {
   @test
   async testUpdateByKey() {
     expect(TestDb.dbInstance).to.be.instanceOf(TestDb.dbClass);
-    return await TestDb.dbInstance
-      .updateByKey('key', {})
+    await TestDb.dbInstance
+      .updateByKey('key1', {test: 'test'})
       .then((result) => {
         throw new Error('');
       })
       .catch((err) => {
         expect(err).to.be.instanceOf(Error);
       });
+    const result = await TestDb.dbInstance.getValueByKey('key1');
+    expect(TestDb.findByKey).to.be.calledOnceWith('key1');
+    expect(result).to.be.an('object');
+    expect(result).to.to.have.property('test0').to.equal('test0');
+  }
+
+  @test
+  async testGetByKeyFail() {
+    await TestDb.dbInstance.getValueByKey('').then((result) => {
+      throw new Error('no key specified');
+    }).catch((err) => {
+      expect(err).to.be.instanceOf(Error);
+      expect(err.message).to.equal('no key specified');
+    });
   }
 
   @test
   async testGetByKey() {
     await TestDb.dbInstance.getValueByKey('1').then((result) => {
-      expect(TestDb.findByKey).to.be.calledOnceWith('1');
+      expect(TestDb.findByKey).to.be.calledThrice;
       expect(result).to.be.a('Object');
-      expect(result).to.have.property('test').to.equal('test');
+      expect(result).to.have.property('test0').to.equal('test0');
     });
   }
 }
