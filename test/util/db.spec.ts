@@ -74,7 +74,7 @@ class TestDb {
   async testUpdateByKey() {
     expect(TestDb.dbInstance).to.be.instanceOf(TestDb.dbClass);
     await TestDb.dbInstance
-      .updateByKey('key1', {test: 'test'})
+      .updateByKey('key1', { test: 'test' })
       .then((result) => {
         throw new Error('');
       })
@@ -89,12 +89,15 @@ class TestDb {
 
   @test
   async testGetByKeyFail() {
-    await TestDb.dbInstance.getValueByKey('').then((result) => {
-      throw new Error('no key specified');
-    }).catch((err) => {
-      expect(err).to.be.instanceOf(Error);
-      expect(err.message).to.equal('no key specified');
-    });
+    await TestDb.dbInstance
+      .getValueByKey('')
+      .then((result) => {
+        throw new Error('no key specified');
+      })
+      .catch((err) => {
+        expect(err).to.be.instanceOf(Error);
+        expect(err.message).to.equal('no key specified');
+      });
   }
 
   @test

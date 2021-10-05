@@ -25,7 +25,7 @@ import { Validation } from '../net/validation';
 import { Logger } from '../util/logger';
 import { MarketBook, tMarketBook } from './marketBook';
 
-type tBuySell = 'buy' | 'sell';
+export type tBuySell = 'buy' | 'sell';
 
 export class OrderBook {
   private readonly config: Config;
