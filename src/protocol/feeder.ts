@@ -49,21 +49,19 @@ export class Feeder {
   }
 
   public async process(block: BlockStruct): Promise<void> {
-    const sortedArray: number[] = this.matchBook.arrayOfMatchBlockHeights.sort(
-      (n1, n2) => n1 - n2
-    );
-    //@FIXME hardcoded number of blocks to wait
-    if (block.height === sortedArray[0] + 9) {
-      console.log('exchange happen');
-    }
     for (const t of block.tx) {
       for (const c of t.commands) {
-        if (c.command === 'data' && c.ns.includes('DivaExchange:OrderBook')) {
+        //@FIXME literals -> constants or config
+        if (
+          c.command === 'data' &&
+          c.ns.startsWith('DivaExchange:OrderBook:')
+        ) {
           const decodedJsonData: tBook = JSON.parse(
             base64url.decode(c.base64url)
           );
           const contract: string = decodedJsonData.contract;
 
+          //@FIXME why are messages with a local origin excluded? It might be a match with others or a match with itself...
           // match
           if (t.origin != this.config.my_public_key) {
             this.match(decodedJsonData, t.origin, block.height);
@@ -87,6 +85,8 @@ export class Feeder {
     }
   }
 
+  //@FIXME very expensive (nested loops) - only the top records are interesting to detect matches
+  //@FIXME Ex: on simple books with only 10'000 market entries and 100 nostro entries, it will already loop 2'000'000x
   private match(
     decodedJsonData: tBook,
     origin: string,
@@ -129,6 +129,7 @@ export class Feeder {
     type: 'sell' | 'buy',
     blockHeight: number
   ) {
+    //@FIXME === (equality) is not enough - it must detect crosses: BidPrice >= AskPrice (or BuyPrice >= SellPrice)
     if (newBlockEntry.p === nostroEntry.p) {
       let nostroAmount: Big = new Big(nostroEntry.a);
       const currentAmount: number = new Big(newBlockEntry.a).toNumber();
