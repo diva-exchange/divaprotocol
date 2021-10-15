@@ -26,7 +26,7 @@ export type iSubscribe = {
 };
 
 export class SubscribeManager {
-  private _subscriptions: Map<WebSocket, iSubscribe>;
+  private readonly _subscriptions: Map<WebSocket, iSubscribe>;
   private static _subscriberInstance: SubscribeManager;
 
   public static make() {

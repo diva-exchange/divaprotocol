@@ -21,25 +21,25 @@ import { Config } from '../config';
 import { Big } from 'big.js';
 import { Db } from '../util/db';
 import { BlockStruct } from './struct';
-import { OrderBook } from '../orderBook/orderBook';
+import { Nostro } from '../orderbook/nostro';
 import base64url from 'base64-url';
 import WebSocket from 'ws';
-import { SubscribeManager, iSubscribe } from './subscribeManager';
-import { MatchBook } from '../orderBook/matchBook';
-import { tBook, tRecord } from '../orderBook/book';
+import { SubscribeManager, iSubscribe } from './subscribe-manager';
+import { Match } from '../orderbook/match';
+import { tBook, tRecord } from '../orderbook/book';
 
 export class Feeder {
   private readonly config: Config;
   private readonly db: Db;
-  private orderBook: OrderBook = {} as OrderBook;
+  private nostro: Nostro = {} as Nostro;
   private subscribeManager: SubscribeManager = {} as SubscribeManager;
-  private matchBook: MatchBook = {} as MatchBook;
+  private match: Match = {} as Match;
 
   static async make(config: Config): Promise<Feeder> {
     const f = new Feeder(config);
-    f.orderBook = await OrderBook.make(config);
+    f.nostro = await Nostro.make(config);
     f.subscribeManager = await SubscribeManager.make();
-    f.matchBook = await MatchBook.make();
+    f.match = await Match.make();
     return f;
   }
 
@@ -64,11 +64,11 @@ export class Feeder {
           //@FIXME why are messages with a local origin excluded? It might be a match with others or a match with itself...
           // match
           if (t.origin != this.config.my_public_key) {
-            this.match(decodedJsonData, t.origin, block.height);
+            this.doMatch(decodedJsonData, t.origin, block.height);
           }
 
           // fill marketBook
-          await this.orderBook.updateMarket(contract);
+          await this.nostro.updateMarket(contract);
 
           // subscription
           const sub: Map<WebSocket, iSubscribe> =
@@ -76,7 +76,7 @@ export class Feeder {
 
           sub.forEach((subscribe, ws) => {
             if (subscribe.market.has(contract)) {
-              const marketBook = this.orderBook.getMarket(contract);
+              const marketBook = this.nostro.getMarket(contract);
               ws.send(JSON.stringify(marketBook));
             }
           });
@@ -87,17 +87,15 @@ export class Feeder {
 
   //@FIXME very expensive (nested loops) - only the top records are interesting to detect matches
   //@FIXME Ex: on simple books with only 10'000 market entries and 100 nostro entries, it will already loop 2'000'000x
-  private match(
+  private doMatch(
     decodedJsonData: tBook,
     origin: string,
     blockHeight: number
   ): void {
-    const nostroBook: tBook = this.orderBook.getNostro(
-      decodedJsonData.contract
-    );
+    const nostroBook: tBook = this.nostro.getNostro(decodedJsonData.contract);
     decodedJsonData.buy.forEach((newBlockEntry) => {
       nostroBook.sell.forEach((nostroEntry) => {
-        this.populateMatchBook(
+        this.populateMatch(
           newBlockEntry,
           nostroEntry,
           origin,
@@ -109,7 +107,7 @@ export class Feeder {
     });
     decodedJsonData.sell.forEach((newBlockEntry) => {
       nostroBook.buy.forEach((nostroEntry) => {
-        this.populateMatchBook(
+        this.populateMatch(
           newBlockEntry,
           nostroEntry,
           origin,
@@ -121,7 +119,7 @@ export class Feeder {
     });
   }
 
-  populateMatchBook(
+  populateMatch(
     newBlockEntry: tRecord,
     nostroEntry: tRecord,
     origin: string,
@@ -133,8 +131,8 @@ export class Feeder {
     if (newBlockEntry.p === nostroEntry.p) {
       let nostroAmount: Big = new Big(nostroEntry.a);
       const currentAmount: number = new Big(newBlockEntry.a).toNumber();
-      if (this.matchBook.getMatchMap().has(nostroEntry.id)) {
-        this.matchBook.getMatchMap().forEach((matchOrigin) => {
+      if (this.match.getMatchMap().has(nostroEntry.id)) {
+        this.match.getMatchMap().forEach((matchOrigin) => {
           matchOrigin.forEach((match) => {
             match.forEach((alreadyExistingMatch) => {
               nostroAmount = nostroAmount.minus(alreadyExistingMatch.amount);
@@ -143,7 +141,7 @@ export class Feeder {
         });
       }
       if (nostroAmount.toNumber() > 0) {
-        this.matchBook.addMatch(
+        this.match.addMatch(
           nostroEntry.id,
           origin,
           newBlockEntry.id,

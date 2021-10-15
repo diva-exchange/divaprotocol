@@ -23,20 +23,20 @@ import base64url from 'base64-url';
 import { Book, tBook } from './book';
 import { Validation } from '../net/validation';
 import { Logger } from '../util/logger';
-import { MarketBook, tMarketBook } from './marketBook';
+import { Market, tMarketBook } from './market';
 
 export type tBuySell = 'buy' | 'sell';
 
-export class OrderBook {
+export class Nostro {
   private readonly config: Config;
   private readonly arrayNostro: { [contract: string]: Book } = {};
-  private readonly arrayMarket: { [contract: string]: MarketBook } = {};
-  private static ob: OrderBook;
+  private readonly arrayMarket: { [contract: string]: Market } = {};
+  private static ob: Nostro;
 
-  static async make(config: Config): Promise<OrderBook> {
+  static async make(config: Config): Promise<Nostro> {
     if (!this.ob) {
-      this.ob = new OrderBook(config);
-      await this.ob.populateCompleteOrderBookFromChain();
+      this.ob = new Nostro(config);
+      await this.ob.populateCompleteNostroFromChain();
     }
     return this.ob;
   }
@@ -45,7 +45,7 @@ export class OrderBook {
     this.config = config;
     this.config.contracts_array.forEach((contract) => {
       this.arrayNostro[contract] = Book.make(contract);
-      this.arrayMarket[contract] = MarketBook.make(contract);
+      this.arrayMarket[contract] = Market.make(contract);
     });
   }
 
@@ -57,7 +57,7 @@ export class OrderBook {
     amount: number
   ): void {
     if (!this.arrayNostro[contract]) {
-      throw new Error('OrderBook.update(): invalid contract');
+      throw new Error('Nostro.update(): invalid contract');
     }
     switch (type) {
       case 'buy':
@@ -67,7 +67,7 @@ export class OrderBook {
         this.arrayNostro[contract].sell(id, price, amount);
         break;
       default:
-        throw new Error('OrderBook.update(): invalid type');
+        throw new Error('Nostro.update(): invalid type');
     }
   }
 
@@ -79,7 +79,7 @@ export class OrderBook {
     amount: number
   ): void {
     if (!this.arrayNostro[contract]) {
-      throw new Error('OrderBook.update(): invalid contract');
+      throw new Error('Nostro.update(): invalid contract');
     }
     switch (type) {
       case 'buy':
@@ -89,23 +89,23 @@ export class OrderBook {
         this.arrayNostro[contract].deleteSell(id, price, amount);
         break;
       default:
-        throw new Error('OrderBook.update(): invalid type');
+        throw new Error('Nostro.update(): invalid type');
     }
   }
 
   public async updateMarket(contract: string): Promise<void> {
     if (!this.arrayMarket[contract]) {
-      throw new Error('OrderBook.update(): invalid contract');
+      throw new Error('Nostro.update(): invalid contract');
     }
     const currentState: string = await this.getState();
     if (currentState) {
-      this.arrayMarket[contract] = MarketBook.make(contract);
+      this.arrayMarket[contract] = Market.make(contract);
       const allData = [...JSON.parse(currentState)];
       allData.forEach((element) => {
         const keyArray: Array<string> = element.key.toString().split(':', 4);
         if (
           keyArray[1] === 'DivaExchange' &&
-          keyArray[2] === 'OrderBook' &&
+          keyArray[2] === 'Nostro' &&
           keyArray[3] === contract
         ) {
           try {
@@ -128,19 +128,19 @@ export class OrderBook {
 
   public getNostro(contract: string): tBook {
     if (!this.arrayNostro[contract]) {
-      throw Error('OrderBook.getNostro(): Unsupported contract');
+      throw Error('Nostro.getNostro(): Unsupported contract');
     }
     return this.arrayNostro[contract].get();
   }
 
   public getMarket(contract: string): tMarketBook {
     if (!this.arrayMarket[contract]) {
-      throw Error('OrderBook.getMarket(): Unsupported contract');
+      throw Error('Nostro.getMarket(): Unsupported contract');
     }
     return this.arrayMarket[contract].get();
   }
 
-  private async populateCompleteOrderBookFromChain(): Promise<void> {
+  private async populateCompleteNostroFromChain(): Promise<void> {
     const data: string = await this.getState();
     if (data) {
       const allData = [...JSON.parse(data)];

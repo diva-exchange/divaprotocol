@@ -24,16 +24,16 @@ type tMatch = {
   blockHeight: number;
 };
 
-export type matchBook = Map<number, Map<string, Map<number, tMatch>>>;
+export type match = Map<number, Map<string, Map<number, tMatch>>>;
 
-export class MatchBook {
-  private readonly _matchMap: matchBook;
+export class Match {
+  private readonly _matchMap: match;
   public arrayOfMatchBlockHeights: Array<number> = [];
-  private static mb: MatchBook;
+  private static mb: Match;
 
-  static make(): MatchBook {
+  static make(): Match {
     if (!this.mb) {
-      this.mb = new MatchBook();
+      this.mb = new Match();
     }
     return this.mb;
   }
@@ -42,7 +42,7 @@ export class MatchBook {
     this._matchMap = new Map();
   }
 
-  public getMatchMap(): matchBook {
+  public getMatchMap(): match {
     return this._matchMap;
   }
 
@@ -87,9 +87,5 @@ export class MatchBook {
 
       this.arrayOfMatchBlockHeights.push(blockHeight);
     }
-  }
-
-  public deleteMatch(id: number): void {
-    this._matchMap.delete(id);
   }
 }

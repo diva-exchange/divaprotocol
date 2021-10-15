@@ -22,20 +22,20 @@ import { Logger } from '../util/logger';
 import get from 'simple-get';
 import { Db } from '../util/db';
 import base64url from 'base64-url';
-import { OrderBook } from '../orderBook/orderBook';
+import { Nostro } from '../orderbook/nostro';
 import { Message } from './struct';
 import WebSocket from 'ws';
-import { SubscribeManager, iSubscribe } from './subscribeManager';
+import { SubscribeManager, iSubscribe } from './subscribe-manager';
 
 export class Processor {
   public readonly config: Config;
   private readonly db: Db;
-  private orderBook: OrderBook = {} as OrderBook;
+  private nostro: Nostro = {} as Nostro;
   private subscribeManager: SubscribeManager = {} as SubscribeManager;
 
   public static async make(config: Config): Promise<Processor> {
     const p = new Processor(config);
-    p.orderBook = await OrderBook.make(config);
+    p.nostro = await Nostro.make(config);
     p.subscribeManager = await SubscribeManager.make();
     return p;
   }
@@ -48,7 +48,7 @@ export class Processor {
   public async process(message: Message, ws: WebSocket): Promise<void> {
     switch (message.command) {
       case 'delete':
-        this.orderBook.deleteNostro(
+        this.nostro.deleteNostro(
           message.id,
           message.contract,
           message.type,
@@ -56,10 +56,10 @@ export class Processor {
           message.amount
         );
         this.sendSubscriptions(message.contract, 'nostro');
-        this.storeOrderBookOnChain(message);
+        this.storeNostroOnChain(message);
         break;
       case 'add':
-        this.orderBook.addNostro(
+        this.nostro.addNostro(
           message.id,
           message.contract,
           message.type,
@@ -67,7 +67,7 @@ export class Processor {
           message.amount
         );
         this.sendSubscriptions(message.contract, 'nostro');
-        this.storeOrderBookOnChain(message);
+        this.storeNostroOnChain(message);
         break;
       case 'contract':
         break;
@@ -89,17 +89,17 @@ export class Processor {
 
     sub.forEach((subscribe, ws) => {
       if (subscribe.market.has(contract) && channel === 'market') {
-        const marketBook = this.orderBook.getMarket(contract);
+        const marketBook = this.nostro.getMarket(contract);
         ws.send(JSON.stringify(marketBook));
       }
       if (subscribe.nostro.has(contract) && channel === 'nostro') {
-        const nostroBook = this.orderBook.getNostro(contract);
+        const nostroBook = this.nostro.getNostro(contract);
         ws.send(JSON.stringify(nostroBook));
       }
     });
   }
 
-  private storeOrderBookOnChain(message: Message): void {
+  private storeNostroOnChain(message: Message): void {
     const nameSpace: string = 'DivaExchange:OrderBook:' + message.contract;
     const opts = {
       method: 'PUT',
@@ -110,7 +110,7 @@ export class Processor {
           command: 'data',
           ns: nameSpace,
           base64url: base64url.encode(
-            JSON.stringify(this.orderBook.getNostro(message.contract))
+            JSON.stringify(this.nostro.getNostro(message.contract))
           ),
         },
       ],

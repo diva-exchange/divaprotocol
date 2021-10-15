@@ -38,17 +38,17 @@ export type tMarketBook = {
   sell: Array<tRecord>;
 };
 
-export class MarketBook {
+export class Market {
   private readonly contract: string;
 
   private mapBuy: Map<string, string> = new Map();
   private mapSell: Map<string, string> = new Map();
 
-  static make(contract: string): MarketBook {
+  static make(contract: string): Market {
     if (!contract.match(REGEX_CONTRACT)) {
       throw new Error('Book.make(): invalid contract');
     }
-    return new MarketBook(contract);
+    return new Market(contract);
   }
 
   private constructor(contract: string) {
