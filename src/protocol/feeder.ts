@@ -164,10 +164,11 @@ export class Feeder {
   }
 
   private async isMatch(decodedJsonData: tNostro) {
-    const lowestBuy: number = this.getLowestBuyPrice(decodedJsonData);
-    const highestSell: number = this.getHighestSellPrice(decodedJsonData);
-    if (highestSell >= lowestBuy) {
-      return true;
+    let match: boolean = false;
+    const highestBuy: number = this.getHighestBuyPrice(decodedJsonData);
+    const lowestSell: number = this.getLowestSellPrice(decodedJsonData);
+    if (lowestSell <= highestBuy) {
+      match = true;
     }
     const states: string = await this.getState();
     if (states) {
@@ -182,11 +183,11 @@ export class Feeder {
           try {
             const book: tNostro = JSON.parse(base64url.decode(element.value));
             if (Validation.make().validateBook(book)) {
-              if (lowestBuy <= this.getHighestSellPrice(book)) {
-                return true;
+              if (highestBuy >= this.getLowestSellPrice(book)) {
+                match = true;
               }
-              if (highestSell >= this.getLowestBuyPrice(book)) {
-                return true;
+              if (lowestSell <= this.getHighestBuyPrice(book)) {
+                match = true;
               }
             }
           } catch (error: any) {
@@ -195,29 +196,27 @@ export class Feeder {
         }
       });
     }
-    return false;
+    return match;
   }
 
-  private getHighestSellPrice(book: tNostro): number {
-    let result: number = 0;
-    book.sell.forEach((value) => {
-      const price: number = new Big(value.p).toNumber();
-      if (price > result) {
-        result = price;
-      }
-    });
-    return result;
+  private getLowestSellPrice(book: tNostro): number {
+    book.sell.sort((a, b) =>
+      a.p.padStart(21, '0') > b.p.padStart(21, '0') ? 1 : -1
+    );
+    if (book.sell.length > 0) {
+      return new Big(book.sell[0].p).toNumber();
+    }
+    return Number.MAX_SAFE_INTEGER;
   }
 
-  private getLowestBuyPrice(book: tNostro): number {
-    let result: number = Number.MAX_SAFE_INTEGER;
-    book.buy.forEach((value) => {
-      const price: number = new Big(value.p).toNumber();
-      if (price < result) {
-        result = price;
-      }
-    });
-    return result;
+  private getHighestBuyPrice(book: tNostro): number {
+    book.buy.sort((a, b) =>
+      a.p.padStart(21, '0') > b.p.padStart(21, '0') ? -1 : 1
+    );
+    if (book.buy.length > 0) {
+      return new Big(book.buy[0].p).toNumber();
+    }
+    return 0;
   }
 
   private getState(): Promise<string> {
