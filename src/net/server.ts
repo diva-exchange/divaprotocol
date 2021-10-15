@@ -25,7 +25,7 @@ import { Processor } from '../protocol/processor';
 import Buffer from 'buffer';
 import { Validation } from './validation';
 import { BlockStruct, Message } from '../protocol/struct';
-import { Nostro } from '../orderbook/nostro';
+import { Orderbook } from '../book/orderbook';
 import { SubscribeManager } from '../protocol/subscribe-manager';
 
 export class Server {
@@ -36,14 +36,14 @@ export class Server {
   private readonly webSocketServer: WebSocketServer;
   private webSocketFeed: WebSocket | undefined;
   private subscribeManager: SubscribeManager = {} as SubscribeManager;
-  private orderBook: Nostro = {} as Nostro;
+  private orderBook: Orderbook = {} as Orderbook;
 
   public static async make(config: Config): Promise<Server> {
     const s = new Server(config);
     s.processor = await Processor.make(config);
     s.feeder = await Feeder.make(config);
     s.subscribeManager = await SubscribeManager.make();
-    s.orderBook = await Nostro.make(config);
+    s.orderBook = await Orderbook.make(config);
     return s;
   }
 

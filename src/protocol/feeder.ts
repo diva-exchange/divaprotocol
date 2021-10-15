@@ -21,12 +21,12 @@ import { Config } from '../config';
 import { Big } from 'big.js';
 import { Db } from '../util/db';
 import { BlockStruct } from './struct';
-import { Nostro } from '../orderbook/nostro';
+import { Orderbook } from '../book/orderbook';
 import base64url from 'base64-url';
 import WebSocket from 'ws';
 import { SubscribeManager, iSubscribe } from './subscribe-manager';
-import { Match } from '../orderbook/match';
-import { tBook, tRecord } from '../orderbook/book';
+import { Match } from '../book/match';
+import { tNostro, tRecord } from '../book/nostro';
 import { Validation } from '../net/validation';
 import get from 'simple-get';
 import { Logger } from '../util/logger';
@@ -34,13 +34,13 @@ import { Logger } from '../util/logger';
 export class Feeder {
   private readonly config: Config;
   private readonly db: Db;
-  private nostro: Nostro = {} as Nostro;
+  private nostro: Orderbook = {} as Orderbook;
   private subscribeManager: SubscribeManager = {} as SubscribeManager;
   private match: Match = {} as Match;
 
   static async make(config: Config): Promise<Feeder> {
     const f = new Feeder(config);
-    f.nostro = await Nostro.make(config);
+    f.nostro = await Orderbook.make(config);
     f.subscribeManager = await SubscribeManager.make();
     f.match = await Match.make();
     return f;
@@ -55,7 +55,7 @@ export class Feeder {
     for (const t of block.tx) {
       for (const c of t.commands) {
         if (c.command === 'decision') {
-          const decodedJsonData: tBook = JSON.parse(
+          const decodedJsonData: tNostro = JSON.parse(
             base64url.decode(c.base64url)
           );
           //this.match(decodedJsonData, t.origin, block.height);
@@ -67,7 +67,7 @@ export class Feeder {
           c.command === 'data' &&
           c.ns.startsWith('DivaExchange:OrderBook:')
         ) {
-          const decodedJsonData: tBook = JSON.parse(
+          const decodedJsonData: tNostro = JSON.parse(
             base64url.decode(c.base64url)
           );
           const contract: string = decodedJsonData.contract;
@@ -99,11 +99,11 @@ export class Feeder {
   //@FIXME very expensive (nested loops) - only the top records are interesting to detect matches
   //@FIXME Ex: on simple books with only 10'000 market entries and 100 nostro entries, it will already loop 2'000'000x
   private doMatch(
-    decodedJsonData: tBook,
+    decodedJsonData: tNostro,
     origin: string,
     blockHeight: number
   ): void {
-    const nostroBook: tBook = this.nostro.getNostro(decodedJsonData.contract);
+    const nostroBook: tNostro = this.nostro.getNostro(decodedJsonData.contract);
     decodedJsonData.buy.forEach((newBlockEntry) => {
       nostroBook.sell.forEach((nostroEntry) => {
         this.populateMatch(
@@ -170,7 +170,7 @@ export class Feeder {
   }
 
   private async checkStateForMatch(
-    decodedJsonData: tBook,
+    decodedJsonData: tNostro,
     blockHeight: number
   ) {
     const states: string = await this.getState();
@@ -184,7 +184,7 @@ export class Feeder {
           keyArray[3] === decodedJsonData.contract
         ) {
           try {
-            const book: tBook = JSON.parse(base64url.decode(element.value));
+            const book: tNostro = JSON.parse(base64url.decode(element.value));
             if (Validation.make().validateBook(book)) {
               this.doMatch(book, keyArray[0], blockHeight);
             }

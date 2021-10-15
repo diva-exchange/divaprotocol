@@ -20,22 +20,22 @@
 import { Config } from '../config';
 import get from 'simple-get';
 import base64url from 'base64-url';
-import { Book, tBook } from './book';
+import { Nostro, tNostro } from './nostro';
 import { Validation } from '../net/validation';
 import { Logger } from '../util/logger';
 import { Market, tMarketBook } from './market';
 
 export type tBuySell = 'buy' | 'sell';
 
-export class Nostro {
+export class Orderbook {
   private readonly config: Config;
-  private readonly arrayNostro: { [contract: string]: Book } = {};
+  private readonly arrayNostro: { [contract: string]: Nostro } = {};
   private readonly arrayMarket: { [contract: string]: Market } = {};
-  private static ob: Nostro;
+  private static ob: Orderbook;
 
-  static async make(config: Config): Promise<Nostro> {
+  static async make(config: Config): Promise<Orderbook> {
     if (!this.ob) {
-      this.ob = new Nostro(config);
+      this.ob = new Orderbook(config);
       await this.ob.populateCompleteNostroFromChain();
     }
     return this.ob;
@@ -44,7 +44,7 @@ export class Nostro {
   private constructor(config: Config) {
     this.config = config;
     this.config.contracts_array.forEach((contract) => {
-      this.arrayNostro[contract] = Book.make(contract);
+      this.arrayNostro[contract] = Nostro.make(contract);
       this.arrayMarket[contract] = Market.make(contract);
     });
   }
@@ -109,7 +109,7 @@ export class Nostro {
           keyArray[3] === contract
         ) {
           try {
-            const book: tBook = JSON.parse(base64url.decode(element.value));
+            const book: tNostro = JSON.parse(base64url.decode(element.value));
             if (Validation.make().validateBook(book)) {
               book.buy.forEach((r) => {
                 this.arrayMarket[book.contract].buy(r.p, r.a);
@@ -126,7 +126,7 @@ export class Nostro {
     }
   }
 
-  public getNostro(contract: string): tBook {
+  public getNostro(contract: string): tNostro {
     if (!this.arrayNostro[contract]) {
       throw Error('Nostro.getNostro(): Unsupported contract');
     }
@@ -152,7 +152,7 @@ export class Nostro {
           this.config.contracts_array.includes(keyArray[3])
         ) {
           try {
-            const book: tBook = JSON.parse(base64url.decode(element.value));
+            const book: tNostro = JSON.parse(base64url.decode(element.value));
             const channel =
               keyArray[0] === this.config.my_public_key ? 'nostro' : 'market';
             if (Validation.make().validateBook(book)) {

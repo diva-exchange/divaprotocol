@@ -22,7 +22,7 @@ import { Logger } from '../util/logger';
 import get from 'simple-get';
 import { Db } from '../util/db';
 import base64url from 'base64-url';
-import { Nostro } from '../orderbook/nostro';
+import { Orderbook } from '../book/orderbook';
 import { Message } from './struct';
 import WebSocket from 'ws';
 import { SubscribeManager, iSubscribe } from './subscribe-manager';
@@ -30,12 +30,12 @@ import { SubscribeManager, iSubscribe } from './subscribe-manager';
 export class Processor {
   public readonly config: Config;
   private readonly db: Db;
-  private nostro: Nostro = {} as Nostro;
+  private nostro: Orderbook = {} as Orderbook;
   private subscribeManager: SubscribeManager = {} as SubscribeManager;
 
   public static async make(config: Config): Promise<Processor> {
     const p = new Processor(config);
-    p.nostro = await Nostro.make(config);
+    p.nostro = await Orderbook.make(config);
     p.subscribeManager = await SubscribeManager.make();
     return p;
   }
