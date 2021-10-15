@@ -20,7 +20,7 @@
 import { Config } from '../config/config';
 import { Big } from 'big.js';
 import { Db } from '../util/db';
-import { BlockStruct } from './struct';
+import {BlockStruct, Message} from './struct';
 import { Orderbook } from '../book/orderbook';
 import base64url from 'base64-url';
 import WebSocket from 'ws';
@@ -68,6 +68,7 @@ export class Feeder {
           // match
           if (await this.isMatch(decodedJsonData)) {
             console.log('match happened on: ' + block.height + 'block height!');
+            this.sendDecisionToChain(decodedJsonData.contract, block.height);
           }
 
           // fill marketBook
@@ -228,6 +229,28 @@ export class Feeder {
         }
         resolve(data);
       });
+    });
+  }
+
+  private sendDecisionToChain(contract: string, blockheight: number): void {
+    const nameSpace: string = 'DivaExchange:Auction:' + contract + ':' + blockheight;
+    const opts = {
+      method: 'PUT',
+      url: this.config.url_api_chain + '/transaction',
+      body: [
+        {
+          seq: 1,
+          command: 'decision',
+          ns: nameSpace
+        },
+      ],
+      json: true,
+    };
+    get.concat(opts, (error: Error) => {
+      if (error) {
+        //@FIXME logging and error handling
+        Logger.trace(error);
+      }
     });
   }
 }
