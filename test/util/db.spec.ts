@@ -20,7 +20,7 @@
 import { suite, slow, timeout, test } from '@testdeck/mocha';
 import chai, { expect } from 'chai';
 import sinonChai from 'sinon-chai';
-import { Config } from '../../src/config';
+import { Config } from '../../src/config/config';
 import rewire from 'rewire';
 import { createSandbox } from 'sinon';
 

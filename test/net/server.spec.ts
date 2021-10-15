@@ -22,7 +22,7 @@ import chai, { expect } from 'chai';
 import chaiHttp from 'chai-http';
 
 import { Server } from '../../src/net/server';
-import { Config } from '../../src/config';
+import { Config } from '../../src/config/config';
 import { Factory } from '../../src/util/factory';
 import WebSocket from 'ws';
 import Buffer from 'buffer';

@@ -17,7 +17,7 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-import { Config } from '../config';
+import { Config } from '../config/config';
 import { Big } from 'big.js';
 import { Db } from '../util/db';
 import { BlockStruct } from './struct';
@@ -34,13 +34,13 @@ import { Logger } from '../util/logger';
 export class Feeder {
   private readonly config: Config;
   private readonly db: Db;
-  private nostro: Orderbook = {} as Orderbook;
+  private orderbook: Orderbook = {} as Orderbook;
   private subscribeManager: SubscribeManager = {} as SubscribeManager;
   private match: Match = {} as Match;
 
   static async make(config: Config): Promise<Feeder> {
     const f = new Feeder(config);
-    f.nostro = await Orderbook.make(config);
+    f.orderbook = await Orderbook.make(config);
     f.subscribeManager = await SubscribeManager.make();
     f.match = await Match.make();
     return f;
@@ -79,7 +79,7 @@ export class Feeder {
           }
 
           // fill marketBook
-          await this.nostro.updateMarket(contract);
+          await this.orderbook.updateMarket(contract);
 
           // subscription
           const sub: Map<WebSocket, iSubscribe> =
@@ -87,7 +87,7 @@ export class Feeder {
 
           sub.forEach((subscribe, ws) => {
             if (subscribe.market.has(contract)) {
-              const marketBook = this.nostro.getMarket(contract);
+              const marketBook = this.orderbook.getMarket(contract);
               ws.send(JSON.stringify(marketBook));
             }
           });
@@ -103,7 +103,9 @@ export class Feeder {
     origin: string,
     blockHeight: number
   ): void {
-    const nostroBook: tNostro = this.nostro.getNostro(decodedJsonData.contract);
+    const nostroBook: tNostro = this.orderbook.getNostro(
+      decodedJsonData.contract
+    );
     decodedJsonData.buy.forEach((newBlockEntry) => {
       nostroBook.sell.forEach((nostroEntry) => {
         this.populateMatch(

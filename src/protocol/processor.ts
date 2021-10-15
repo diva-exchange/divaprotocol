@@ -17,7 +17,7 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-import { Config } from '../config';
+import { Config } from '../config/config';
 import { Logger } from '../util/logger';
 import get from 'simple-get';
 import { Db } from '../util/db';
@@ -30,12 +30,12 @@ import { SubscribeManager, iSubscribe } from './subscribe-manager';
 export class Processor {
   public readonly config: Config;
   private readonly db: Db;
-  private nostro: Orderbook = {} as Orderbook;
+  private orderbook: Orderbook = {} as Orderbook;
   private subscribeManager: SubscribeManager = {} as SubscribeManager;
 
   public static async make(config: Config): Promise<Processor> {
     const p = new Processor(config);
-    p.nostro = await Orderbook.make(config);
+    p.orderbook = await Orderbook.make(config);
     p.subscribeManager = await SubscribeManager.make();
     return p;
   }
@@ -48,7 +48,7 @@ export class Processor {
   public async process(message: Message, ws: WebSocket): Promise<void> {
     switch (message.command) {
       case 'delete':
-        this.nostro.deleteNostro(
+        this.orderbook.deleteNostro(
           message.id,
           message.contract,
           message.type,
@@ -59,7 +59,7 @@ export class Processor {
         this.storeNostroOnChain(message);
         break;
       case 'add':
-        this.nostro.addNostro(
+        this.orderbook.addNostro(
           message.id,
           message.contract,
           message.type,
@@ -89,11 +89,11 @@ export class Processor {
 
     sub.forEach((subscribe, ws) => {
       if (subscribe.market.has(contract) && channel === 'market') {
-        const marketBook = this.nostro.getMarket(contract);
+        const marketBook = this.orderbook.getMarket(contract);
         ws.send(JSON.stringify(marketBook));
       }
       if (subscribe.nostro.has(contract) && channel === 'nostro') {
-        const nostroBook = this.nostro.getNostro(contract);
+        const nostroBook = this.orderbook.getNostro(contract);
         ws.send(JSON.stringify(nostroBook));
       }
     });
@@ -110,7 +110,7 @@ export class Processor {
           command: 'data',
           ns: nameSpace,
           base64url: base64url.encode(
-            JSON.stringify(this.nostro.getNostro(message.contract))
+            JSON.stringify(this.orderbook.getNostro(message.contract))
           ),
         },
       ],

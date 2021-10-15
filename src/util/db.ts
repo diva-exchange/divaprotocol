@@ -17,7 +17,7 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-import { Config } from '../config';
+import { Config } from '../config/config';
 import LevelUp from 'levelup';
 import LevelDown from 'leveldown';
 import { Logger } from './logger';

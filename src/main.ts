@@ -18,7 +18,7 @@
  */
 
 import { Server } from './net/server';
-import { Config, Configuration } from './config';
+import { Config, Configuration } from './config/config';
 import { Factory } from './util/factory';
 
 const c: Configuration = {} as Configuration;

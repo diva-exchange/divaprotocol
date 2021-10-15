@@ -17,7 +17,7 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-import { Config } from '../config';
+import { Config } from '../config/config';
 import { Logger } from '../util/logger';
 import WebSocket, { Server as WebSocketServer } from 'ws';
 import { Feeder } from '../protocol/feeder';

@@ -17,7 +17,7 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-import { Config } from '../config';
+import { Config } from '../config/config';
 import get from 'simple-get';
 import base64url from 'base64-url';
 import { Nostro, tNostro } from './nostro';
@@ -95,7 +95,7 @@ export class Orderbook {
 
   public async updateMarket(contract: string): Promise<void> {
     if (!this.arrayMarket[contract]) {
-      throw new Error('Nostro.update(): invalid contract');
+      throw new Error('Market.update(): invalid contract');
     }
     const currentState: string = await this.getState();
     if (currentState) {
@@ -105,7 +105,7 @@ export class Orderbook {
         const keyArray: Array<string> = element.key.toString().split(':', 4);
         if (
           keyArray[1] === 'DivaExchange' &&
-          keyArray[2] === 'Nostro' &&
+          keyArray[2] === 'OrderBook' &&
           keyArray[3] === contract
         ) {
           try {

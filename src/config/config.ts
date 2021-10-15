@@ -60,7 +60,7 @@ export class Config {
         Object.keys(process).includes('pkg')
           ? path.dirname(process.execPath)
           : __dirname,
-        '/../'
+        '/../../'
       );
     this.VERSION = require(path.join(this.path_app, 'package.json')).version;
     this.per_message_deflate = c.per_message_deflate || true;

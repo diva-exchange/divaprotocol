@@ -22,7 +22,7 @@ import chai, { expect } from 'chai';
 import chaiHttp from 'chai-http';
 import sinonChai from 'sinon-chai';
 
-import { Config } from '../../src/config';
+import { Config } from '../../src/config/config';
 import { Feeder } from '../../src/protocol/feeder';
 import { BlockStruct } from '../../src/protocol/struct';
 import { SubscribeManager } from '../../src/protocol/subscribe-manager';

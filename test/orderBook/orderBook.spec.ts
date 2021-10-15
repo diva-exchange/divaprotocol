@@ -21,7 +21,7 @@ import { suite, test, slow, timeout } from '@testdeck/mocha';
 import chai, { expect } from 'chai';
 import chaiHttp from 'chai-http';
 
-import { Config } from '../../src/config';
+import { Config } from '../../src/config/config';
 import { OrderBook } from '../../src/orderbook/orderbook';
 
 chai.use(chaiHttp);
