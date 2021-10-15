@@ -27,6 +27,9 @@ import WebSocket from 'ws';
 import { SubscribeManager, iSubscribe } from './subscribe-manager';
 import { Match } from '../orderbook/match';
 import { tBook, tRecord } from '../orderbook/book';
+import {Validation} from "../net/validation";
+import get from "simple-get";
+import {Logger} from "../util/logger";
 
 export class Feeder {
   private readonly config: Config;
@@ -51,6 +54,14 @@ export class Feeder {
   public async process(block: BlockStruct): Promise<void> {
     for (const t of block.tx) {
       for (const c of t.commands) {
+        if (c.command === 'decision') {
+          const decodedJsonData: tBook = JSON.parse(
+              base64url.decode(c.base64url)
+          );
+          //this.match(decodedJsonData, t.origin, block.height);
+          await this.checkStateForMatch(decodedJsonData, block.height);
+          // this.publishMatchBlock();
+        }
         //@FIXME literals -> constants or config
         if (
           c.command === 'data' &&
@@ -88,32 +99,34 @@ export class Feeder {
   //@FIXME very expensive (nested loops) - only the top records are interesting to detect matches
   //@FIXME Ex: on simple books with only 10'000 market entries and 100 nostro entries, it will already loop 2'000'000x
   private doMatch(
-    decodedJsonData: tBook,
-    origin: string,
-    blockHeight: number
+      decodedJsonData: tBook,
+      origin: string,
+      blockHeight: number
   ): void {
-    const nostroBook: tBook = this.nostro.getNostro(decodedJsonData.contract);
+    const nostroBook: tBook = this.nostro.getNostro(
+        decodedJsonData.contract
+    );
     decodedJsonData.buy.forEach((newBlockEntry) => {
       nostroBook.sell.forEach((nostroEntry) => {
         this.populateMatch(
-          newBlockEntry,
-          nostroEntry,
-          origin,
-          decodedJsonData.contract,
-          'buy',
-          blockHeight
+            newBlockEntry,
+            nostroEntry,
+            origin,
+            decodedJsonData.contract,
+            'buy',
+            blockHeight
         );
       });
     });
     decodedJsonData.sell.forEach((newBlockEntry) => {
       nostroBook.buy.forEach((nostroEntry) => {
         this.populateMatch(
-          newBlockEntry,
-          nostroEntry,
-          origin,
-          decodedJsonData.contract,
-          'sell',
-          blockHeight
+            newBlockEntry,
+            nostroEntry,
+            origin,
+            decodedJsonData.contract,
+            'sell',
+            blockHeight
         );
       });
     });
@@ -128,7 +141,8 @@ export class Feeder {
     blockHeight: number
   ) {
     //@FIXME === (equality) is not enough - it must detect crosses: BidPrice >= AskPrice (or BuyPrice >= SellPrice)
-    if (newBlockEntry.p === nostroEntry.p) {
+    if ((type === 'buy' && newBlockEntry.p >= nostroEntry.p) ||
+        (type === 'sell' && newBlockEntry.p <= nostroEntry.p)){
       let nostroAmount: Big = new Big(nostroEntry.a);
       const currentAmount: number = new Big(newBlockEntry.a).toNumber();
       if (this.match.getMatchMap().has(nostroEntry.id)) {
@@ -142,16 +156,52 @@ export class Feeder {
       }
       if (nostroAmount.toNumber() > 0) {
         this.match.addMatch(
-          nostroEntry.id,
-          origin,
-          newBlockEntry.id,
-          contract,
-          type,
-          Math.min(nostroAmount.toNumber(), currentAmount),
-          newBlockEntry.p,
-          blockHeight
+            nostroEntry.id,
+            origin,
+            newBlockEntry.id,
+            contract,
+            type,
+            Math.min(nostroAmount.toNumber(), currentAmount),
+            newBlockEntry.p,
+            blockHeight
         );
       }
     }
+  }
+
+  private async checkStateForMatch(decodedJsonData: tBook, blockHeight: number) {
+    const states: string = await this.getState();
+    if (states) {
+      const allData = [...JSON.parse(states)];
+      allData.forEach((element) => {
+        const keyArray: Array<string> = element.key.toString().split(':', 4);
+        if (
+            keyArray[1] === 'DivaExchange' &&
+            keyArray[2] === 'OrderBook' &&
+            keyArray[3] === decodedJsonData.contract
+        ) {
+          try {
+            const book: tBook = JSON.parse(base64url.decode(element.value));
+            if (Validation.make().validateBook(book)) {
+              this.doMatch(book, keyArray[0], blockHeight);
+            }
+          } catch (error: any) {
+            Logger.error(error);
+          }
+        }
+      });
+    }
+  }
+
+  private getState(): Promise<string> {
+    const url: string = this.config.url_api_chain + '/state/';
+    return new Promise((resolve, reject) => {
+      get.concat(url, (error: Error, res: any, data: any) => {
+        if (error || res.statusCode !== 200) {
+          reject(error || res.statusCode);
+        }
+        resolve(data);
+      });
+    });
   }
 }
