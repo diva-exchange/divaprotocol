@@ -54,14 +54,6 @@ export class Feeder {
   public async process(block: BlockStruct): Promise<void> {
     for (const t of block.tx) {
       for (const c of t.commands) {
-        if (c.command === 'decision') {
-          const decodedJsonData: tNostro = JSON.parse(
-            base64url.decode(c.base64url)
-          );
-          //this.match(decodedJsonData, t.origin, block.height);
-          await this.checkStateForMatch(decodedJsonData, block.height);
-          // this.publishMatchBlock();
-        }
         //@FIXME literals -> constants or config
         if (
           c.command === 'data' &&
@@ -74,8 +66,8 @@ export class Feeder {
 
           //@FIXME why are messages with a local origin excluded? It might be a match with others or a match with itself...
           // match
-          if (t.origin != this.config.my_public_key) {
-            this.doMatch(decodedJsonData, t.origin, block.height);
+          if (await this.isMatch(decodedJsonData)) {
+            console.log('match happened on: ' + block.height + 'block height!');
           }
 
           // fill marketBook
@@ -98,39 +90,39 @@ export class Feeder {
 
   //@FIXME very expensive (nested loops) - only the top records are interesting to detect matches
   //@FIXME Ex: on simple books with only 10'000 market entries and 100 nostro entries, it will already loop 2'000'000x
-  private doMatch(
-    decodedJsonData: tNostro,
-    origin: string,
-    blockHeight: number
-  ): void {
-    const nostroBook: tNostro = this.orderbook.getNostro(
-      decodedJsonData.contract
-    );
-    decodedJsonData.buy.forEach((newBlockEntry) => {
-      nostroBook.sell.forEach((nostroEntry) => {
-        this.populateMatch(
-          newBlockEntry,
-          nostroEntry,
-          origin,
-          decodedJsonData.contract,
-          'buy',
-          blockHeight
-        );
-      });
-    });
-    decodedJsonData.sell.forEach((newBlockEntry) => {
-      nostroBook.buy.forEach((nostroEntry) => {
-        this.populateMatch(
-          newBlockEntry,
-          nostroEntry,
-          origin,
-          decodedJsonData.contract,
-          'sell',
-          blockHeight
-        );
-      });
-    });
-  }
+  // private doMatch(
+  //   book: tNostro,
+  //   decodedJsonData: tNostro,
+  //   blockHeight: number
+  // ): void {
+  //   const nostroBook: tNostro = this.orderbook.getNostro(
+  //     decodedJsonData.contract
+  //   );
+  //   decodedJsonData.buy.forEach((newBlockEntry) => {
+  //     nostroBook.sell.forEach((nostroEntry) => {
+  //       this.populateMatch(
+  //         newBlockEntry,
+  //         nostroEntry,
+  //         origin,
+  //         decodedJsonData.contract,
+  //         'buy',
+  //         blockHeight
+  //       );
+  //     });
+  //   });
+  //   decodedJsonData.sell.forEach((newBlockEntry) => {
+  //     nostroBook.buy.forEach((nostroEntry) => {
+  //       this.populateMatch(
+  //         newBlockEntry,
+  //         nostroEntry,
+  //         origin,
+  //         decodedJsonData.contract,
+  //         'sell',
+  //         blockHeight
+  //       );
+  //     });
+  //   });
+  // }
 
   populateMatch(
     newBlockEntry: tRecord,
@@ -171,10 +163,12 @@ export class Feeder {
     }
   }
 
-  private async checkStateForMatch(
-    decodedJsonData: tNostro,
-    blockHeight: number
-  ) {
+  private async isMatch(decodedJsonData: tNostro) {
+    const lowestBuy: number = this.getLowestBuyPrice(decodedJsonData);
+    const highestSell: number = this.getHighestSellPrice(decodedJsonData);
+    if (highestSell >= lowestBuy) {
+      return true;
+    }
     const states: string = await this.getState();
     if (states) {
       const allData = [...JSON.parse(states)];
@@ -188,7 +182,12 @@ export class Feeder {
           try {
             const book: tNostro = JSON.parse(base64url.decode(element.value));
             if (Validation.make().validateBook(book)) {
-              this.doMatch(book, keyArray[0], blockHeight);
+              if (lowestBuy <= this.getHighestSellPrice(book)) {
+                return true;
+              }
+              if (highestSell >= this.getLowestBuyPrice(book)) {
+                return true;
+              }
             }
           } catch (error: any) {
             Logger.error(error);
@@ -196,6 +195,29 @@ export class Feeder {
         }
       });
     }
+    return false;
+  }
+
+  private getHighestSellPrice(book: tNostro): number {
+    let result: number = 0;
+    book.sell.forEach((value) => {
+      const price: number = new Big(value.p).toNumber();
+      if (price > result) {
+        result = price;
+      }
+    });
+    return result;
+  }
+
+  private getLowestBuyPrice(book: tNostro): number {
+    let result: number = Number.MAX_SAFE_INTEGER;
+    book.buy.forEach((value) => {
+      const price: number = new Big(value.p).toNumber();
+      if (price < result) {
+        result = price;
+      }
+    });
+    return result;
   }
 
   private getState(): Promise<string> {
