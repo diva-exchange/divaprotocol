@@ -20,7 +20,7 @@
 import { Config } from '../config/config';
 import { Big } from 'big.js';
 import { Db } from '../util/db';
-import { BlockStruct } from './struct';
+import { BlockStruct, Message } from './struct';
 import { Orderbook } from '../book/orderbook';
 import base64url from 'base64-url';
 import WebSocket from 'ws';
@@ -233,8 +233,7 @@ export class Feeder {
   }
 
   private sendDecisionToChain(contract: string, blockheight: number): void {
-    const nameSpace: string =
-      'DivaExchange:Auction:' + contract + ':' + blockheight;
+    const nameSpace: string = 'DivaExchange:Auction:' + contract + ':' + blockheight;
     const opts = {
       method: 'PUT',
       url: this.config.url_api_chain + '/transaction',
@@ -242,7 +241,7 @@ export class Feeder {
         {
           seq: 1,
           command: 'decision',
-          ns: nameSpace,
+          ns: nameSpace
         },
       ],
       json: true,
