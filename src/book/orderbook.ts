@@ -154,7 +154,7 @@ export class Orderbook {
           try {
             const book: tNostro = JSON.parse(base64url.decode(element.value));
             const channel =
-              keyArray[0] === this.config.my_public_key ? 'nostro' : 'market';
+              keyArray[keyArray.length-1] === this.config.my_public_key ? 'nostro' : 'market';
             if (Validation.make().validateBook(book)) {
               if (channel === 'nostro') {
                 book.buy.forEach((r) => {
