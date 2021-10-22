@@ -37,7 +37,7 @@ export class Feeder {
   private orderbook: Orderbook = {} as Orderbook;
   private subscribeManager: SubscribeManager = {} as SubscribeManager;
   private match: Match = {} as Match;
-  private auctionLocked: boolean = false;
+  private auctionLockedContracts: Set<string> = new Set<string>();
 
   static async make(config: Config): Promise<Feeder> {
     const f = new Feeder(config);
@@ -50,6 +50,7 @@ export class Feeder {
   private constructor(config: Config) {
     this.config = config;
     this.db = Db.make(this.config);
+    this.setAuctionLockedContracts();
   }
 
   public async process(block: BlockStruct): Promise<void> {
@@ -67,10 +68,10 @@ export class Feeder {
 
           //@FIXME why are messages with a local origin excluded? It might be a match with others or a match with itself...
           // match
-          if (!this.auctionLocked && await this.isMatch(decodedJsonData)) {
+          if (!this.auctionLockedContracts.has(decodedJsonData.contract) && await this.isMatch(decodedJsonData)) {
             console.log('match happened on: ' + block.height + 'block height!');
             this.sendDecisionToChain(decodedJsonData.contract, block.height);
-            this.auctionLocked = true;
+            this.auctionLockedContracts.add(decodedJsonData.contract);
           }
 
           // fill marketBook
@@ -255,5 +256,9 @@ export class Feeder {
         Logger.trace(error);
       }
     });
+  }
+
+  private setAuctionLockedContracts() {
+    console.log('ready');
   }
 }
