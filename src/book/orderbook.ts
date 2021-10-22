@@ -147,9 +147,9 @@ export class Orderbook {
       allData.forEach((element) => {
         const keyArray: Array<string> = element.key.toString().split(':', 4);
         if (
-          keyArray[1] === 'DivaExchange' &&
-          keyArray[2] === 'OrderBook' &&
-          this.config.contracts_array.includes(keyArray[3])
+          keyArray[0] === 'DivaExchange' &&
+          keyArray[1] === 'OrderBook' &&
+          this.config.contracts_array.includes(keyArray[2])
         ) {
           try {
             const book: tNostro = JSON.parse(base64url.decode(element.value));
