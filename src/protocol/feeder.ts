@@ -68,7 +68,10 @@ export class Feeder {
 
           //@FIXME why are messages with a local origin excluded? It might be a match with others or a match with itself...
           // match
-          if (!this.auctionLockedContracts.has(decodedJsonData.contract) && await this.isMatch(decodedJsonData)) {
+          if (
+            !this.auctionLockedContracts.has(decodedJsonData.contract) &&
+            (await this.isMatch(decodedJsonData))
+          ) {
             console.log('match happened on: ' + block.height + 'block height!');
             this.sendDecisionToChain(decodedJsonData.contract, block.height);
             this.auctionLockedContracts.add(decodedJsonData.contract);
@@ -258,7 +261,40 @@ export class Feeder {
     });
   }
 
-  private setAuctionLockedContracts() {
-    console.log('ready');
+  private getLastBlock(): Promise<BlockStruct> {
+    const url: string = this.config.url_api_chain + '/block/latest/';
+    return new Promise((resolve, reject) => {
+      get.concat(url, (error: Error, res: any, data: any) => {
+        if (error || res.statusCode !== 200) {
+          reject(error || res.statusCode);
+        }
+        resolve(JSON.parse(data.toString()));
+      });
+    });
+  }
+
+  private async setAuctionLockedContracts() {
+    const lastBlock: BlockStruct = await this.getLastBlock();
+    const states: string = await this.getState();
+    if (states) {
+      const allData = [...JSON.parse(states)];
+      allData.forEach((element) => {
+        const keyArray: Array<string> = element.key.toString().split(':', 5);
+        if (
+          keyArray[0] === 'decision' &&
+          keyArray[1] === 'DivaExchange' &&
+          keyArray[2] === 'Auction'
+        ) {
+          //@FIXME need an algorithm for checking the consensus
+          //@FIXME number of blocks to wait are hardcoded
+          if (
+            !isNaN(Number(keyArray[4])) &&
+            Number(keyArray[4]) + 4 > lastBlock.height
+          ) {
+            this.auctionLockedContracts.add(keyArray[3]);
+          }
+        }
+      });
+    }
   }
 }
