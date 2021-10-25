@@ -20,8 +20,8 @@
 import { Config } from '../config/config';
 import { Logger } from '../util/logger';
 import WebSocket, { Server as WebSocketServer } from 'ws';
-import { Feeder } from '../protocol/feeder';
-import { Processor } from '../protocol/processor';
+import { BlockProcessor } from '../protocol/block-processor';
+import { MessageProcessor } from '../protocol/message-processor';
 import Buffer from 'buffer';
 import { Validation } from './validation';
 import { BlockStruct, Message } from '../protocol/struct';
@@ -30,8 +30,8 @@ import { SubscribeManager } from '../protocol/subscribe-manager';
 
 export class Server {
   private readonly config: Config;
-  private processor: Processor = {} as Processor;
-  private feeder: Feeder = {} as Feeder;
+  private processor: MessageProcessor = {} as MessageProcessor;
+  private feeder: BlockProcessor = {} as BlockProcessor;
   private readonly validation: Validation;
   private readonly webSocketServer: WebSocketServer;
   private webSocketFeed: WebSocket | undefined;
@@ -40,8 +40,8 @@ export class Server {
 
   public static async make(config: Config): Promise<Server> {
     const s = new Server(config);
-    s.processor = await Processor.make(config);
-    s.feeder = await Feeder.make(config);
+    s.processor = await MessageProcessor.make(config);
+    s.feeder = await BlockProcessor.make(config);
     s.subscribeManager = await SubscribeManager.make();
     s.orderBook = await Orderbook.make(config);
     return s;

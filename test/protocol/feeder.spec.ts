@@ -23,7 +23,7 @@ import chaiHttp from 'chai-http';
 import sinonChai from 'sinon-chai';
 
 import { Config } from '../../src/config/config';
-import { Feeder } from '../../src/protocol/feeder';
+import { BlockProcessor } from '../../src/protocol/block-processor';
 import { BlockStruct } from '../../src/protocol/struct';
 import { SubscribeManager } from '../../src/protocol/subscribe-manager';
 import base64url from 'base64-url';
@@ -39,7 +39,7 @@ const IP = '127.0.0.1';
 @suite
 class TestFeeder {
   static config: Config;
-  static feeder: Feeder;
+  static feeder: BlockProcessor;
   static orderBook: OrderBook;
   static subscribeManager: SubscribeManager;
   private static data = {
@@ -86,7 +86,7 @@ class TestFeeder {
 
     return new Promise(async (resolve) => {
       setTimeout(resolve, 5000);
-      this.feeder = await Feeder.make(this.config);
+      this.feeder = await BlockProcessor.make(this.config);
       this.orderBook = await OrderBook.make(this.config);
       this.subscribeManager = await SubscribeManager.make();
       this.testBlock.tx[0].origin = this.config.my_public_key;

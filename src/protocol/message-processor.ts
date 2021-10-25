@@ -27,14 +27,14 @@ import { Message } from './struct';
 import WebSocket from 'ws';
 import { SubscribeManager, iSubscribe } from './subscribe-manager';
 
-export class Processor {
+export class MessageProcessor {
   public readonly config: Config;
   private readonly db: Db;
   private orderbook: Orderbook = {} as Orderbook;
   private subscribeManager: SubscribeManager = {} as SubscribeManager;
 
-  public static async make(config: Config): Promise<Processor> {
-    const p = new Processor(config);
+  public static async make(config: Config): Promise<MessageProcessor> {
+    const p = new MessageProcessor(config);
     p.orderbook = await Orderbook.make(config);
     p.subscribeManager = await SubscribeManager.make();
     return p;
@@ -79,7 +79,7 @@ export class Processor {
         this.subscribeManager.setSockets(ws, message);
         break;
       default:
-        throw Error('Processor.process(): Invalid Command');
+        throw Error('MessageProcessor.process(): Invalid Command');
     }
   }
 
