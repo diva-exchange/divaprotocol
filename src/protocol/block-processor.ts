@@ -18,7 +18,6 @@
  */
 
 import { Config } from '../config/config';
-import { Db } from '../util/db';
 import { BlockStruct } from './struct';
 import { Orderbook } from '../book/orderbook';
 import base64url from 'base64-url';
@@ -29,7 +28,6 @@ import { Decision } from './decision';
 
 export class BlockProcessor {
   private readonly config: Config;
-  private readonly db: Db;
   private orderBook: Orderbook = {} as Orderbook;
   private subscribeManager: SubscribeManager = {} as SubscribeManager;
   private decision: Decision = {} as Decision;
@@ -44,7 +42,6 @@ export class BlockProcessor {
 
   private constructor(config: Config) {
     this.config = config;
-    this.db = Db.make(this.config);
   }
 
   public async process(block: BlockStruct): Promise<void> {

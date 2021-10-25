@@ -20,7 +20,6 @@
 import { Config } from '../config/config';
 import { Logger } from '../util/logger';
 import get from 'simple-get';
-import { Db } from '../util/db';
 import base64url from 'base64-url';
 import { Orderbook } from '../book/orderbook';
 import { Message } from './struct';
@@ -29,7 +28,6 @@ import { SubscribeManager, iSubscribe } from './subscribe-manager';
 
 export class MessageProcessor {
   public readonly config: Config;
-  private readonly db: Db;
   private orderbook: Orderbook = {} as Orderbook;
   private subscribeManager: SubscribeManager = {} as SubscribeManager;
 
@@ -42,7 +40,6 @@ export class MessageProcessor {
 
   private constructor(config: Config) {
     this.config = config;
-    this.db = Db.make(this.config);
   }
 
   public async process(message: Message, ws: WebSocket): Promise<void> {
