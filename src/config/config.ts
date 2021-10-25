@@ -62,7 +62,18 @@ export class Config {
           : __dirname,
         '/../../'
       );
-    this.VERSION = require(path.join(this.path_app, 'package.json')).version;
+    try {
+      this.VERSION = fs
+        .readFileSync(path.join(__dirname, 'version'))
+        .toString();
+    } catch (error) {
+      if (!fs.existsSync(path.join(this.path_app, 'package.json'))) {
+        throw new Error(
+          'File not found: ' + path.join(this.path_app, 'package.json')
+        );
+      }
+      this.VERSION = require(path.join(this.path_app, 'package.json')).version;
+    }
     this.per_message_deflate = c.per_message_deflate || true;
 
     this.ip = c.ip || process.env.IP || DEFAULT_IP;
