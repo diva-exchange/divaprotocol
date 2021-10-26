@@ -44,8 +44,14 @@ export class Orderbook {
   private constructor(config: Config) {
     this.config = config;
     this.config.contracts_array.forEach((contract) => {
-      this.arrayNostro[contract] = Nostro.make(contract);
-      this.arrayMarket[contract] = Market.make(contract);
+      this.arrayNostro[contract] = Nostro.make(
+        contract,
+        config.decimalPrecision
+      );
+      this.arrayMarket[contract] = Market.make(
+        contract,
+        config.decimalPrecision
+      );
     });
   }
 
@@ -99,7 +105,10 @@ export class Orderbook {
     }
     const currentState: string = await this.getState();
     if (currentState) {
-      this.arrayMarket[contract] = Market.make(contract);
+      this.arrayMarket[contract] = Market.make(
+        contract,
+        this.config.decimalPrecision
+      );
       const allData = [...JSON.parse(currentState)];
       allData.forEach((element) => {
         const keyArray: Array<string> = element.key.toString().split(':', 4);

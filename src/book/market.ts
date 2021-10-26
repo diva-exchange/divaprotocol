@@ -24,7 +24,7 @@ const REGEX_CONTRACT = '^[A-Z0-9]{2,6}_[A-Z0-9]{2,6}$';
 const TYPE_BUY = 'buy';
 const TYPE_SELL = 'sell';
 
-const PRECISION = 8;
+let PRECISION = 8;
 
 export type tRecord = {
   p: string;
@@ -44,10 +44,11 @@ export class Market {
   private mapBuy: Map<string, string> = new Map();
   private mapSell: Map<string, string> = new Map();
 
-  static make(contract: string): Market {
+  static make(contract: string, precision: number): Market {
     if (!contract.match(REGEX_CONTRACT)) {
       throw new Error('Book.make(): invalid contract');
     }
+    PRECISION = precision;
     return new Market(contract);
   }
 

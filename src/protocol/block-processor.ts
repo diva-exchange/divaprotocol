@@ -45,6 +45,12 @@ export class BlockProcessor {
   }
 
   public async process(block: BlockStruct): Promise<void> {
+    if (
+      block.height >=
+      this.decision.auctionBlockHeight + this.config.waitingPeriod
+    ) {
+      console.log('Auction Happening on block:' + block.height);
+    }
     for (const t of block.tx) {
       for (const c of t.commands) {
         //@FIXME literals -> constants or config
@@ -72,6 +78,13 @@ export class BlockProcessor {
               ws.send(JSON.stringify(marketBook));
             }
           });
+        }
+        if (
+          c.command === 'decision' &&
+          c.ns.startsWith('DivaExchange:Auction')
+        ) {
+          const contract: string = c.ns.toString().split(':', 4)[2];
+          this.decision.setAuctionLockedContracts(contract);
         }
       }
     }

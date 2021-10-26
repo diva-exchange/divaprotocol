@@ -30,7 +30,11 @@ import { Match } from '../book/match';
 export class Decision {
   private readonly config: Config;
   private match: Match = {} as Match;
-  private auctionLockedContracts: Set<string> = new Set<string>();
+  private auctionLockedContracts: Map<string, Number> = new Map<
+    string,
+    Number
+  >();
+  public auctionBlockHeight: number = Number.MAX_SAFE_INTEGER;
 
   static async make(config: Config): Promise<Decision> {
     const d = new Decision(config);
@@ -40,18 +44,43 @@ export class Decision {
 
   private constructor(config: Config) {
     this.config = config;
-    this.setAuctionLockedContracts();
+    this.config.contracts_array.forEach((contract) => {
+      this.setAuctionLockedContracts(contract);
+    });
   }
 
   public async process(decodedJsonData: tNostro, blockHeight: number) {
-    // match
     if (
       !this.auctionLockedContracts.has(decodedJsonData.contract) &&
       (await this.isMatch(decodedJsonData))
     ) {
       console.log('match happened on: ' + blockHeight + 'block height!');
       this.sendDecisionToChain(decodedJsonData.contract, blockHeight);
-      this.auctionLockedContracts.add(decodedJsonData.contract);
+    }
+  }
+
+  public async setAuctionLockedContracts(contract: string) {
+    if (this.auctionLockedContracts.has(contract)) return;
+    const lastBlock: BlockStruct = await this.getLastBlock();
+    const states: string = await this.getState();
+    if (states) {
+      const allData = [...JSON.parse(states)];
+      allData.forEach((element) => {
+        const keyArray: Array<string> = element.key.toString().split(':', 5);
+        if (
+          element.key.startsWith('decision:DivaExchange:Auction:') &&
+          element.value === 'taken'
+        ) {
+          //@FIXME number of blocks to wait are hardcoded
+          if (!isNaN(Number(keyArray[4]))) {
+            const bh = Number(keyArray[4]);
+            if (bh + 4 > lastBlock.height) {
+              this.auctionLockedContracts.set(keyArray[3], bh);
+              this.auctionBlockHeight = Math.min(this.auctionBlockHeight, bh);
+            }
+          }
+        }
+      });
     }
   }
 
@@ -76,31 +105,6 @@ export class Decision {
         Logger.trace(error);
       }
     });
-  }
-
-  private async setAuctionLockedContracts() {
-    const lastBlock: BlockStruct = await this.getLastBlock();
-    const states: string = await this.getState();
-    if (states) {
-      const allData = [...JSON.parse(states)];
-      allData.forEach((element) => {
-        const keyArray: Array<string> = element.key.toString().split(':', 5);
-        if (
-          keyArray[0] === 'decision' &&
-          keyArray[1] === 'DivaExchange' &&
-          keyArray[2] === 'Auction'
-        ) {
-          //@FIXME need an algorithm for checking the consensus
-          //@FIXME number of blocks to wait are hardcoded
-          if (
-            !isNaN(Number(keyArray[4])) &&
-            Number(keyArray[4]) + 4 > lastBlock.height
-          ) {
-            this.auctionLockedContracts.add(keyArray[3]);
-          }
-        }
-      });
-    }
   }
 
   private async isMatch(decodedJsonData: tNostro) {
@@ -182,79 +186,4 @@ export class Decision {
       });
     });
   }
-
-  //@FIXME very expensive (nested loops) - only the top records are interesting to detect matches
-  //@FIXME Ex: on simple books with only 10'000 market entries and 100 nostro entries, it will already loop 2'000'000x
-  // private doMatch(
-  //   book: tNostro,
-  //   decodedJsonData: tNostro,
-  //   blockHeight: number
-  // ): void {
-  //   const nostroBook: tNostro = this.orderbook.getNostro(
-  //     decodedJsonData.contract
-  //   );
-  //   decodedJsonData.buy.forEach((newBlockEntry) => {
-  //     nostroBook.sell.forEach((nostroEntry) => {
-  //       this.populateMatch(
-  //         newBlockEntry,
-  //         nostroEntry,
-  //         origin,
-  //         decodedJsonData.contract,
-  //         'buy',
-  //         blockHeight
-  //       );
-  //     });
-  //   });
-  //   decodedJsonData.sell.forEach((newBlockEntry) => {
-  //     nostroBook.buy.forEach((nostroEntry) => {
-  //       this.populateMatch(
-  //         newBlockEntry,
-  //         nostroEntry,
-  //         origin,
-  //         decodedJsonData.contract,
-  //         'sell',
-  //         blockHeight
-  //       );
-  //     });
-  //   });
-  // }
-
-  // populateMatch(
-  //     newBlockEntry: tRecord,
-  //     nostroEntry: tRecord,
-  //     origin: string,
-  //     contract: string,
-  //     type: 'sell' | 'buy',
-  //     blockHeight: number
-  // ) {
-  //     //@FIXME === (equality) is not enough - it must detect crosses: BidPrice >= AskPrice (or BuyPrice >= SellPrice)
-  //     if (
-  //         (type === 'buy' && newBlockEntry.p >= nostroEntry.p) ||
-  //         (type === 'sell' && newBlockEntry.p <= nostroEntry.p)
-  //     ) {
-  //         let nostroAmount: Big = new Big(nostroEntry.a);
-  //         const currentAmount: number = new Big(newBlockEntry.a).toNumber();
-  //         if (this.match.getMatchMap().has(nostroEntry.id)) {
-  //             this.match.getMatchMap().forEach((matchOrigin) => {
-  //                 matchOrigin.forEach((match) => {
-  //                     match.forEach((alreadyExistingMatch) => {
-  //                         nostroAmount = nostroAmount.minus(alreadyExistingMatch.amount);
-  //                     });
-  //                 });
-  //             });
-  //         }
-  //         if (nostroAmount.toNumber() > 0) {
-  //             this.match.addMatch(
-  //                 nostroEntry.id,
-  //                 origin,
-  //                 newBlockEntry.id,
-  //                 contract,
-  //                 type,
-  //                 Math.min(nostroAmount.toNumber(), currentAmount),
-  //                 newBlockEntry.p,
-  //                 blockHeight
-  //             );
-  //         }
-  //     }
-  // }
 }
