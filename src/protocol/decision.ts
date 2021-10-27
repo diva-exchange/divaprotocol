@@ -18,16 +18,15 @@
  */
 
 import { Config } from '../config/config';
-import { tNostro } from '../book/nostro';
-import { Big } from 'big.js';
-import base64url from 'base64-url';
-import { Validation } from '../net/validation';
+import { Orderbook } from '../book/orderbook';
 import { Logger } from '../util/logger';
 import get from 'simple-get';
 import { BlockStruct } from './struct';
+import { tMarketBook, tRecord } from '../book/market';
 
 export class Decision {
   private readonly config: Config;
+  private orderBook: Orderbook = {} as Orderbook;
   public auctionLockedContracts: Map<string, number> = new Map<
     string,
     number
@@ -36,6 +35,7 @@ export class Decision {
 
   static async make(config: Config): Promise<Decision> {
     const d = new Decision(config);
+    d.orderBook = await Orderbook.make(config);
     return d;
   }
 
@@ -46,17 +46,17 @@ export class Decision {
     });
   }
 
-  public async process(decodedJsonData: tNostro, blockHeight: number) {
+  public async process(contract: string, blockHeight: number): Promise<void> {
     if (
-      !this.auctionLockedContracts.has(decodedJsonData.contract) &&
-      (await this.isMatch(decodedJsonData))
+      !this.auctionLockedContracts.has(contract) &&
+      (await this.isMatch(contract))
     ) {
       console.log('match happened on: ' + blockHeight + 'block height!');
-      this.sendDecisionToChain(decodedJsonData.contract, blockHeight);
+      this.sendDecisionToChain(contract, blockHeight);
     }
   }
 
-  public async setAuctionLockedContracts(contract: string) {
+  public async setAuctionLockedContracts(contract: string): Promise<void> {
     if (this.auctionLockedContracts.has(contract)) return;
     const lastBlock: BlockStruct = await this.getLastBlock();
     const states: string = await this.getState();
@@ -68,10 +68,9 @@ export class Decision {
           element.key.startsWith('decision:DivaExchange:Auction:') &&
           element.value === 'taken'
         ) {
-          //@FIXME number of blocks to wait are hardcoded
           if (!isNaN(Number(keyArray[4]))) {
             const bh = Number(keyArray[4]);
-            if (bh + 4 > lastBlock.height) {
+            if (bh + this.config.waitingPeriod > lastBlock.height) {
               this.auctionLockedContracts.set(keyArray[3], bh);
               this.auctionBlockHeight = Math.min(this.auctionBlockHeight, bh);
             }
@@ -104,38 +103,13 @@ export class Decision {
     });
   }
 
-  private async isMatch(decodedJsonData: tNostro) {
+  private async isMatch(contract: string): Promise<boolean> {
     let match: boolean = false;
-    const highestBuy: number = this.getHighestBuyPrice(decodedJsonData);
-    const lowestSell: number = this.getLowestSellPrice(decodedJsonData);
-    if (lowestSell <= highestBuy) {
+    if (
+      this.marketSellInAscOrder(this.orderBook.getMarket(contract))[0] <=
+      this.marketBuyInDescOrder(this.orderBook.getMarket(contract))[0]
+    ) {
       match = true;
-    }
-    const states: string = await this.getState();
-    if (states) {
-      const allData = [...JSON.parse(states)];
-      allData.forEach((element) => {
-        const keyArray: Array<string> = element.key.toString().split(':', 4);
-        if (
-          keyArray[0] === 'DivaExchange' &&
-          keyArray[1] === 'OrderBook' &&
-          keyArray[2] === decodedJsonData.contract
-        ) {
-          try {
-            const book: tNostro = JSON.parse(base64url.decode(element.value));
-            if (Validation.make().validateBook(book)) {
-              if (highestBuy >= this.getLowestSellPrice(book)) {
-                match = true;
-              }
-              if (lowestSell <= this.getHighestBuyPrice(book)) {
-                match = true;
-              }
-            }
-          } catch (error: any) {
-            Logger.error(error);
-          }
-        }
-      });
     }
     return match;
   }
@@ -152,24 +126,24 @@ export class Decision {
     });
   }
 
-  private getLowestSellPrice(book: tNostro): number {
-    book.sell.sort((a, b) =>
+  public marketSellInAscOrder(mbook: tMarketBook): Array<tRecord> {
+    mbook.sell.sort((a, b) =>
       a.p.padStart(21, '0') > b.p.padStart(21, '0') ? 1 : -1
     );
-    if (book.sell.length > 0) {
-      return new Big(book.sell[0].p).toNumber();
+    if (mbook.sell.length > 0) {
+      return mbook.sell;
     }
-    return Number.MAX_SAFE_INTEGER;
+    return [];
   }
 
-  private getHighestBuyPrice(book: tNostro): number {
-    book.buy.sort((a, b) =>
+  public marketBuyInDescOrder(mbook: tMarketBook): Array<tRecord> {
+    mbook.buy.sort((a, b) =>
       a.p.padStart(21, '0') > b.p.padStart(21, '0') ? -1 : 1
     );
-    if (book.buy.length > 0) {
-      return new Big(book.buy[0].p).toNumber();
+    if (mbook.buy.length > 0) {
+      return mbook.buy;
     }
-    return 0;
+    return [];
   }
 
   private getState(): Promise<string> {

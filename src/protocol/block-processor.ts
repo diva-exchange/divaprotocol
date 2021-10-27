@@ -65,13 +65,12 @@ export class BlockProcessor {
           const decodedJsonData: tNostro = JSON.parse(
             base64url.decode(c.base64url)
           );
-          await this.decision.process(decodedJsonData, block.height);
 
           const contract: string = decodedJsonData.contract;
 
           // fill marketBook
           await this.orderBook.updateMarket(contract);
-
+          await this.decision.process(decodedJsonData.contract, block.height);
           // subscription
           const sub: Map<WebSocket, iSubscribe> =
             this.subscribeManager.getSubscriptions();

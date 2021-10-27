@@ -27,7 +27,6 @@ import base64url from 'base64-url';
 import { Validation } from '../net/validation';
 import { Orderbook } from '../book/orderbook';
 import { Big } from 'big.js';
-import { tMarketBook, tRecord } from '../book/market';
 
 export class Auction {
   private readonly config: Config;
@@ -89,7 +88,7 @@ export class Auction {
     }
   }
 
-  private sendSettlementToChain(contract: string) {
+  private sendSettlementToChain(contract: string): void {
     const data = this.match.getMatchMap().get(contract) || '';
     const nameSpace: string = 'DivaExchange:Settlement:' + contract;
     const opts = {
@@ -115,58 +114,40 @@ export class Auction {
 
   getSellCrossLimit(contract: string): Number {
     let sellCrossHigh: Number = 0;
-    Auction.marketSellInAscOrder(this.orderBook.getMarket(contract)).forEach(
-      (value) => {
+    this.decision
+      .marketSellInAscOrder(this.orderBook.getMarket(contract))
+      .forEach((value) => {
         if (
           Big(value.p).toNumber() <=
           Big(
-            Auction.marketBuyInDescOrder(this.orderBook.getMarket(contract))[0]
-              .p
+            this.decision.marketBuyInDescOrder(
+              this.orderBook.getMarket(contract)
+            )[0].p
           ).toNumber()
         ) {
           sellCrossHigh = Big(value.p).toNumber();
         }
-      }
-    );
+      });
     return sellCrossHigh;
   }
 
   getBuyCrossLimit(contract: string): Number {
     let buyCrossLow: Number = 0;
-    Auction.marketBuyInDescOrder(this.orderBook.getMarket(contract)).forEach(
-      (value) => {
+    this.decision
+      .marketBuyInDescOrder(this.orderBook.getMarket(contract))
+      .forEach((value) => {
         if (
           Big(value.p).toNumber() >=
           Big(
-            Auction.marketSellInAscOrder(this.orderBook.getMarket(contract))[0]
-              .p
+            this.decision.marketSellInAscOrder(
+              this.orderBook.getMarket(contract)
+            )[0].p
           ).toNumber()
         ) {
           buyCrossLow = Big(value.p).toNumber();
         }
-      }
-    );
+      });
     return buyCrossLow;
-  }
-
-  private static marketSellInAscOrder(mbook: tMarketBook): Array<tRecord> {
-    mbook.sell.sort((a, b) =>
-      a.p.padStart(21, '0') > b.p.padStart(21, '0') ? 1 : -1
-    );
-    if (mbook.sell.length > 0) {
-      return mbook.sell;
-    }
-    return [];
-  }
-
-  private static marketBuyInDescOrder(mbook: tMarketBook): Array<tRecord> {
-    mbook.buy.sort((a, b) =>
-      a.p.padStart(21, '0') > b.p.padStart(21, '0') ? -1 : 1
-    );
-    if (mbook.buy.length > 0) {
-      return mbook.buy;
-    }
-    return [];
   }
 
   private getState(): Promise<string> {
