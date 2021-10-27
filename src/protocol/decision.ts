@@ -23,6 +23,7 @@ import { Logger } from '../util/logger';
 import get from 'simple-get';
 import { BlockStruct } from './struct';
 import { tMarketBook, tRecord } from '../book/market';
+import { Big } from 'big.js';
 
 export class Decision {
   private readonly config: Config;
@@ -106,8 +107,12 @@ export class Decision {
   private async isMatch(contract: string): Promise<boolean> {
     let match: boolean = false;
     if (
-      this.marketSellInAscOrder(this.orderBook.getMarket(contract))[0] <=
-      this.marketBuyInDescOrder(this.orderBook.getMarket(contract))[0]
+      Big(
+        this.marketSellInAscOrder(this.orderBook.getMarket(contract))[0].p
+      ).toNumber() <=
+      Big(
+        this.marketBuyInDescOrder(this.orderBook.getMarket(contract))[0].p
+      ).toNumber()
     ) {
       match = true;
     }
