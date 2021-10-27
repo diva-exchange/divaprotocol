@@ -25,18 +25,21 @@ import WebSocket from 'ws';
 import { SubscribeManager, iSubscribe } from './subscribe-manager';
 import { tNostro } from '../book/nostro';
 import { Decision } from './decision';
+import { Auction } from './auction';
 
 export class BlockProcessor {
   private readonly config: Config;
   private orderBook: Orderbook = {} as Orderbook;
   private subscribeManager: SubscribeManager = {} as SubscribeManager;
   private decision: Decision = {} as Decision;
+  private auction: Auction = {} as Auction;
 
   static async make(config: Config): Promise<BlockProcessor> {
     const f = new BlockProcessor(config);
     f.orderBook = await Orderbook.make(config);
     f.subscribeManager = await SubscribeManager.make();
     f.decision = await Decision.make(config);
+    f.auction = await Auction.make(config);
     return f;
   }
 
@@ -49,7 +52,8 @@ export class BlockProcessor {
       block.height >=
       this.decision.auctionBlockHeight + this.config.waitingPeriod
     ) {
-      console.log('Auction Happening on block:' + block.height);
+      console.log('Auction on block:' + block.height);
+      this.auction.settlement(block.height);
     }
     for (const t of block.tx) {
       for (const c of t.commands) {

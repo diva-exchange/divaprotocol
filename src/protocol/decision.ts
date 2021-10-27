@@ -25,20 +25,17 @@ import { Validation } from '../net/validation';
 import { Logger } from '../util/logger';
 import get from 'simple-get';
 import { BlockStruct } from './struct';
-import { Match } from '../book/match';
 
 export class Decision {
   private readonly config: Config;
-  private match: Match = {} as Match;
-  private auctionLockedContracts: Map<string, Number> = new Map<
+  public auctionLockedContracts: Map<string, number> = new Map<
     string,
-    Number
+    number
   >();
   public auctionBlockHeight: number = Number.MAX_SAFE_INTEGER;
 
   static async make(config: Config): Promise<Decision> {
     const d = new Decision(config);
-    d.match = await Match.make();
     return d;
   }
 

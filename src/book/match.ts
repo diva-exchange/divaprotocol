@@ -16,19 +16,22 @@
  *
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
-type tMatch = {
-  contract: string;
-  type: 'buy' | 'sell';
-  amount: number | string;
-  price: number | string;
-  blockHeight: number;
+type mRecord = {
+  pk: string;
+  id: number;
+  p: string;
+  a: string;
 };
 
-export type match = Map<number, Map<string, Map<number, tMatch>>>;
+type tMatch = {
+  buy: mRecord;
+  sell: mRecord;
+};
+
+export type matchBook = Map<string, Array<tMatch>>;
 
 export class Match {
-  private readonly _matchMap: match;
-  public arrayOfMatchBlockHeights: Array<number> = [];
+  private readonly _matchBook: matchBook;
   private static mb: Match;
 
   static make(): Match {
@@ -39,53 +42,38 @@ export class Match {
   }
 
   private constructor() {
-    this._matchMap = new Map();
+    this._matchBook = new Map<string, Array<tMatch>>();
   }
 
-  public getMatchMap(): match {
-    return this._matchMap;
+  public getMatchMap(): matchBook {
+    return this._matchBook;
   }
 
   public addMatch(
-    nostroId: number,
-    origin: string,
-    originId: number,
     contract: string,
-    type: 'buy' | 'sell',
-    amount: number | string,
-    price: number | string,
-    blockHeight: number
+    buyOrigin: string,
+    buyOriginId: number,
+    sellOrigin: string,
+    sellOriginId: number,
+    amount: string,
+    price: string
   ) {
-    if (nostroId) {
-      const o: tMatch = {
-        contract: contract,
-        type: type,
-        amount: amount,
-        price: price,
-        blockHeight: blockHeight,
-      };
-      const match = new Map().set(originId, o);
-      const matchOrigin = new Map().set(origin, match);
-
-      if (this._matchMap.has(nostroId)) {
-        const existingMatchMapValue = this._matchMap.get(nostroId) || new Map();
-        if (existingMatchMapValue.has(origin)) {
-          const existingMatchOrigin =
-            existingMatchMapValue.get(origin) || new Map();
-          existingMatchOrigin.set(originId, o);
-        } else {
-          existingMatchMapValue.set(origin, match);
-        }
-      } else {
-        this._matchMap.set(nostroId, matchOrigin);
-      }
-      console.log(this._matchMap);
-      console.log('---------------------');
-      console.log(matchOrigin);
-      console.log('match--------------------------------');
-      console.log(match);
-
-      this.arrayOfMatchBlockHeights.push(blockHeight);
+    const mrBuy: mRecord = {
+      pk: buyOrigin,
+      id: buyOriginId,
+      p: price,
+      a: amount,
+    };
+    const mrSell: mRecord = {
+      pk: sellOrigin,
+      id: sellOriginId,
+      p: price,
+      a: amount,
+    };
+    const m: tMatch = { buy: mrBuy, sell: mrSell };
+    if (!this._matchBook.has(contract)) {
+      this._matchBook.set(contract, new Array<tMatch>());
     }
+    this._matchBook.get(contract)!.push(m);
   }
 }
