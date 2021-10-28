@@ -131,22 +131,22 @@ export class Decision {
     });
   }
 
-  public marketSellInAscOrder(mbook: tMarketBook): Array<tRecord> {
-    mbook.sell.sort((a, b) =>
+  public marketSellInAscOrder(marketBook: tMarketBook): Array<tRecord> {
+    marketBook.sell.sort((a, b) =>
       a.p.padStart(21, '0') > b.p.padStart(21, '0') ? 1 : -1
     );
-    if (mbook.sell.length > 0) {
-      return mbook.sell;
+    if (marketBook.sell.length > 0) {
+      return marketBook.sell;
     }
     return [];
   }
 
-  public marketBuyInDescOrder(mbook: tMarketBook): Array<tRecord> {
-    mbook.buy.sort((a, b) =>
+  public marketBuyInDescOrder(marketBook: tMarketBook): Array<tRecord> {
+    marketBook.buy.sort((a, b) =>
       a.p.padStart(21, '0') > b.p.padStart(21, '0') ? -1 : 1
     );
-    if (mbook.buy.length > 0) {
-      return mbook.buy;
+    if (marketBook.buy.length > 0) {
+      return marketBook.buy;
     }
     return [];
   }

@@ -18,7 +18,7 @@
  */
 
 import { Config } from '../config/config';
-import { Match } from '../book/match';
+import { Match, mRecord } from '../book/match';
 import { Decision } from './decision';
 import get from 'simple-get';
 import { Logger } from '../util/logger';
@@ -61,6 +61,8 @@ export class Auction {
   async populateMatchBook(contract: string) {
     const sellCrossPrice: Number = this.getSellCrossLimit(contract);
     const buyCrossPrice: Number = this.getBuyCrossLimit(contract);
+    const buyMRecordArray = new Array<mRecord>();
+    const sellMRecordArray = new Array<mRecord>();
 
     const states: string = await this.getState();
     if (states) {
@@ -75,10 +77,26 @@ export class Auction {
           try {
             const book: tNostro = JSON.parse(base64url.decode(element.value));
             if (Validation.make().validateBook(book)) {
-              //@TODO logic for determining what orders are in
-              console.log(
-                'magic part with ' + sellCrossPrice + 'and' + buyCrossPrice
-              );
+              book.buy.forEach((value) => {
+                if (new Big(value.p).toNumber() >= buyCrossPrice) {
+                  buyMRecordArray.push({
+                    pk: keyArray[3],
+                    id: value.id,
+                    p: value.p,
+                    a: value.a,
+                  });
+                }
+              });
+              book.sell.forEach((value) => {
+                if (new Big(value.p).toNumber() <= sellCrossPrice) {
+                  sellMRecordArray.push({
+                    pk: keyArray[3],
+                    id: value.id,
+                    p: value.p,
+                    a: value.a,
+                  });
+                }
+              });
             }
           } catch (error: any) {
             Logger.error(error);
@@ -86,6 +104,15 @@ export class Auction {
         }
       });
     }
+    //@TODO the logic of matching itself
+    this.sortMRecords(buyMRecordArray).forEach((buyValue) => {
+      this.sortMRecords(sellMRecordArray).forEach((sellValue) => {
+        if (buyValue.p === sellValue.p) {
+          console.log('match');
+          //this.match.addMatch(...);
+        }
+      });
+    });
   }
 
   private sendSettlementToChain(contract: string): void {
@@ -148,6 +175,20 @@ export class Auction {
         }
       });
     return buyCrossLow;
+  }
+
+  public sortMRecords(mRecordsArray: Array<mRecord>): Array<mRecord> {
+    mRecordsArray.sort((a, b) => {
+      if (a.p.padStart(21, '0') == b.p.padStart(21, '0')) {
+        return a.id > b.id ? 1 : -1;
+      } else {
+        return a.p.padStart(21, '0') > b.p.padStart(21, '0') ? -1 : 1;
+      }
+    });
+    if (mRecordsArray.length > 0) {
+      return mRecordsArray;
+    }
+    return [];
   }
 
   private getState(): Promise<string> {

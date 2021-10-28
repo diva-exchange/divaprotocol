@@ -16,7 +16,7 @@
  *
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
-type mRecord = {
+export type mRecord = {
   pk: string;
   id: number;
   p: string;
