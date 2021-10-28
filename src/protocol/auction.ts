@@ -61,8 +61,8 @@ export class Auction {
   async populateMatchBook(contract: string) {
     const sellCrossPrice: Number = this.getSellCrossLimit(contract);
     const buyCrossPrice: Number = this.getBuyCrossLimit(contract);
-    const buyMRecordArray = new Array<mRecord>();
-    const sellMRecordArray = new Array<mRecord>();
+    let buyMRecordArray = new Array<mRecord>();
+    let sellMRecordArray = new Array<mRecord>();
 
     const states: string = await this.getState();
     if (states) {
@@ -105,14 +105,36 @@ export class Auction {
       });
     }
     //@TODO the logic of matching itself
-    this.sortMRecords(buyMRecordArray).forEach((buyValue) => {
-      this.sortMRecords(sellMRecordArray).forEach((sellValue) => {
-        if (buyValue.p === sellValue.p) {
-          console.log('match');
-          //this.match.addMatch(...);
+    buyMRecordArray = this.sortMRecords(buyMRecordArray);
+    sellMRecordArray = this.sortMRecords(sellMRecordArray, -1);
+
+    while (buyMRecordArray.length != 0 && sellMRecordArray.length != 0) {
+      const buyValue: mRecord = buyMRecordArray[0];
+      const sellValue: mRecord = sellMRecordArray[0];
+      const ba = new Big(buyValue.a).toNumber();
+      const sa = new Big(sellValue.a).toNumber();
+      const bp = new Big(buyValue.p).toNumber();
+      const sp = new Big(sellValue.p).toNumber();
+
+      if (bp >= sp) {
+        const tradePrice: Number = buyValue.id > sellValue.id ? bp : sp;
+        this.match.addMatch(contract, buyValue.pk, buyValue.id, sellValue.pk, sellValue.id, Math.min(ba, sa).toString(), tradePrice.toString());
+
+        const remaining: Number = Math.abs(ba - sa)
+        if (ba - sa <= 0) {
+          buyMRecordArray.shift();
+          if (remaining != 0) {
+            sellMRecordArray[0].a = remaining.toString();
+          }
         }
-      });
-    });
+        if (ba - sa >= 0) {
+          sellMRecordArray.shift();
+          if (remaining != 0) {
+            buyMRecordArray[0].a = remaining.toString();
+          }
+        }
+      }
+    }
   }
 
   private sendSettlementToChain(contract: string): void {
@@ -177,12 +199,12 @@ export class Auction {
     return buyCrossLow;
   }
 
-  public sortMRecords(mRecordsArray: Array<mRecord>): Array<mRecord> {
+  public sortMRecords(mRecordsArray: Array<mRecord>, order: number = 1): Array<mRecord> {
     mRecordsArray.sort((a, b) => {
       if (a.p.padStart(21, '0') == b.p.padStart(21, '0')) {
         return a.id > b.id ? 1 : -1;
       } else {
-        return a.p.padStart(21, '0') > b.p.padStart(21, '0') ? -1 : 1;
+        return a.p.padStart(21, '0') > b.p.padStart(21, '0') ? order * -1 : order * 1;
       }
     });
     if (mRecordsArray.length > 0) {
