@@ -118,9 +118,17 @@ export class Auction {
 
       if (bp >= sp) {
         const tradePrice: Number = buyValue.id > sellValue.id ? bp : sp;
-        this.match.addMatch(contract, buyValue.pk, buyValue.id, sellValue.pk, sellValue.id, Math.min(ba, sa).toString(), tradePrice.toString());
+        this.match.addMatch(
+          contract,
+          buyValue.pk,
+          buyValue.id,
+          sellValue.pk,
+          sellValue.id,
+          Math.min(ba, sa).toString(),
+          tradePrice.toString()
+        );
 
-        const remaining: Number = Math.abs(ba - sa)
+        const remaining: Number = Math.abs(ba - sa);
         if (ba - sa <= 0) {
           buyMRecordArray.shift();
           if (remaining != 0) {
@@ -199,12 +207,17 @@ export class Auction {
     return buyCrossLow;
   }
 
-  public sortMRecords(mRecordsArray: Array<mRecord>, order: number = 1): Array<mRecord> {
+  public sortMRecords(
+    mRecordsArray: Array<mRecord>,
+    order: number = 1
+  ): Array<mRecord> {
     mRecordsArray.sort((a, b) => {
       if (a.p.padStart(21, '0') == b.p.padStart(21, '0')) {
         return a.id > b.id ? 1 : -1;
       } else {
-        return a.p.padStart(21, '0') > b.p.padStart(21, '0') ? order * -1 : order * 1;
+        return a.p.padStart(21, '0') > b.p.padStart(21, '0')
+          ? order * -1
+          : order * 1;
       }
     });
     if (mRecordsArray.length > 0) {
