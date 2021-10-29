@@ -59,54 +59,17 @@ export class Auction {
   }
 
   async populateMatchBook(contract: string) {
-    const sellCrossPrice: Number = this.getSellCrossLimit(contract);
-    const buyCrossPrice: Number = this.getBuyCrossLimit(contract);
-    let buyMRecordArray = new Array<mRecord>();
-    let sellMRecordArray = new Array<mRecord>();
-
-    const states: string = await this.getState();
-    if (states) {
-      const allData = [...JSON.parse(states)];
-      allData.forEach((element) => {
-        const keyArray: Array<string> = element.key.toString().split(':', 4);
-        if (
-          keyArray[0] === 'DivaExchange' &&
-          keyArray[1] === 'OrderBook' &&
-          keyArray[2] === contract
-        ) {
-          try {
-            const book: tNostro = JSON.parse(base64url.decode(element.value));
-            if (Validation.make().validateBook(book)) {
-              book.buy.forEach((value) => {
-                if (new Big(value.p).toNumber() >= buyCrossPrice) {
-                  buyMRecordArray.push({
-                    pk: keyArray[3],
-                    id: value.id,
-                    p: value.p,
-                    a: value.a,
-                  });
-                }
-              });
-              book.sell.forEach((value) => {
-                if (new Big(value.p).toNumber() <= sellCrossPrice) {
-                  sellMRecordArray.push({
-                    pk: keyArray[3],
-                    id: value.id,
-                    p: value.p,
-                    a: value.a,
-                  });
-                }
-              });
-            }
-          } catch (error: any) {
-            Logger.error(error);
-          }
-        }
-      });
-    }
-    //@TODO the logic of matching itself
-    buyMRecordArray = this.sortMRecords(buyMRecordArray);
-    sellMRecordArray = this.sortMRecords(sellMRecordArray, -1);
+    const matchOrders: Map<string, Array<mRecord>> = await this.getMatchOrders(
+      contract
+    );
+    //@FIXME match need to be smart !
+    const buyMRecordArray = this.sortMRecords(
+      matchOrders.get('buy') || Array()
+    );
+    const sellMRecordArray = this.sortMRecords(
+      matchOrders.get('sell') || Array(),
+      -1
+    );
 
     while (buyMRecordArray.length != 0 && sellMRecordArray.length != 0) {
       const buyValue: mRecord = buyMRecordArray[0];
@@ -156,7 +119,7 @@ export class Auction {
           seq: 1,
           command: 'decision',
           ns: nameSpace,
-          data: data,
+          data: base64url.encode(JSON.stringify(data)),
         },
       ],
       json: true,
@@ -236,5 +199,58 @@ export class Auction {
         resolve(data);
       });
     });
+  }
+
+  private async getMatchOrders(
+    contract: string
+  ): Promise<Map<string, Array<mRecord>>> {
+    const sellCrossPrice: Number = this.getSellCrossLimit(contract);
+    const buyCrossPrice: Number = this.getBuyCrossLimit(contract);
+    const buyMRecordArray = new Array<mRecord>();
+    const sellMRecordArray = new Array<mRecord>();
+
+    const states: string = await this.getState();
+    if (states) {
+      const allData = [...JSON.parse(states)];
+      allData.forEach((element) => {
+        const keyArray: Array<string> = element.key.toString().split(':', 4);
+        if (
+          keyArray[0] === 'DivaExchange' &&
+          keyArray[1] === 'OrderBook' &&
+          keyArray[2] === contract
+        ) {
+          try {
+            const book: tNostro = JSON.parse(base64url.decode(element.value));
+            if (Validation.make().validateBook(book)) {
+              book.buy.forEach((value) => {
+                if (new Big(value.p).toNumber() >= buyCrossPrice) {
+                  buyMRecordArray.push({
+                    pk: keyArray[3],
+                    id: value.id,
+                    p: value.p,
+                    a: value.a,
+                  });
+                }
+              });
+              book.sell.forEach((value) => {
+                if (new Big(value.p).toNumber() <= sellCrossPrice) {
+                  sellMRecordArray.push({
+                    pk: keyArray[3],
+                    id: value.id,
+                    p: value.p,
+                    a: value.a,
+                  });
+                }
+              });
+            }
+          } catch (error: any) {
+            Logger.error(error);
+          }
+        }
+      });
+    }
+    return new Map<string, Array<mRecord>>()
+      .set('buy', buyMRecordArray)
+      .set('sell', sellMRecordArray);
   }
 }
