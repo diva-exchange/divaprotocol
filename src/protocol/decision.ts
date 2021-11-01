@@ -107,6 +107,12 @@ export class Decision {
   private async isMatch(contract: string): Promise<boolean> {
     let match: boolean = false;
     if (
+      this.orderBook.getMarket(contract).buy.length < 1 ||
+      this.orderBook.getMarket(contract).sell.length < 1
+    ) {
+      return match;
+    }
+    if (
       Big(
         this.marketSellInAscOrder(this.orderBook.getMarket(contract))[0].p
       ).toNumber() <=
