@@ -24,6 +24,7 @@ import get from 'simple-get';
 import { BlockStruct } from './struct';
 import { tMarketBook, tRecord } from '../book/market';
 import { Big } from 'big.js';
+import base64url from "base64-url";
 
 export class Decision {
   private readonly config: Config;
@@ -92,6 +93,9 @@ export class Decision {
           seq: 1,
           command: 'decision',
           ns: nameSpace,
+          base64url: base64url.encode(
+              JSON.stringify('')
+          ),
         },
       ],
       json: true,
