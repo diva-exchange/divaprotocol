@@ -52,6 +52,7 @@ export class Auction {
         if (currentBlockHeight >= bh + this.config.waitingPeriod) {
           this.populateMatchBook(contract).then(() => {
             this.sendSettlementToChain(contract);
+            this.decision.auctionLockedContracts.delete(contract);
           });
         }
       }

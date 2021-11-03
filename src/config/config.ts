@@ -51,7 +51,7 @@ export class Config {
   public readonly path_keys: string;
   public my_public_key: string = '';
   public contracts_array: Array<string> = ['BTC_XMR', 'BTC_ETH', 'BTC_ZEC'];
-  public readonly waitingPeriod: number = 5;
+  public readonly waitingPeriod: number = 9;
   public readonly decimalPrecision: number = 8;
 
   constructor(c: Configuration) {

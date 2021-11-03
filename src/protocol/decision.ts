@@ -34,11 +34,15 @@ export class Decision {
     number
   >();
   public auctionBlockHeight: number = Number.MAX_SAFE_INTEGER;
+  private static d: Decision;
 
   static async make(config: Config): Promise<Decision> {
-    const d = new Decision(config);
-    d.orderBook = await Orderbook.make(config);
-    return d;
+    if (!this.d) {
+      this.d = new Decision(config);
+    }
+
+    this.d.orderBook = await Orderbook.make(config);
+    return this.d;
   }
 
   private constructor(config: Config) {

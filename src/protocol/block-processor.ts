@@ -84,10 +84,10 @@ export class BlockProcessor {
         }
         if (
           c.command === 'decision' &&
-          c.ns.startsWith('DivaExchange:Auction')
+          c.ns.startsWith('DivaExchange:Auction:')
         ) {
           const contract: string = c.ns.toString().split(':', 4)[2];
-          this.decision.setAuctionLockedContracts(contract);
+          await this.decision.setAuctionLockedContracts(contract);
         }
       }
     }

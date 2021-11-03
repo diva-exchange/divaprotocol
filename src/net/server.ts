@@ -114,22 +114,14 @@ export class Server {
       let block: BlockStruct;
       try {
         block = JSON.parse(message.toString());
+        if (block.tx.length > 0) {
+          await this.feeder.process(block);
+        }
       } catch (error: any) {
         //@FIXME logging
         Logger.trace(error);
         return;
       }
-
-      block.tx.forEach((tx) => {
-        tx.commands.forEach(async (c) => {
-          if (c.command === 'data' && c.ns.match('^DivaExchange.')) {
-            //@FIXME logging
-            Logger.trace('WebSocketFeed received: ' + JSON.stringify(c));
-
-            await this.feeder.process(block);
-          }
-        });
-      });
     });
   }
 
