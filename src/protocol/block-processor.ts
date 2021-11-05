@@ -52,7 +52,7 @@ export class BlockProcessor {
       block.height >=
       this.decision.auctionBlockHeight + this.config.waitingPeriod
     ) {
-      console.log('Auction on block:' + block.height);
+      console.log('Auction on block: ' + block.height);
       this.auction.settlement(block.height);
     }
     for (const t of block.tx) {
