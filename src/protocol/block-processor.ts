@@ -48,13 +48,6 @@ export class BlockProcessor {
   }
 
   public async process(block: BlockStruct): Promise<void> {
-    if (
-      block.height >=
-      this.decision.auctionBlockHeight + this.config.waitingPeriod
-    ) {
-      console.log('Auction on block: ' + block.height);
-      this.auction.settlement(block.height);
-    }
     for (const t of block.tx) {
       for (const c of t.commands) {
         //@FIXME literals -> constants or config
@@ -70,7 +63,16 @@ export class BlockProcessor {
 
           // fill marketBook
           await this.orderBook.updateMarket(contract);
-          await this.decision.process(decodedJsonData.contract, block.height);
+          // check for decision and auction
+          if (
+              block.height >=
+              this.decision.auctionBlockHeight + this.config.waitingPeriod
+          ) {
+            console.log('Auction on block: ' + block.height);
+            this.auction.settlement(block.height);
+          } else {
+            await this.decision.process(decodedJsonData.contract, block.height);
+          }
           // subscription
           const sub: Map<WebSocket, iSubscribe> =
             this.subscribeManager.getSubscriptions();

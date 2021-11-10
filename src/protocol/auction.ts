@@ -120,7 +120,7 @@ export class Auction {
           seq: 1,
           command: 'decision',
           ns: nameSpace,
-          data: base64url.encode(JSON.stringify(data)),
+          base64url: base64url.encode(JSON.stringify(data)),
         },
       ],
       json: true,
