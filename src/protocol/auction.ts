@@ -51,12 +51,22 @@ export class Auction {
       (bh: number, contract: string) => {
         if (currentBlockHeight >= bh + this.config.waitingPeriod) {
           this.populateMatchBook(contract).then(() => {
-            this.sendSettlementToChain(contract);
-            this.decision.auctionLockedContracts.delete(contract);
+            this.sendSettlementToChain(contract, currentBlockHeight);
+            this.updateAuctionBlockHeight(contract);
           });
         }
       }
     );
+  }
+
+  private updateAuctionBlockHeight(contract: string) {
+    this.decision.auctionLockedContracts.delete(contract);
+    this.decision.auctionBlockHeight = Number.MAX_SAFE_INTEGER;
+    if (this.decision.auctionLockedContracts.size > 0) {
+      this.decision.auctionLockedContracts.forEach((bh) => {
+        this.decision.auctionBlockHeight = Math.min(this.decision.auctionBlockHeight, bh);
+      });
+    }
   }
 
   async populateMatchBook(contract: string) {
@@ -109,9 +119,9 @@ export class Auction {
     }
   }
 
-  private sendSettlementToChain(contract: string): void {
+  private sendSettlementToChain(contract: string, blockheight: number): void {
     const data = this.match.getMatchMap().get(contract) || '';
-    const nameSpace: string = 'DivaExchange:Settlement:' + contract;
+    const nameSpace: string = 'DivaExchange:Settlement:' + contract + ':' + blockheight;
     const opts = {
       method: 'PUT',
       url: this.config.url_api_chain + '/transaction',
