@@ -65,8 +65,8 @@ export class BlockProcessor {
           await this.orderBook.updateMarket(contract);
           // check for decision and auction
           if (
-              block.height >=
-              this.decision.auctionBlockHeight + this.config.waitingPeriod
+            block.height >=
+            this.decision.auctionBlockHeight + this.config.waitingPeriod
           ) {
             console.log('Auction on block: ' + block.height);
             this.auction.settlement(block.height);

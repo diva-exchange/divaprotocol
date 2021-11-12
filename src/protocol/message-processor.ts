@@ -53,7 +53,7 @@ export class MessageProcessor {
           message.amount
         );
         this.sendSubscriptions(message.contract, 'nostro');
-        this.storeNostroOnChain(message);
+        this.storeNostroOnChain(message.contract);
         break;
       case 'add':
         this.orderbook.addNostro(
@@ -64,7 +64,7 @@ export class MessageProcessor {
           message.amount
         );
         this.sendSubscriptions(message.contract, 'nostro');
-        this.storeNostroOnChain(message);
+        this.storeNostroOnChain(message.contract);
         break;
       case 'contract':
         break;
@@ -80,7 +80,7 @@ export class MessageProcessor {
     }
   }
 
-  private sendSubscriptions(contract: string, channel: string): void {
+  sendSubscriptions(contract: string, channel: string): void {
     const sub: Map<WebSocket, iSubscribe> =
       this.subscribeManager.getSubscriptions();
 
@@ -96,18 +96,18 @@ export class MessageProcessor {
     });
   }
 
-  private storeNostroOnChain(message: Message): void {
-    const nameSpace: string = 'DivaExchange:OrderBook:' + message.contract;
+  storeNostroOnChain(contract: string): void {
+    const nameSpace: string = 'DivaExchange:OrderBook:' + contract;
     const opts = {
       method: 'PUT',
       url: this.config.url_api_chain + '/transaction',
       body: [
         {
-          seq: message.seq,
+          seq: 1,
           command: 'data',
           ns: nameSpace,
           base64url: base64url.encode(
-            JSON.stringify(this.orderbook.getNostro(message.contract))
+            JSON.stringify(this.orderbook.getNostro(contract))
           ),
         },
       ],

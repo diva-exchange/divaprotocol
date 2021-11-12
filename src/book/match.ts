@@ -23,7 +23,7 @@ export type mRecord = {
   a: string;
 };
 
-type tMatch = {
+export type tMatch = {
   buy: mRecord;
   sell: mRecord;
 };

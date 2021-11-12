@@ -18,7 +18,7 @@
  */
 
 import { Config } from '../config/config';
-import { Match, mRecord } from '../book/match';
+import { Match, mRecord, tMatch } from '../book/match';
 import { Decision } from './decision';
 import get from 'simple-get';
 import { Logger } from '../util/logger';
@@ -27,18 +27,21 @@ import base64url from 'base64-url';
 import { Validation } from '../net/validation';
 import { Orderbook } from '../book/orderbook';
 import { Big } from 'big.js';
+import { MessageProcessor } from './message-processor';
 
 export class Auction {
   private readonly config: Config;
   private orderBook: Orderbook = {} as Orderbook;
   private match: Match = {} as Match;
   private decision: Decision = {} as Decision;
+  private messageProcessor: MessageProcessor = {} as MessageProcessor;
 
   static async make(config: Config): Promise<Auction> {
     const a = new Auction(config);
     a.orderBook = await Orderbook.make(config);
     a.match = await Match.make();
     a.decision = await Decision.make(config);
+    a.messageProcessor = await MessageProcessor.make(config);
     return a;
   }
 
@@ -52,19 +55,26 @@ export class Auction {
         if (currentBlockHeight >= bh + this.config.waitingPeriod) {
           this.populateMatchBook(contract).then(() => {
             this.sendSettlementToChain(contract, currentBlockHeight);
-            this.updateAuctionBlockHeight(contract);
+            this.decision.auctionLockedContracts.delete(contract);
+            this.updateAuctionBlockHeight();
+            this.deleteMyMatchesFromNostro(contract);
+            this.match.getMatchMap().set(contract, new Array<tMatch>());
+            this.messageProcessor.sendSubscriptions(contract, 'nostro');
+            this.messageProcessor.storeNostroOnChain(contract);
           });
         }
       }
     );
   }
 
-  private updateAuctionBlockHeight(contract: string) {
-    this.decision.auctionLockedContracts.delete(contract);
+  private updateAuctionBlockHeight() {
     this.decision.auctionBlockHeight = Number.MAX_SAFE_INTEGER;
     if (this.decision.auctionLockedContracts.size > 0) {
       this.decision.auctionLockedContracts.forEach((bh) => {
-        this.decision.auctionBlockHeight = Math.min(this.decision.auctionBlockHeight, bh);
+        this.decision.auctionBlockHeight = Math.min(
+          this.decision.auctionBlockHeight,
+          bh
+        );
       });
     }
   }
@@ -121,7 +131,8 @@ export class Auction {
 
   private sendSettlementToChain(contract: string, blockheight: number): void {
     const data = this.match.getMatchMap().get(contract) || '';
-    const nameSpace: string = 'DivaExchange:Settlement:' + contract + ':' + blockheight;
+    const nameSpace: string =
+      'DivaExchange:Settlement:' + contract + ':' + blockheight;
     const opts = {
       method: 'PUT',
       url: this.config.url_api_chain + '/transaction',
@@ -263,5 +274,36 @@ export class Auction {
     return new Map<string, Array<mRecord>>()
       .set('buy', buyMRecordArray)
       .set('sell', sellMRecordArray);
+  }
+
+  private deleteMyMatchesFromNostro(contract: string) {
+    const data: Array<tMatch> | undefined =
+      this.match.getMatchMap().get(contract) || new Array<tMatch>();
+    if (data.length > 0) {
+      data.forEach((v) => {
+        if (v.buy.pk === this.config.my_public_key) {
+          this.deleteOrder(contract, 'buy', v.buy.id, v.buy.p, v.buy.a);
+        }
+        if (v.sell.pk === this.config.my_public_key) {
+          this.deleteOrder(contract, 'sell', v.sell.id, v.sell.p, v.sell.a);
+        }
+      });
+    }
+  }
+
+  private deleteOrder(
+    contract: string,
+    type: 'buy' | 'sell',
+    id: number,
+    p: string,
+    a: string
+  ) {
+    this.orderBook.deleteNostro(
+      id,
+      contract,
+      type,
+      new Big(p).toNumber(),
+      new Big(a).toNumber()
+    );
   }
 }
