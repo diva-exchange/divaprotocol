@@ -57,10 +57,11 @@ export class Auction {
             this.sendSettlementToChain(contract, currentBlockHeight);
             this.decision.auctionLockedContracts.delete(contract);
             this.updateAuctionBlockHeight();
-            this.deleteMyMatchesFromNostro(contract);
+            if (this.deleteMyMatchesFromNostro(contract)) {
+              this.messageProcessor.sendSubscriptions(contract, 'nostro');
+              this.messageProcessor.storeNostroOnChain(contract);
+            }
             this.match.getMatchMap().set(contract, new Array<tMatch>());
-            this.messageProcessor.sendSubscriptions(contract, 'nostro');
-            this.messageProcessor.storeNostroOnChain(contract);
           });
         }
       }
@@ -276,19 +277,23 @@ export class Auction {
       .set('sell', sellMRecordArray);
   }
 
-  private deleteMyMatchesFromNostro(contract: string) {
+  private deleteMyMatchesFromNostro(contract: string): boolean {
+    let orderFound = false;
     const data: Array<tMatch> | undefined =
       this.match.getMatchMap().get(contract) || new Array<tMatch>();
     if (data.length > 0) {
       data.forEach((v) => {
         if (v.buy.pk === this.config.my_public_key) {
           this.deleteOrder(contract, 'buy', v.buy.id, v.buy.p, v.buy.a);
+          orderFound = true;
         }
         if (v.sell.pk === this.config.my_public_key) {
           this.deleteOrder(contract, 'sell', v.sell.id, v.sell.p, v.sell.a);
+          orderFound = true;
         }
       });
     }
+    return orderFound;
   }
 
   private deleteOrder(
