@@ -18,16 +18,15 @@
  */
 
 import { Config } from '../config/config';
-import { Match, mRecord, tMatch } from '../book/match';
+import { Match, tMatch } from '../book/match';
 import { Decision } from './decision';
 import get from 'simple-get';
 import { Logger } from '../util/logger';
-import { tNostro } from '../book/nostro';
 import base64url from 'base64-url';
-import { Validation } from '../net/validation';
 import { Orderbook } from '../book/orderbook';
 import { Big } from 'big.js';
 import { MessageProcessor } from './message-processor';
+import { OrdersMatch } from './orders-match';
 
 export class Auction {
   private readonly config: Config;
@@ -35,6 +34,7 @@ export class Auction {
   private match: Match = {} as Match;
   private decision: Decision = {} as Decision;
   private messageProcessor: MessageProcessor = {} as MessageProcessor;
+  private ordersMatch: OrdersMatch = {} as OrdersMatch;
 
   static async make(config: Config): Promise<Auction> {
     const a = new Auction(config);
@@ -42,6 +42,7 @@ export class Auction {
     a.match = await Match.make();
     a.decision = await Decision.make(config);
     a.messageProcessor = await MessageProcessor.make(config);
+    a.ordersMatch = await OrdersMatch.make(config);
     return a;
   }
 
@@ -53,7 +54,7 @@ export class Auction {
     this.decision.auctionLockedContracts.forEach(
       (bh: number, contract: string) => {
         if (currentBlockHeight >= bh + this.config.waitingPeriod) {
-          this.populateMatchBook(contract).then(() => {
+          this.ordersMatch.populateMatchBook(contract).then(() => {
             this.sendSettlementToChain(contract, currentBlockHeight);
             this.decision.auctionLockedContracts.delete(contract);
             this.updateAuctionBlockHeight();
@@ -80,56 +81,6 @@ export class Auction {
     }
   }
 
-  async populateMatchBook(contract: string) {
-    const matchOrders: Map<string, Array<mRecord>> = await this.getMatchOrders(
-      contract
-    );
-    //@FIXME match need to be smart !
-    const buyMRecordArray = this.sortMRecords(
-      matchOrders.get('buy') || Array()
-    );
-    const sellMRecordArray = this.sortMRecords(
-      matchOrders.get('sell') || Array(),
-      -1
-    );
-
-    while (buyMRecordArray.length != 0 && sellMRecordArray.length != 0) {
-      const buyValue: mRecord = buyMRecordArray[0];
-      const sellValue: mRecord = sellMRecordArray[0];
-      const ba = new Big(buyValue.a).toNumber();
-      const sa = new Big(sellValue.a).toNumber();
-      const bp = new Big(buyValue.p).toNumber();
-      const sp = new Big(sellValue.p).toNumber();
-
-      if (bp >= sp) {
-        const tradePrice: Number = buyValue.id > sellValue.id ? bp : sp;
-        this.match.addMatch(
-          contract,
-          buyValue.pk,
-          buyValue.id,
-          sellValue.pk,
-          sellValue.id,
-          Math.min(ba, sa).toString(),
-          tradePrice.toString()
-        );
-
-        const remaining: Number = Math.abs(ba - sa);
-        if (ba - sa <= 0) {
-          buyMRecordArray.shift();
-          if (remaining != 0) {
-            sellMRecordArray[0].a = remaining.toString();
-          }
-        }
-        if (ba - sa >= 0) {
-          sellMRecordArray.shift();
-          if (remaining != 0) {
-            buyMRecordArray[0].a = remaining.toString();
-          }
-        }
-      }
-    }
-  }
-
   private sendSettlementToChain(contract: string, blockheight: number): void {
     const data = this.match.getMatchMap().get(contract) || '';
     const nameSpace: string =
@@ -153,128 +104,6 @@ export class Auction {
         Logger.trace(error);
       }
     });
-  }
-
-  getSellCrossLimit(contract: string): Number {
-    let sellCrossHigh: Number = 0;
-    this.decision
-      .marketSellInAscOrder(this.orderBook.getMarket(contract))
-      .forEach((value) => {
-        if (
-          Big(value.p).toNumber() <=
-          Big(
-            this.decision.marketBuyInDescOrder(
-              this.orderBook.getMarket(contract)
-            )[0].p
-          ).toNumber()
-        ) {
-          sellCrossHigh = Big(value.p).toNumber();
-        }
-      });
-    return sellCrossHigh;
-  }
-
-  getBuyCrossLimit(contract: string): Number {
-    let buyCrossLow: Number = 0;
-    this.decision
-      .marketBuyInDescOrder(this.orderBook.getMarket(contract))
-      .forEach((value) => {
-        if (
-          Big(value.p).toNumber() >=
-          Big(
-            this.decision.marketSellInAscOrder(
-              this.orderBook.getMarket(contract)
-            )[0].p
-          ).toNumber()
-        ) {
-          buyCrossLow = Big(value.p).toNumber();
-        }
-      });
-    return buyCrossLow;
-  }
-
-  public sortMRecords(
-    mRecordsArray: Array<mRecord>,
-    order: number = 1
-  ): Array<mRecord> {
-    mRecordsArray.sort((a, b) => {
-      if (a.p.padStart(21, '0') == b.p.padStart(21, '0')) {
-        return a.id > b.id ? 1 : -1;
-      } else {
-        return a.p.padStart(21, '0') > b.p.padStart(21, '0')
-          ? order * -1
-          : order * 1;
-      }
-    });
-    if (mRecordsArray.length > 0) {
-      return mRecordsArray;
-    }
-    return [];
-  }
-
-  private getState(): Promise<string> {
-    const url: string = this.config.url_api_chain + '/state/';
-    return new Promise((resolve, reject) => {
-      get.concat(url, (error: Error, res: any, data: any) => {
-        if (error || res.statusCode !== 200) {
-          reject(error || res.statusCode);
-        }
-        resolve(data);
-      });
-    });
-  }
-
-  private async getMatchOrders(
-    contract: string
-  ): Promise<Map<string, Array<mRecord>>> {
-    const sellCrossPrice: Number = this.getSellCrossLimit(contract);
-    const buyCrossPrice: Number = this.getBuyCrossLimit(contract);
-    const buyMRecordArray = new Array<mRecord>();
-    const sellMRecordArray = new Array<mRecord>();
-
-    const states: string = await this.getState();
-    if (states) {
-      const allData = [...JSON.parse(states)];
-      allData.forEach((element) => {
-        const keyArray: Array<string> = element.key.toString().split(':', 4);
-        if (
-          keyArray[0] === 'DivaExchange' &&
-          keyArray[1] === 'OrderBook' &&
-          keyArray[2] === contract
-        ) {
-          try {
-            const book: tNostro = JSON.parse(base64url.decode(element.value));
-            if (Validation.make().validateBook(book)) {
-              book.buy.forEach((value) => {
-                if (new Big(value.p).toNumber() >= buyCrossPrice) {
-                  buyMRecordArray.push({
-                    pk: keyArray[3],
-                    id: value.id,
-                    p: value.p,
-                    a: value.a,
-                  });
-                }
-              });
-              book.sell.forEach((value) => {
-                if (new Big(value.p).toNumber() <= sellCrossPrice) {
-                  sellMRecordArray.push({
-                    pk: keyArray[3],
-                    id: value.id,
-                    p: value.p,
-                    a: value.a,
-                  });
-                }
-              });
-            }
-          } catch (error: any) {
-            Logger.error(error);
-          }
-        }
-      });
-    }
-    return new Map<string, Array<mRecord>>()
-      .set('buy', buyMRecordArray)
-      .set('sell', sellMRecordArray);
   }
 
   private deleteMyMatchesFromNostro(contract: string): boolean {

@@ -53,21 +53,22 @@ export class Match {
     contract: string,
     buyOrigin: string,
     buyOriginId: number,
+    buyPrice: string,
     sellOrigin: string,
     sellOriginId: number,
-    amount: string,
-    price: string
+    sellPrice: string,
+    amount: string
   ) {
     const mrBuy: mRecord = {
       pk: buyOrigin,
       id: buyOriginId,
-      p: price,
+      p: buyPrice,
       a: amount,
     };
     const mrSell: mRecord = {
       pk: sellOrigin,
       id: sellOriginId,
-      p: price,
+      p: sellPrice,
       a: amount,
     };
     const m: tMatch = { buy: mrBuy, sell: mrSell };
