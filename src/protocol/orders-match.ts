@@ -34,6 +34,7 @@ export class OrdersMatch {
   private match: Match = {} as Match;
   private decision: Decision = {} as Decision;
   private messageProcessor: MessageProcessor = {} as MessageProcessor;
+  private states: string = '';
 
   static async make(config: Config): Promise<OrdersMatch> {
     const om = new OrdersMatch(config);
@@ -52,7 +53,7 @@ export class OrdersMatch {
     const matchOrders: Map<string, Array<mRecord>> = await this.getMatchOrders(
       contract
     );
-    //@FIXME match need to be smart !
+
     const buyMRecordArray = this.sortMRecords(
       matchOrders.get('buy') || Array()
     );
@@ -105,9 +106,9 @@ export class OrdersMatch {
     const buyMRecordArray = new Array<mRecord>();
     const sellMRecordArray = new Array<mRecord>();
 
-    const states: string = await this.getState();
-    if (states) {
-      const allData = [...JSON.parse(states)];
+    this.states = await this.getState();
+    if (this.states) {
+      const allData = [...JSON.parse(this.states)];
       allData.forEach((element) => {
         const keyArray: Array<string> = element.key.toString().split(':', 4);
         if (
@@ -193,9 +194,13 @@ export class OrdersMatch {
     order: number = 1
   ): Array<mRecord> {
     mRecordsArray.sort((a, b) => {
-      return a.p.padStart(21, '0') > b.p.padStart(21, '0')
-        ? order * -1
-        : order * 1;
+      if (a.p.padStart(21, '0') == b.p.padStart(21, '0')) {
+        return this.stakeRanking(a.pk, b.pk);
+      } else {
+        return a.p.padStart(21, '0') > b.p.padStart(21, '0')
+          ? order * -1
+          : order * 1;
+      }
     });
     if (mRecordsArray.length > 0) {
       return mRecordsArray;
@@ -213,5 +218,29 @@ export class OrdersMatch {
         resolve(data);
       });
     });
+  }
+
+  private stakeRanking(pk: string, pk2: string) {
+    if (this.states) {
+      const allData = [...JSON.parse(this.states)];
+      const stake1 =
+        allData.find((element) => element.key.toString() == 'peer' + pk)
+          .value || 0;
+      const stake2 =
+        allData.find((element) => element.key.toString() == 'peer' + pk2)
+          .value || 0;
+      return stake1 > stake2 ? 1 : -1;
+    }
+    return this.pkRanking(pk, pk2);
+  }
+
+  private pkRanking(pk: string, pk2: string) {
+    let number1: number = 0;
+    for (let i = 0; i < pk.length; i++) number1 += pk.charCodeAt(i);
+
+    let number2: number = 0;
+    for (let i = 0; i < pk.length; i++) number2 += pk2.charCodeAt(i);
+
+    return number1 > number2 ? 1 : -1;
   }
 }
