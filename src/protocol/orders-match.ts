@@ -34,7 +34,7 @@ export class OrdersMatch {
   private match: Match = {} as Match;
   private decision: Decision = {} as Decision;
   private messageProcessor: MessageProcessor = {} as MessageProcessor;
-  private states: string = '';
+  private stakes: Map<string, number> = new Map<string, number>();
 
   static async make(config: Config): Promise<OrdersMatch> {
     const om = new OrdersMatch(config);
@@ -53,7 +53,6 @@ export class OrdersMatch {
     const matchOrders: Map<string, Array<mRecord>> = await this.getMatchOrders(
       contract
     );
-
     const buyMRecordArray = this.sortMRecords(
       matchOrders.get('buy') || Array()
     );
@@ -106,9 +105,9 @@ export class OrdersMatch {
     const buyMRecordArray = new Array<mRecord>();
     const sellMRecordArray = new Array<mRecord>();
 
-    this.states = await this.getState();
-    if (this.states) {
-      const allData = [...JSON.parse(this.states)];
+    const data = await this.getState();
+    if (data) {
+      const allData = [...JSON.parse(data)];
       allData.forEach((element) => {
         const keyArray: Array<string> = element.key.toString().split(':', 4);
         if (
@@ -143,6 +142,9 @@ export class OrdersMatch {
           } catch (error: any) {
             Logger.error(error);
           }
+        }
+        if (element.key.startsWith('peer') && keyArray.length == 2) {
+          this.stakes.set(keyArray[1], new Big(element.value).toNumber());
         }
       });
     }
@@ -193,16 +195,16 @@ export class OrdersMatch {
     mRecordsArray: Array<mRecord>,
     order: number = 1
   ): Array<mRecord> {
-    mRecordsArray.sort((a, b) => {
-      if (a.p.padStart(21, '0') == b.p.padStart(21, '0')) {
-        return this.stakeRanking(a.pk, b.pk);
-      } else {
-        return a.p.padStart(21, '0') > b.p.padStart(21, '0')
-          ? order * -1
-          : order * 1;
-      }
-    });
     if (mRecordsArray.length > 0) {
+      mRecordsArray.sort((a, b) => {
+        if (a.p.padStart(21, '0') == b.p.padStart(21, '0')) {
+          return this.stakeRanking(a.pk, b.pk);
+        } else {
+          return a.p.padStart(21, '0') > b.p.padStart(21, '0')
+            ? order * -1
+            : order * 1;
+        }
+      });
       return mRecordsArray;
     }
     return [];
@@ -221,14 +223,16 @@ export class OrdersMatch {
   }
 
   private stakeRanking(pk: string, pk2: string) {
-    if (this.states) {
-      const allData = [...JSON.parse(this.states)];
-      const stake1 =
-        allData.find((element) => element.key.toString() == 'peer' + pk)
-          .value || 0;
-      const stake2 =
-        allData.find((element) => element.key.toString() == 'peer' + pk2)
-          .value || 0;
+    let stake1 = 0;
+    let stake2 = 0;
+    if (this.stakes.has(pk)) {
+      stake1 = this.stakes.get(pk) || 0;
+    }
+    if (this.stakes.has(pk2)) {
+      stake2 = this.stakes.get(pk2) || 0;
+    }
+
+    if (stake1 !== stake2) {
       return stake1 > stake2 ? 1 : -1;
     }
     return this.pkRanking(pk, pk2);
