@@ -231,20 +231,9 @@ export class OrdersMatch {
     if (this.stakes.has(pk2)) {
       stake2 = this.stakes.get(pk2) || 0;
     }
-
     if (stake1 !== stake2) {
       return stake1 > stake2 ? 1 : -1;
     }
-    return this.pkRanking(pk, pk2);
-  }
-
-  private pkRanking(pk: string, pk2: string) {
-    let number1: number = 0;
-    for (let i = 0; i < pk.length; i++) number1 += pk.charCodeAt(i);
-
-    let number2: number = 0;
-    for (let i = 0; i < pk.length; i++) number2 += pk2.charCodeAt(i);
-
-    return number1 > number2 ? 1 : -1;
+    return pk > pk2 ? 1 : -1;
   }
 }
