@@ -27,6 +27,7 @@ import { Config } from '../config/config';
 import { Orderbook } from '../book/orderbook';
 import { Decision } from './decision';
 import { MessageProcessor } from './message-processor';
+import { tRecord } from '../book/market';
 
 export class OrdersMatch {
   private readonly config: Config;
@@ -100,8 +101,23 @@ export class OrdersMatch {
   private async getMatchOrders(
     contract: string
   ): Promise<Map<string, Array<mRecord>>> {
-    const sellCrossPrice: Number = this.getSellCrossLimit(contract);
-    const buyCrossPrice: Number = this.getBuyCrossLimit(contract);
+    const buyInDescOrder: Array<tRecord> = this.decision.marketBuyInDescOrder(
+      this.orderBook.getMarket(contract)
+    );
+    const sellInAscOrder: Array<tRecord> = this.decision.marketSellInAscOrder(
+      this.orderBook.getMarket(contract)
+    );
+    if (buyInDescOrder.length < 1 || sellInAscOrder.length < 1) {
+      return new Map<string, Array<mRecord>>();
+    }
+    const sellCrossPrice: Number = this.getSellCrossLimit(
+      buyInDescOrder,
+      sellInAscOrder
+    );
+    const buyCrossPrice: Number = this.getBuyCrossLimit(
+      buyInDescOrder,
+      sellInAscOrder
+    );
     const buyMRecordArray = new Array<mRecord>();
     const sellMRecordArray = new Array<mRecord>();
 
@@ -153,41 +169,29 @@ export class OrdersMatch {
       .set('sell', sellMRecordArray);
   }
 
-  getSellCrossLimit(contract: string): Number {
+  getSellCrossLimit(
+    buyInDescOrder: Array<tRecord>,
+    sellInAscOrder: Array<tRecord>
+  ): Number {
     let sellCrossHigh: Number = 0;
-    this.decision
-      .marketSellInAscOrder(this.orderBook.getMarket(contract))
-      .forEach((value) => {
-        if (
-          Big(value.p).toNumber() <=
-          Big(
-            this.decision.marketBuyInDescOrder(
-              this.orderBook.getMarket(contract)
-            )[0].p
-          ).toNumber()
-        ) {
-          sellCrossHigh = Big(value.p).toNumber();
-        }
-      });
+    sellInAscOrder.forEach((value) => {
+      if (Big(value.p).toNumber() <= Big(buyInDescOrder[0].p).toNumber()) {
+        sellCrossHigh = Big(value.p).toNumber();
+      }
+    });
     return sellCrossHigh;
   }
 
-  getBuyCrossLimit(contract: string): Number {
+  getBuyCrossLimit(
+    buyInDescOrder: Array<tRecord>,
+    sellInAscOrder: Array<tRecord>
+  ): Number {
     let buyCrossLow: Number = 0;
-    this.decision
-      .marketBuyInDescOrder(this.orderBook.getMarket(contract))
-      .forEach((value) => {
-        if (
-          Big(value.p).toNumber() >=
-          Big(
-            this.decision.marketSellInAscOrder(
-              this.orderBook.getMarket(contract)
-            )[0].p
-          ).toNumber()
-        ) {
-          buyCrossLow = Big(value.p).toNumber();
-        }
-      });
+    buyInDescOrder.forEach((value) => {
+      if (Big(value.p).toNumber() >= Big(sellInAscOrder[0].p).toNumber()) {
+        buyCrossLow = Big(value.p).toNumber();
+      }
+    });
     return buyCrossLow;
   }
 
