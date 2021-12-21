@@ -24,7 +24,6 @@ import get from 'simple-get';
 import { Logger } from '../util/logger';
 import base64url from 'base64-url';
 import { Orderbook } from '../book/orderbook';
-import { Big } from 'big.js';
 import { MessageProcessor } from './message-processor';
 import { OrdersMatch } from './orders-match';
 
@@ -132,12 +131,6 @@ export class Auction {
     p: string,
     a: string
   ) {
-    this.orderBook.deleteNostro(
-      id,
-      contract,
-      type,
-      new Big(p).toNumber(),
-      new Big(a).toNumber()
-    );
+    this.orderBook.deleteNostro(id, contract, type, p, a);
   }
 }

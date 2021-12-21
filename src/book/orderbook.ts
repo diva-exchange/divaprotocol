@@ -81,8 +81,8 @@ export class Orderbook {
     id: number,
     contract: string,
     type: 'buy' | 'sell',
-    price: number,
-    amount: number
+    price: number | string,
+    amount: number | string
   ): void {
     if (!this.arrayNostro[contract]) {
       throw new Error('Nostro.update(): invalid contract');

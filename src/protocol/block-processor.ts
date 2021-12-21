@@ -68,7 +68,7 @@ export class BlockProcessor {
             block.height >=
             this.decision.auctionBlockHeight + this.config.waitingPeriod
           ) {
-            console.log('Auction on block: ' + block.height);
+            console.log('Settlement on block: ' + block.height);
             this.auction.settlement(block.height);
           } else {
             await this.decision.process(decodedJsonData.contract, block.height);
