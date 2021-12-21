@@ -20,7 +20,6 @@ import { Match, mRecord } from '../book/match';
 import { Big } from 'big.js';
 import get from 'simple-get';
 import { tNostro } from '../book/nostro';
-import base64url from 'base64-url';
 import { Validation } from '../net/validation';
 import { Logger } from '../util/logger';
 import { Config } from '../config/config';
@@ -116,7 +115,7 @@ export class OrdersMatch {
           keyArray[2] === contract
         ) {
           try {
-            const book: tNostro = JSON.parse(base64url.decode(element.value));
+            const book: tNostro = JSON.parse(element.value);
             if (Validation.make().validateBook(book)) {
               book.buy.forEach((value) => {
                 if (new Big(value.p).toNumber() >= buyCrossPrice) {
