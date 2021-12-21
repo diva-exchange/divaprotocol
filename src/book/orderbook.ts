@@ -19,7 +19,6 @@
 
 import { Config } from '../config/config';
 import get from 'simple-get';
-import base64url from 'base64-url';
 import { Nostro, tNostro } from './nostro';
 import { Validation } from '../net/validation';
 import { Logger } from '../util/logger';
@@ -118,7 +117,7 @@ export class Orderbook {
           keyArray[2] === contract
         ) {
           try {
-            const book: tNostro = JSON.parse(base64url.decode(element.value));
+            const book: tNostro = JSON.parse(element.value);
             if (Validation.make().validateBook(book)) {
               book.buy.forEach((r) => {
                 this.arrayMarket[book.contract].buy(r.p, r.a);
@@ -161,7 +160,7 @@ export class Orderbook {
           this.config.contracts_array.includes(keyArray[2])
         ) {
           try {
-            const book: tNostro = JSON.parse(base64url.decode(element.value));
+            const book: tNostro = JSON.parse(element.value);
             const channel =
               keyArray[keyArray.length - 1] === this.config.my_public_key
                 ? 'nostro'
