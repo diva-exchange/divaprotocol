@@ -29,60 +29,25 @@ import base64url from 'base64-url';
 export class Decision {
   private readonly config: Config;
   private orderBook: Orderbook = {} as Orderbook;
-  public auctionLockedContracts: Map<string, number> = new Map<
-    string,
-    number
-  >();
-  public auctionBlockHeight: number = Number.MAX_SAFE_INTEGER;
   private static d: Decision;
 
   static async make(config: Config): Promise<Decision> {
     if (!this.d) {
       this.d = new Decision(config);
     }
-
     this.d.orderBook = await Orderbook.make(config);
     return this.d;
   }
 
   private constructor(config: Config) {
     this.config = config;
-    this.config.contracts_array.forEach((contract) => {
-      this.setAuctionLockedContracts(contract);
-    });
   }
 
   public async process(contract: string, blockHeight: number): Promise<void> {
-    if (
-      !this.auctionLockedContracts.has(contract) &&
-      (await this.isMatch(contract))
-    ) {
+    const auctionRestrictBlockHeight: number = await this.getAuctionRestrictBlockHeight(contract);
+    if (blockHeight > auctionRestrictBlockHeight && (await this.isMatch(contract))) {
       console.log('match happened on: ' + blockHeight + 'block height!');
       this.sendDecisionToChain(contract, blockHeight);
-    }
-  }
-
-  public async setAuctionLockedContracts(contract: string): Promise<void> {
-    if (this.auctionLockedContracts.has(contract)) return;
-    const lastBlock: BlockStruct = await this.getLastBlock();
-    const states: string = await this.getState();
-    if (states) {
-      const allData = [...JSON.parse(states)];
-      allData.forEach((element) => {
-        const keyArray: Array<string> = element.key.toString().split(':', 5);
-        if (
-          element.key.startsWith('decision:DivaExchange:Auction:') &&
-          element.value === 'taken'
-        ) {
-          if (!isNaN(Number(keyArray[4]))) {
-            const bh = Number(keyArray[4]);
-            if (bh + this.config.waitingPeriod > lastBlock.height) {
-              this.auctionLockedContracts.set(keyArray[3], bh);
-              this.auctionBlockHeight = Math.min(this.auctionBlockHeight, bh);
-            }
-          }
-        }
-      });
     }
   }
 
@@ -173,5 +138,23 @@ export class Decision {
         resolve(data);
       });
     });
+  }
+
+  public async getAuctionRestrictBlockHeight(contract: string): Promise<number> {
+    let result: number = 0;
+    const states: string = await this.getState();
+    if (states) {
+      const allData = [...JSON.parse(states)];
+      allData.forEach((element) => {
+        const keyArray: Array<string> = element.key.toString().split(':', 6);
+        if (element.key.startsWith('decision:taken:DivaExchange:Auction:' + contract)) {
+          if (!isNaN(Number(keyArray[5]))) {
+            const bh = Number(keyArray[5]);
+            result = Math.max(result, bh);
+          }
+        }
+      });
+    }
+    return result == 0 ? 0 : result + this.config.waitingPeriod;
   }
 }

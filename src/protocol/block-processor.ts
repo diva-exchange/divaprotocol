@@ -25,21 +25,21 @@ import WebSocket from 'ws';
 import { SubscribeManager, iSubscribe } from './subscribe-manager';
 import { tNostro } from '../book/nostro';
 import { Decision } from './decision';
-import { Auction } from './auction';
+import { Settlement } from './settlement';
 
 export class BlockProcessor {
   private readonly config: Config;
   private orderBook: Orderbook = {} as Orderbook;
   private subscribeManager: SubscribeManager = {} as SubscribeManager;
   private decision: Decision = {} as Decision;
-  private auction: Auction = {} as Auction;
+  private settlement: Settlement = {} as Settlement;
 
   static async make(config: Config): Promise<BlockProcessor> {
     const f = new BlockProcessor(config);
     f.orderBook = await Orderbook.make(config);
     f.subscribeManager = await SubscribeManager.make();
     f.decision = await Decision.make(config);
-    f.auction = await Auction.make(config);
+    f.settlement = await Settlement.make(config);
     return f;
   }
 
@@ -63,16 +63,13 @@ export class BlockProcessor {
 
           // fill marketBook
           await this.orderBook.updateMarket(contract);
-          // check for decision and auction
-          if (
-            block.height >=
-            this.decision.auctionBlockHeight + this.config.waitingPeriod
-          ) {
-            console.log('Settlement on block: ' + block.height);
-            this.auction.settlement(block.height);
-          } else {
-            await this.decision.process(decodedJsonData.contract, block.height);
-          }
+
+          // check for settlement
+          await this.settlement.process(contract, block.height);
+
+          // check for decision
+          await this.decision.process(contract, block.height);
+
           // subscription
           const sub: Map<WebSocket, iSubscribe> =
             this.subscribeManager.getSubscriptions();
@@ -83,13 +80,6 @@ export class BlockProcessor {
               ws.send(JSON.stringify(marketBook));
             }
           });
-        }
-        if (
-          c.command === 'decision' &&
-          c.ns.startsWith('DivaExchange:Auction:')
-        ) {
-          const contract: string = c.ns.toString().split(':', 4)[2];
-          await this.decision.setAuctionLockedContracts(contract);
         }
       }
     }

@@ -27,7 +27,7 @@ import { Orderbook } from '../book/orderbook';
 import { MessageProcessor } from './message-processor';
 import { OrdersMatch } from './orders-match';
 
-export class Auction {
+export class Settlement {
   private readonly config: Config;
   private orderBook: Orderbook = {} as Orderbook;
   private match: Match = {} as Match;
@@ -35,8 +35,8 @@ export class Auction {
   private messageProcessor: MessageProcessor = {} as MessageProcessor;
   private ordersMatch: OrdersMatch = {} as OrdersMatch;
 
-  static async make(config: Config): Promise<Auction> {
-    const a = new Auction(config);
+  static async make(config: Config): Promise<Settlement> {
+    const a = new Settlement(config);
     a.orderBook = await Orderbook.make(config);
     a.match = await Match.make();
     a.decision = await Decision.make(config);
@@ -49,33 +49,17 @@ export class Auction {
     this.config = config;
   }
 
-  public settlement(currentBlockHeight: number) {
-    this.decision.auctionLockedContracts.forEach(
-      (bh: number, contract: string) => {
-        if (currentBlockHeight >= bh + this.config.waitingPeriod) {
-          this.ordersMatch.populateMatchBook(contract).then(() => {
-            this.sendSettlementToChain(contract, currentBlockHeight);
-            this.decision.auctionLockedContracts.delete(contract);
-            this.updateAuctionBlockHeight();
-            if (this.deleteMyMatchesFromNostro(contract)) {
-              this.messageProcessor.sendSubscriptions(contract, 'nostro');
-              this.messageProcessor.storeNostroOnChain(contract);
-            }
-            this.match.getMatchMap().set(contract, new Array<tMatch>());
-          });
+  public async process(contract: string, blockHeight: number) {
+    const auctionRestrictBlockHeight: number = await this.decision.getAuctionRestrictBlockHeight(contract);
+    if (blockHeight == auctionRestrictBlockHeight) {
+      console.log('Settlement on block: ' + blockHeight);
+      this.ordersMatch.populateMatchBook(contract).then(() => {
+        this.sendSettlementToChain(contract, blockHeight);
+        if (this.deleteMyMatchesFromNostro(contract)) {
+          this.messageProcessor.sendSubscriptions(contract, 'nostro');
+          this.messageProcessor.storeNostroOnChain(contract);
         }
-      }
-    );
-  }
-
-  private updateAuctionBlockHeight() {
-    this.decision.auctionBlockHeight = Number.MAX_SAFE_INTEGER;
-    if (this.decision.auctionLockedContracts.size > 0) {
-      this.decision.auctionLockedContracts.forEach((bh) => {
-        this.decision.auctionBlockHeight = Math.min(
-          this.decision.auctionBlockHeight,
-          bh
-        );
+        this.match.getMatchMap().set(contract, new Array<tMatch>());
       });
     }
   }
