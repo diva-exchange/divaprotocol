@@ -131,7 +131,7 @@ export class OrdersMatch {
           keyArray[2] === contract
         ) {
           try {
-            const book: tNostro = element.value;
+            const book: tNostro = JSON.parse(element.value);
             if (Validation.make().validateBook(book)) {
               book.buy.forEach((value) => {
                 if (new Big(value.p).toNumber() >= buyCrossPrice) {

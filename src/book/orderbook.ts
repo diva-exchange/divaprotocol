@@ -117,7 +117,7 @@ export class Orderbook {
           keyArray[2] === contract
         ) {
           try {
-            const book: tNostro = element.value;
+            const book: tNostro = JSON.parse(element.value);
             if (Validation.make().validateBook(book)) {
               book.buy.forEach((r) => {
                 this.arrayMarket[book.contract].buy(r.p, r.a);
@@ -160,7 +160,7 @@ export class Orderbook {
           this.config.contracts_array.includes(keyArray[2])
         ) {
           try {
-            const book: tNostro = element.value;
+            const book: tNostro = JSON.parse(element.value);
             const channel =
               keyArray[keyArray.length - 1] === this.config.my_public_key
                 ? 'nostro'
