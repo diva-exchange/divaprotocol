@@ -24,7 +24,6 @@ import get from 'simple-get';
 import { BlockStruct } from './struct';
 import { tMarketBook, tRecord } from '../book/market';
 import { Big } from 'big.js';
-import base64url from 'base64-url';
 
 export class Decision {
   private readonly config: Config;
@@ -44,16 +43,20 @@ export class Decision {
   }
 
   public async process(contract: string, blockHeight: number): Promise<void> {
-    const auctionRestrictBlockHeight: number = await this.getAuctionRestrictBlockHeight(contract);
-    if (blockHeight > auctionRestrictBlockHeight && (await this.isMatch(contract))) {
+    const auctionRestrictBlockHeight: number =
+      await this.getAuctionRestrictBlockHeight(contract);
+    if (
+      blockHeight > auctionRestrictBlockHeight &&
+      (await this.isMatch(contract))
+    ) {
       console.log('match happened on: ' + blockHeight + 'block height!');
       this.sendDecisionToChain(contract, blockHeight);
     }
   }
 
-  private sendDecisionToChain(contract: string, blockheight: number): void {
+  private sendDecisionToChain(contract: string, blockHeight: number): void {
     const nameSpace: string =
-      'DivaExchange:Auction:' + contract + ':' + blockheight;
+      'DivaExchange:Auction:' + contract + ':' + blockHeight;
     const opts = {
       method: 'PUT',
       url: this.config.url_api_chain + '/transaction',
@@ -62,7 +65,7 @@ export class Decision {
           seq: 1,
           command: 'decision',
           ns: nameSpace,
-          base64url: base64url.encode(JSON.stringify('')),
+          d: JSON.stringify(''),
         },
       ],
       json: true,
@@ -140,14 +143,20 @@ export class Decision {
     });
   }
 
-  public async getAuctionRestrictBlockHeight(contract: string): Promise<number> {
+  public async getAuctionRestrictBlockHeight(
+    contract: string
+  ): Promise<number> {
     let result: number = 0;
     const states: string = await this.getState();
     if (states) {
       const allData = [...JSON.parse(states)];
       allData.forEach((element) => {
         const keyArray: Array<string> = element.key.toString().split(':', 6);
-        if (element.key.startsWith('decision:taken:DivaExchange:Auction:' + contract)) {
+        if (
+          element.key.startsWith(
+            'decision:taken:DivaExchange:Auction:' + contract
+          )
+        ) {
           if (!isNaN(Number(keyArray[5]))) {
             const bh = Number(keyArray[5]);
             result = Math.max(result, bh);

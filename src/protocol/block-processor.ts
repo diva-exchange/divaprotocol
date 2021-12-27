@@ -20,7 +20,6 @@
 import { Config } from '../config/config';
 import { BlockStruct } from './struct';
 import { Orderbook } from '../book/orderbook';
-import base64url from 'base64-url';
 import WebSocket from 'ws';
 import { SubscribeManager, iSubscribe } from './subscribe-manager';
 import { tNostro } from '../book/nostro';
@@ -55,9 +54,7 @@ export class BlockProcessor {
           c.command === 'data' &&
           c.ns.startsWith('DivaExchange:OrderBook:')
         ) {
-          const decodedJsonData: tNostro = JSON.parse(
-            base64url.decode(c.base64url)
-          );
+          const decodedJsonData: tNostro = JSON.parse(c.d);
 
           const contract: string = decodedJsonData.contract;
 

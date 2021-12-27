@@ -20,7 +20,6 @@
 import { Config } from '../config/config';
 import { Logger } from '../util/logger';
 import get from 'simple-get';
-import base64url from 'base64-url';
 import { Orderbook } from '../book/orderbook';
 import { Message } from './struct';
 import WebSocket from 'ws';
@@ -106,9 +105,7 @@ export class MessageProcessor {
           seq: 1,
           command: 'data',
           ns: nameSpace,
-          base64url: base64url.encode(
-            JSON.stringify(this.orderbook.getNostro(contract))
-          ),
+          d: JSON.stringify(this.orderbook.getNostro(contract)),
         },
       ],
       json: true,

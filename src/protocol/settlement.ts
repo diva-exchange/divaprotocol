@@ -22,7 +22,6 @@ import { Match, tMatch } from '../book/match';
 import { Decision } from './decision';
 import get from 'simple-get';
 import { Logger } from '../util/logger';
-import base64url from 'base64-url';
 import { Orderbook } from '../book/orderbook';
 import { MessageProcessor } from './message-processor';
 import { OrdersMatch } from './orders-match';
@@ -50,7 +49,8 @@ export class Settlement {
   }
 
   public async process(contract: string, blockHeight: number) {
-    const auctionRestrictBlockHeight: number = await this.decision.getAuctionRestrictBlockHeight(contract);
+    const auctionRestrictBlockHeight: number =
+      await this.decision.getAuctionRestrictBlockHeight(contract);
     if (blockHeight == auctionRestrictBlockHeight) {
       console.log('Settlement on block: ' + blockHeight);
       this.ordersMatch.populateMatchBook(contract).then(() => {
@@ -76,7 +76,7 @@ export class Settlement {
           seq: 1,
           command: 'decision',
           ns: nameSpace,
-          base64url: base64url.encode(JSON.stringify(data)),
+          d: JSON.stringify(data),
         },
       ],
       json: true,

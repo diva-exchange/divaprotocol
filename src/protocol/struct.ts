@@ -21,7 +21,7 @@ export interface CommandData {
   seq: number;
   command: string;
   ns: string;
-  base64url: string;
+  d: string;
 }
 
 export type TransactionStruct = {
