@@ -39,15 +39,15 @@ class TestServer {
   static testWebsocket: WebSocket;
 
   @timeout(10000)
-  static before(): Promise<void> {
+  static async before(): Promise<void> {
     this.config = new Config({
       ip: IP,
       port: BASE_PORT,
     });
+    this.server = await Server.make(this.config);
 
-    return new Promise(async (resolve) => {
+    return new Promise((resolve) => {
       setTimeout(resolve, 5000);
-      this.server = await Server.make(this.config);
       this.testWebsocket = new WebSocket(
         `ws://${TestServer.config.ip}:${TestServer.config.port}/`
       );

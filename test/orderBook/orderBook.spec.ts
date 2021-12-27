@@ -17,12 +17,12 @@
  * Author/Maintainer: Konrad Bächler <konrad@diva.exchange>
  */
 
-import { suite, test, slow, timeout } from '@testdeck/mocha';
+import { suite, test, timeout } from '@testdeck/mocha';
 import chai, { expect } from 'chai';
 import chaiHttp from 'chai-http';
 
 import { Config } from '../../src/config/config';
-import { OrderBook } from '../../src/orderbook/orderbook';
+import { Orderbook } from '../../src/book/orderbook';
 
 chai.use(chaiHttp);
 
@@ -32,7 +32,7 @@ const IP = '127.0.0.1';
 @suite
 class TestOderBook {
   static config: Config;
-  static orderBook: OrderBook;
+  static orderBook: Orderbook;
   private expectedBuyObj: Array<Object> = [
     { id: 123456789, p: '10.98765400', a: '5.09876500' },
   ];
@@ -42,15 +42,15 @@ class TestOderBook {
   private notExistContract: string = 'NOT_EXIST';
 
   @timeout(10000)
-  static before(): Promise<void> {
+  static async before(): Promise<void> {
     this.config = new Config({
       ip: IP,
       port: BASE_PORT,
     });
+    this.orderBook = await Orderbook.make(this.config);
 
-    return new Promise(async (resolve) => {
+    return new Promise((resolve) => {
       setTimeout(resolve, 5000);
-      this.orderBook = await OrderBook.make(this.config);
     });
   }
 

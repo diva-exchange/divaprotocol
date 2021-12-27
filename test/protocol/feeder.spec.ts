@@ -26,8 +26,7 @@ import { Config } from '../../src/config/config';
 import { BlockProcessor } from '../../src/protocol/block-processor';
 import { BlockStruct } from '../../src/protocol/struct';
 import { SubscribeManager } from '../../src/protocol/subscribe-manager';
-import base64url from 'base64-url';
-import { OrderBook } from '../../src/orderbook/orderbook';
+import { Orderbook } from '../../src/book/orderbook';
 import sinon from 'sinon';
 
 chai.use(chaiHttp);
@@ -40,7 +39,7 @@ const IP = '127.0.0.1';
 class TestFeeder {
   static config: Config;
   static feeder: BlockProcessor;
-  static orderBook: OrderBook;
+  static orderBook: Orderbook;
   static subscribeManager: SubscribeManager;
   private static data = {
     contract: 'BTC_XMR',
@@ -62,7 +61,7 @@ class TestFeeder {
             seq: 1,
             command: 'data',
             ns: 'DivaExchange:OrderBook:BTC_XMR',
-            base64url: '',
+            d: '',
           },
         ],
         sig: 'test_signature',
@@ -78,21 +77,19 @@ class TestFeeder {
   };
 
   @timeout(10000)
-  static before(): Promise<void> {
+  static async before(): Promise<void> {
     this.config = new Config({
       ip: IP,
       port: BASE_PORT,
     });
+    this.feeder = await BlockProcessor.make(this.config);
+    this.orderBook = await Orderbook.make(this.config);
+    this.subscribeManager = await SubscribeManager.make();
 
-    return new Promise(async (resolve) => {
+    return new Promise((resolve) => {
       setTimeout(resolve, 5000);
-      this.feeder = await BlockProcessor.make(this.config);
-      this.orderBook = await OrderBook.make(this.config);
-      this.subscribeManager = await SubscribeManager.make();
       this.testBlock.tx[0].origin = this.config.my_public_key;
-      this.testBlock.tx[0].commands[0].base64url = base64url.encode(
-        JSON.stringify(this.data)
-      );
+      this.testBlock.tx[0].commands[0].d = JSON.stringify(this.data);
     });
   }
 
