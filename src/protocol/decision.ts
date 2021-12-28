@@ -43,8 +43,9 @@ export class Decision {
   }
 
   public async process(contract: string, blockHeight: number): Promise<void> {
-    const auctionRestrictBlockHeight: number =
-      await this.getAuctionRestrictBlockHeight(contract);
+    const mapOfRBH: Map<string, number> =
+      await this.getAuctionRestrictBlockHeight();
+    const auctionRestrictBlockHeight: number = mapOfRBH.get(contract) || 0;
     if (
       blockHeight > auctionRestrictBlockHeight &&
       (await this.isMatch(contract))
@@ -143,27 +144,36 @@ export class Decision {
     });
   }
 
-  public async getAuctionRestrictBlockHeight(
-    contract: string
-  ): Promise<number> {
-    let result: number = 0;
+  public async getAuctionRestrictBlockHeight(): Promise<Map<string, number>> {
+    const mapOfRestrictBlockHeight: Map<string, number> = new Map<
+      string,
+      number
+    >();
+
+    this.config.contracts_array.forEach((contract) => {
+      mapOfRestrictBlockHeight.set(contract, 0);
+    });
     const states: string = await this.getState();
     if (states) {
       const allData = [...JSON.parse(states)];
       allData.forEach((element) => {
         const keyArray: Array<string> = element.key.toString().split(':', 6);
         if (
-          element.key.startsWith(
-            'decision:taken:DivaExchange:Auction:' + contract
-          )
+          element.key.startsWith('decision:taken:DivaExchange:Auction:') &&
+          mapOfRestrictBlockHeight.get(keyArray[4]) !== undefined
         ) {
           if (!isNaN(Number(keyArray[5]))) {
+            const contract = keyArray[4].toString();
             const bh = Number(keyArray[5]);
-            result = Math.max(result, bh);
+            const currentRBH = mapOfRestrictBlockHeight.get(contract) || 0;
+            mapOfRestrictBlockHeight.set(
+              contract,
+              Math.max(currentRBH, bh + this.config.waitingPeriod)
+            );
           }
         }
       });
     }
-    return result == 0 ? 0 : result + this.config.waitingPeriod;
+    return mapOfRestrictBlockHeight;
   }
 }

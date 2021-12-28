@@ -62,7 +62,7 @@ export class BlockProcessor {
           await this.orderBook.updateMarket(contract);
 
           // check for settlement
-          await this.settlement.process(contract, block.height);
+          await this.settlement.process(block.height);
 
           // check for decision
           await this.decision.process(contract, block.height);

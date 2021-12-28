@@ -48,20 +48,22 @@ export class Settlement {
     this.config = config;
   }
 
-  public async process(contract: string, blockHeight: number) {
-    const auctionRestrictBlockHeight: number =
-      await this.decision.getAuctionRestrictBlockHeight(contract);
-    if (blockHeight == auctionRestrictBlockHeight) {
-      console.log('Settlement on block: ' + blockHeight);
-      this.ordersMatch.populateMatchBook(contract).then(() => {
-        this.sendSettlementToChain(contract, blockHeight);
-        if (this.deleteMyMatchesFromNostro(contract)) {
-          this.messageProcessor.sendSubscriptions(contract, 'nostro');
-          this.messageProcessor.storeNostroOnChain(contract);
-        }
-        this.match.getMatchMap().set(contract, new Array<tMatch>());
-      });
-    }
+  public async process(blockHeight: number) {
+    const mapOfRBH: Map<string, number> =
+      await this.decision.getAuctionRestrictBlockHeight();
+    mapOfRBH.forEach((value, contract) => {
+      if (blockHeight == value) {
+        console.log('Settlement on block: ' + blockHeight);
+        this.ordersMatch.populateMatchBook(contract).then(() => {
+          this.sendSettlementToChain(contract, blockHeight);
+          if (this.deleteMyMatchesFromNostro(contract)) {
+            this.messageProcessor.sendSubscriptions(contract, 'nostro');
+            this.messageProcessor.storeNostroOnChain(contract);
+          }
+          this.match.getMatchMap().set(contract, new Array<tMatch>());
+        });
+      }
+    });
   }
 
   private sendSettlementToChain(contract: string, blockheight: number): void {
