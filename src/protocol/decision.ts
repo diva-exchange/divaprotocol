@@ -65,7 +65,7 @@ export class Decision {
           seq: 1,
           command: 'decision',
           ns: nameSpace,
-          d: JSON.stringify(''),
+          d: '',
         },
       ],
       json: true,
