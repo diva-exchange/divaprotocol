@@ -149,28 +149,43 @@ export class Decision {
       string,
       number
     >();
-
-    this.config.contracts_array.forEach((contract) => {
-      mapOfRestrictBlockHeight.set(contract, 0);
-    });
+    const mapOfSettlementsBlockHeight: Map<string, number> = new Map<
+      string,
+      number
+    >();
     const states: string = await this.getState();
     if (states) {
       const allData = [...JSON.parse(states)];
       allData.forEach((element) => {
         const keyArray: Array<string> = element.key.toString().split(':', 6);
         if (
-          element.key.startsWith('decision:taken:DivaExchange:Auction:') &&
-          mapOfRestrictBlockHeight.get(keyArray[4]) !== undefined
+          element.key.startsWith('decision:taken:DivaExchange:') &&
+          this.config.contracts_array.includes(keyArray[4])
         ) {
           if (!isNaN(Number(keyArray[5]))) {
             const contract = keyArray[4].toString();
             const bh = Number(keyArray[5]);
-            const currentRBH = mapOfRestrictBlockHeight.get(contract) || 0;
-            mapOfRestrictBlockHeight.set(
-              contract,
-              Math.max(currentRBH, bh + this.config.waitingPeriod)
-            );
+            if (keyArray[3] == 'Auction') {
+              const currentRBH = mapOfRestrictBlockHeight.get(contract) || 0;
+              mapOfRestrictBlockHeight.set(
+                contract,
+                Math.max(currentRBH, bh + this.config.waitingPeriod)
+              );
+            }
+            if (keyArray[3] == 'Settlement') {
+              const currentSBH = mapOfSettlementsBlockHeight.get(contract) || 0;
+              mapOfSettlementsBlockHeight.set(
+                contract,
+                Math.max(currentSBH, bh)
+              );
+            }
           }
+        }
+      });
+      mapOfRestrictBlockHeight.forEach((value, contract) => {
+        const sbh = mapOfSettlementsBlockHeight.get(contract) || 0;
+        if (sbh > value) {
+          mapOfRestrictBlockHeight.delete(contract);
         }
       });
     }

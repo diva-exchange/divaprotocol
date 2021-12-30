@@ -26,6 +26,17 @@ import { Orderbook } from '../book/orderbook';
 import { MessageProcessor } from './message-processor';
 import { OrdersMatch } from './orders-match';
 
+type iRecord = {
+  wallet: string;
+  p: string;
+  a: string;
+};
+
+type tInstruction = {
+  buy: iRecord;
+  sell: iRecord;
+};
+
 export class Settlement {
   private readonly config: Config;
   private orderBook: Orderbook = {} as Orderbook;
@@ -67,7 +78,12 @@ export class Settlement {
   }
 
   private sendSettlementToChain(contract: string, blockheight: number): void {
-    const data = this.match.getMatchMap().get(contract) || '';
+    const matchData: Array<tMatch> =
+      this.match.getMatchMap().get(contract) || Array<tMatch>();
+    const instructions = this.getInstructions(matchData);
+    const data: Map<string, Array<object>> = new Map();
+    data.set('matchBook', matchData);
+    data.set('instructions', instructions);
     const nameSpace: string =
       'DivaExchange:Settlement:' + contract + ':' + blockheight;
     const opts = {
@@ -78,7 +94,7 @@ export class Settlement {
           seq: 1,
           command: 'decision',
           ns: nameSpace,
-          d: JSON.stringify(data),
+          d: JSON.stringify(matchData),
         },
       ],
       json: true,
@@ -118,5 +134,32 @@ export class Settlement {
     a: string
   ) {
     this.orderBook.deleteNostro(id, contract, type, p, a);
+  }
+
+  private getInstructions(data: Array<tMatch>): Array<tInstruction> {
+    const result: Array<tInstruction> = Array<tInstruction>();
+    if (data.length > 0) {
+      for (const match of data) {
+        result.push(this.getInstructionRecord(match));
+      }
+    }
+    return result;
+  }
+
+  private getInstructionRecord(match: tMatch): tInstruction {
+    const instructionRecordBuy = {
+      wallet: match.buy.pk,
+      p: match.buy.p,
+      a: match.buy.a,
+    };
+    const instructionRecordSell = {
+      wallet: match.sell.pk,
+      p: match.sell.p,
+      a: match.sell.a,
+    };
+    return {
+      buy: instructionRecordBuy,
+      sell: instructionRecordSell,
+    };
   }
 }
