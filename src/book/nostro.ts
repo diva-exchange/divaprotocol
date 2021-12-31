@@ -104,7 +104,7 @@ export class Nostro {
         .minus(amount)
         .toFixed(PRECISION);
       if (new Big(newAmount).toNumber() > 0) {
-        this.set(id, TYPE_BUY, price, newAmount);
+        this.set(id, TYPE_SELL, price, newAmount);
       } else {
         this.mapSell.delete(id);
       }
