@@ -61,9 +61,6 @@ export class BlockProcessor {
           // fill marketBook
           await this.orderBook.updateMarket(contract);
 
-          // check for settlement
-          await this.settlement.process(block.height);
-
           // check for decision
           await this.decision.process(contract, block.height);
 
@@ -79,6 +76,8 @@ export class BlockProcessor {
           });
         }
       }
+      // check for settlement
+      await this.settlement.process(block.height);
     }
   }
 }
