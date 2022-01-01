@@ -25,6 +25,8 @@ import { SubscribeManager, iSubscribe } from './subscribe-manager';
 import { tNostro } from '../book/nostro';
 import { Decision } from './decision';
 import { Settlement } from './settlement';
+import { MessageProcessor } from './message-processor';
+import get from 'simple-get';
 
 export class BlockProcessor {
   private readonly config: Config;
@@ -32,6 +34,7 @@ export class BlockProcessor {
   private subscribeManager: SubscribeManager = {} as SubscribeManager;
   private decision: Decision = {} as Decision;
   private settlement: Settlement = {} as Settlement;
+  private messageProcessor: MessageProcessor = {} as MessageProcessor;
 
   static async make(config: Config): Promise<BlockProcessor> {
     const f = new BlockProcessor(config);
@@ -39,6 +42,7 @@ export class BlockProcessor {
     f.subscribeManager = await SubscribeManager.make();
     f.decision = await Decision.make(config);
     f.settlement = await Settlement.make(config);
+    f.messageProcessor = await MessageProcessor.make(config);
     return f;
   }
 
@@ -75,9 +79,39 @@ export class BlockProcessor {
             }
           });
         }
+        if (
+          c.command === 'decision' &&
+          c.ns.startsWith('DivaExchange:Settlement:')
+        ) {
+          const keyArray: Array<string> = c.ns.toString().split(':', 4);
+          if (
+            this.config.contracts_array.includes(keyArray[2]) &&
+            (await this.settlementTaken(c.ns))
+          ) {
+            this.settlement.settlementHappenedProcess(keyArray[2]);
+          }
+        }
       }
       // check for settlement
       await this.settlement.process(block.height);
     }
+  }
+
+  private settlementTaken(ns: string): Promise<boolean> {
+    let response: boolean = false;
+    const url: string =
+      this.config.url_api_chain + '/state/decision:taken:' + ns;
+    return new Promise((resolve, reject) => {
+      get.concat(url, (error: Error, res: any) => {
+        if (error || res.statusCode !== 200) {
+          reject(error || res.statusCode);
+          response = false;
+        }
+        if (res.statusCode === 200) {
+          response = true;
+        }
+        resolve(response);
+      });
+    });
   }
 }

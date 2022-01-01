@@ -25,16 +25,13 @@ import { Logger } from '../util/logger';
 import { Orderbook } from '../book/orderbook';
 import { MessageProcessor } from './message-processor';
 import { OrdersMatch } from './orders-match';
+import { Big } from 'big.js';
 
 type iRecord = {
-  wallet: string;
-  p: string;
+  pk_from: string;
+  c: string;
   a: string;
-};
-
-type tInstruction = {
-  buy: iRecord;
-  sell: iRecord;
+  pk_to: string;
 };
 
 export class Settlement {
@@ -67,20 +64,23 @@ export class Settlement {
         console.log('Settlement on block: ' + blockHeight);
         this.ordersMatch.populateMatchBook(contract).then(() => {
           this.sendSettlementToChain(contract, blockHeight);
-          if (this.deleteMyMatchesFromNostro(contract)) {
-            this.messageProcessor.sendSubscriptions(contract, 'nostro');
-            this.messageProcessor.storeNostroOnChain(contract);
-          }
-          this.match.getMatchMap().set(contract, new Array<tMatch>());
         });
       }
     });
   }
 
+  settlementHappenedProcess(contract: string) {
+    if (this.deleteMyMatchesFromNostro(contract)) {
+      this.messageProcessor.sendSubscriptions(contract, 'nostro');
+      this.messageProcessor.storeNostroOnChain(contract);
+    }
+    this.match.getMatchMap().set(contract, new Array<tMatch>());
+  }
+
   private sendSettlementToChain(contract: string, blockheight: number): void {
     const matchData: Array<tMatch> =
       this.match.getMatchMap().get(contract) || Array<tMatch>();
-    const instructions = this.getInstructions(matchData);
+    const instructions = this.getInstructions(matchData, contract);
     const data: Map<string, Array<object>> = new Map();
     data.set('matchBook', matchData);
     data.set('instructions', instructions);
@@ -94,7 +94,7 @@ export class Settlement {
           seq: 1,
           command: 'decision',
           ns: nameSpace,
-          d: JSON.stringify(matchData),
+          d: JSON.stringify(data),
         },
       ],
       json: true,
@@ -107,7 +107,7 @@ export class Settlement {
     });
   }
 
-  private deleteMyMatchesFromNostro(contract: string): boolean {
+  deleteMyMatchesFromNostro(contract: string): boolean {
     let orderFound = false;
     const data: Array<tMatch> | undefined =
       this.match.getMatchMap().get(contract) || new Array<tMatch>();
@@ -136,30 +136,51 @@ export class Settlement {
     this.orderBook.deleteNostro(id, contract, type, p, a);
   }
 
-  private getInstructions(data: Array<tMatch>): Array<tInstruction> {
-    const result: Array<tInstruction> = Array<tInstruction>();
+  private getInstructions(
+    data: Array<tMatch>,
+    contract: string
+  ): Array<iRecord> {
+    const result: Array<iRecord> = Array<iRecord>();
+    const currencies: Array<string> = contract.split('_', 2);
+    const currency1: string = currencies[0];
+    const currency2: string = currencies[1];
     if (data.length > 0) {
       for (const match of data) {
-        result.push(this.getInstructionRecord(match));
+        const countedAmount: string = Big(match.buy.a)
+          .times(match.buy.a)
+          .toPrecision(this.config.decimalPrecision);
+        result.push(
+          this.getInstructionRecord(
+            match.buy.pk,
+            match.sell.pk,
+            currency2,
+            countedAmount
+          )
+        );
+        result.push(
+          this.getInstructionRecord(
+            match.sell.pk,
+            match.buy.pk,
+            currency1,
+            match.sell.a
+          )
+        );
       }
     }
     return result;
   }
 
-  private getInstructionRecord(match: tMatch): tInstruction {
-    const instructionRecordBuy = {
-      wallet: match.buy.pk,
-      p: match.buy.p,
-      a: match.buy.a,
-    };
-    const instructionRecordSell = {
-      wallet: match.sell.pk,
-      p: match.sell.p,
-      a: match.sell.a,
-    };
+  private getInstructionRecord(
+    pkFrom: string,
+    pkTo: string,
+    currency: string,
+    amount: string
+  ): iRecord {
     return {
-      buy: instructionRecordBuy,
-      sell: instructionRecordSell,
+      pk_from: pkFrom,
+      c: currency,
+      a: amount,
+      pk_to: pkTo,
     };
   }
 }
