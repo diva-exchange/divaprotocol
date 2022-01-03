@@ -100,7 +100,7 @@ export class BlockProcessor {
   private settlementTaken(ns: string): Promise<boolean> {
     let response: boolean = false;
     const url: string =
-      this.config.url_api_chain + '/state/decision:taken:' + ns;
+      this.config.url_api_chain + '/state/search/decision:taken:' + ns;
     return new Promise((resolve, reject) => {
       get.concat(url, (error: Error, res: any) => {
         if (error || res.statusCode !== 200) {
