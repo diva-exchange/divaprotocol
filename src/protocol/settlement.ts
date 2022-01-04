@@ -81,9 +81,6 @@ export class Settlement {
     const matchData: Array<tMatch> =
       this.match.getMatchMap().get(contract) || Array<tMatch>();
     const instructions = this.getInstructions(matchData, contract);
-    const data: Map<string, Array<object>> = new Map();
-    data.set('matchBook', matchData);
-    data.set('instructions', instructions);
     const nameSpace: string =
       'DivaExchange:Settlement:' + contract + ':' + blockheight;
     const opts = {
@@ -94,7 +91,7 @@ export class Settlement {
           seq: 1,
           command: 'decision',
           ns: nameSpace,
-          d: JSON.stringify(data),
+          d: JSON.stringify({matchBook: matchData, instructions: instructions}),
         },
       ],
       json: true,
