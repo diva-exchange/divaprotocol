@@ -78,7 +78,9 @@ export class OrdersMatch {
           sellValue.pk,
           sellValue.id,
           sellValue.p,
-          Math.min(ba, sa).toString()
+          new Big(Math.min(ba, sa))
+            .toPrecision(this.config.decimalPrecision)
+            .toString()
         );
         const remaining: Number = Math.abs(ba - sa);
         if (ba - sa <= 0) {

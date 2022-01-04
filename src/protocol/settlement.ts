@@ -146,7 +146,7 @@ export class Settlement {
     const currency2: string = currencies[1];
     if (data.length > 0) {
       for (const match of data) {
-        const countedAmount: string = Big(match.buy.a)
+        const countedAmount: string = Big(match.buy.p)
           .times(match.buy.a)
           .toPrecision(this.config.decimalPrecision);
         result.push(
@@ -162,7 +162,9 @@ export class Settlement {
             match.sell.pk,
             match.buy.pk,
             currency1,
-            match.sell.a
+            new Big(match.sell.a)
+              .toPrecision(this.config.decimalPrecision)
+              .toString()
           )
         );
       }
