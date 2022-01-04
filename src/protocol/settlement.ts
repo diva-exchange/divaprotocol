@@ -91,7 +91,10 @@ export class Settlement {
           seq: 1,
           command: 'decision',
           ns: nameSpace,
-          d: JSON.stringify({matchBook: matchData, instructions: instructions}),
+          d: JSON.stringify({
+            matchBook: matchData,
+            instructions: instructions,
+          }),
         },
       ],
       json: true,

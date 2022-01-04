@@ -214,7 +214,8 @@ export class OrdersMatch {
   }
 
   private getState(): Promise<string> {
-    const url: string = this.config.url_api_chain + '/state/search/DivaExchange:OrderBook:';
+    const url: string =
+      this.config.url_api_chain + '/state/search/DivaExchange:OrderBook:';
     return new Promise((resolve, reject) => {
       get.concat(url, (error: Error, res: any, data: any) => {
         if (error || res.statusCode !== 200) {
