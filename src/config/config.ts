@@ -53,6 +53,12 @@ export class Config {
   public contracts_array: Array<string> = ['BTC_XMR', 'BTC_ETH', 'BTC_ZEC'];
   public readonly waitingPeriod: number = 9;
   public readonly decimalPrecision: number = 8;
+  public readonly ns_first_part = 'DivaExchange:';
+  public readonly ns_order_book = 'OrderBook:';
+  public readonly ns_settlement = 'Settlement:';
+  public readonly ns_auction = 'Auction:';
+  public readonly decision = 'decision';
+  public readonly decision_taken = 'decision:taken:';
 
   constructor(c: Configuration) {
     this.path_app =

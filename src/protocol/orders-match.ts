@@ -128,8 +128,9 @@ export class OrdersMatch {
       allData.forEach((element) => {
         const keyArray: Array<string> = element.key.toString().split(':', 4);
         if (
-          keyArray[0] === 'DivaExchange' &&
-          keyArray[1] === 'OrderBook' &&
+          element.key.startsWith(
+            this.config.ns_first_part + this.config.ns_order_book
+          ) &&
           keyArray[2] === contract
         ) {
           try {
@@ -217,7 +218,10 @@ export class OrdersMatch {
 
   private getState(): Promise<string> {
     const url: string =
-      this.config.url_api_chain + '/state/search/DivaExchange:OrderBook:';
+      this.config.url_api_chain +
+      '/state/search/' +
+      this.config.ns_first_part +
+      this.config.ns_order_book;
     return new Promise((resolve, reject) => {
       get.concat(url, (error: Error, res: any, data: any) => {
         if (error || res.statusCode !== 200) {

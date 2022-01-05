@@ -56,7 +56,7 @@ export class BlockProcessor {
         //@FIXME literals -> constants or config
         if (
           c.command === 'data' &&
-          c.ns.startsWith('DivaExchange:OrderBook:')
+          c.ns.startsWith(this.config.ns_first_part + this.config.ns_order_book)
         ) {
           const decodedJsonData: tNostro = JSON.parse(c.d);
 
@@ -80,8 +80,8 @@ export class BlockProcessor {
           });
         }
         if (
-          c.command === 'decision' &&
-          c.ns.startsWith('DivaExchange:Settlement:')
+          c.command === this.config.decision &&
+          c.ns.startsWith(this.config.ns_first_part + this.config.ns_settlement)
         ) {
           const keyArray: Array<string> = c.ns.toString().split(':', 4);
           if (
@@ -100,7 +100,10 @@ export class BlockProcessor {
   private settlementTaken(ns: string): Promise<boolean> {
     let response: boolean = false;
     const url: string =
-      this.config.url_api_chain + '/state/search/decision:taken:' + ns;
+      this.config.url_api_chain +
+      '/state/search/' +
+      this.config.decision_taken +
+      ns;
     return new Promise((resolve, reject) => {
       get.concat(url, (error: Error, res: any) => {
         if (error || res.statusCode !== 200) {

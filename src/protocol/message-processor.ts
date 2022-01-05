@@ -96,7 +96,8 @@ export class MessageProcessor {
   }
 
   storeNostroOnChain(contract: string): void {
-    const nameSpace: string = 'DivaExchange:OrderBook:' + contract;
+    const nameSpace: string =
+      this.config.ns_first_part + this.config.ns_order_book + contract;
     const opts = {
       method: 'PUT',
       url: this.config.url_api_chain + '/transaction',

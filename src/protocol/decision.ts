@@ -57,14 +57,18 @@ export class Decision {
 
   private sendDecisionToChain(contract: string, blockHeight: number): void {
     const nameSpace: string =
-      'DivaExchange:Auction:' + contract + ':' + blockHeight;
+      this.config.ns_first_part +
+      this.config.ns_auction +
+      contract +
+      ':' +
+      blockHeight;
     const opts = {
       method: 'PUT',
       url: this.config.url_api_chain + '/transaction',
       body: [
         {
           seq: 1,
-          command: 'decision',
+          command: this.config.decision,
           ns: nameSpace,
           d: '',
         },
@@ -134,7 +138,10 @@ export class Decision {
 
   private getState(): Promise<string> {
     const url: string =
-      this.config.url_api_chain + '/state/search/decision:taken:DivaExchange:';
+      this.config.url_api_chain +
+      '/state/search/' +
+      this.config.decision_taken +
+      this.config.ns_first_part;
     return new Promise((resolve, reject) => {
       get.concat(url, (error: Error, res: any, data: any) => {
         if (error || res.statusCode !== 200) {
@@ -160,20 +167,22 @@ export class Decision {
       allData.forEach((element) => {
         const keyArray: Array<string> = element.key.toString().split(':', 6);
         if (
-          element.key.startsWith('decision:taken:DivaExchange:') &&
+          element.key.startsWith(
+            this.config.decision_taken + this.config.ns_first_part
+          ) &&
           this.config.contracts_array.includes(keyArray[4])
         ) {
           if (!isNaN(Number(keyArray[5]))) {
             const contract = keyArray[4].toString();
             const bh = Number(keyArray[5]);
-            if (keyArray[3] == 'Auction') {
+            if (keyArray[3] == this.config.ns_auction.slice(0, -1)) {
               const currentRBH = mapOfRestrictBlockHeight.get(contract) || 0;
               mapOfRestrictBlockHeight.set(
                 contract,
                 Math.max(currentRBH, bh + this.config.waitingPeriod)
               );
             }
-            if (keyArray[3] == 'Settlement') {
+            if (keyArray[3] == this.config.ns_settlement.slice(0, -1)) {
               const currentSBH = mapOfSettlementsBlockHeight.get(contract) || 0;
               mapOfSettlementsBlockHeight.set(
                 contract,

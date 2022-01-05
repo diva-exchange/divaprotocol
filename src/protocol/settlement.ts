@@ -82,14 +82,18 @@ export class Settlement {
       this.match.getMatchMap().get(contract) || Array<tMatch>();
     const instructions = this.getInstructions(matchData, contract);
     const nameSpace: string =
-      'DivaExchange:Settlement:' + contract + ':' + blockheight;
+      this.config.ns_first_part +
+      this.config.ns_settlement +
+      contract +
+      ':' +
+      blockheight;
     const opts = {
       method: 'PUT',
       url: this.config.url_api_chain + '/transaction',
       body: [
         {
           seq: 1,
-          command: 'decision',
+          command: this.config.decision,
           ns: nameSpace,
           d: JSON.stringify({
             matchBook: matchData,
