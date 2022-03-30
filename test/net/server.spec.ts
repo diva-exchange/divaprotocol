@@ -38,7 +38,6 @@ class TestServer {
   static config: Config;
   static testWebsocket: WebSocket;
 
-  @timeout(10000)
   static async before(): Promise<void> {
     this.config = new Config({
       ip: IP,
@@ -48,13 +47,10 @@ class TestServer {
 
     return new Promise((resolve) => {
       setTimeout(resolve, 5000);
-      this.testWebsocket = new WebSocket(
-        `ws://${TestServer.config.ip}:${TestServer.config.port}/`
-      );
+      this.testWebsocket = new WebSocket(`ws://${TestServer.config.ip}:${TestServer.config.port}/`);
     });
   }
 
-  @timeout(7000)
   static after(): Promise<void> {
     return new Promise((resolve) => {
       this.server.shutdown();
@@ -68,17 +64,13 @@ class TestServer {
   @timeout(5000)
   async default426() {
     await TestServer.wait(3000);
-    const res = chai
-      .request(`ws://${TestServer.config.ip}:${TestServer.config.port}`)
-      .get('/');
+    const res = chai.request(`ws://${TestServer.config.ip}:${TestServer.config.port}`).get('/');
     expect(res); // Upgrade Required
   }
 
   @test
   async testPublicKey() {
-    const publicKey = await new Factory(
-      TestServer.config.url_api_chain
-    ).getPublicKey();
+    const publicKey = await new Factory(TestServer.config.url_api_chain).getPublicKey();
     expect(publicKey).to.match(/^[A-Za-z0-9_-]{43}$/);
   }
 
@@ -113,9 +105,7 @@ class TestServer {
       contract: 'BTC_XMR',
       id: 123456789,
     };
-    const responseBuyObj: Array<Object> = [
-      { id: 123456789, p: '10.98765400', a: '5.09876500' },
-    ];
+    const responseBuyObj: Array<Object> = [{ id: 123456789, p: '10.98765400', a: '5.09876500' }];
 
     TestServer.testWebsocket.send(JSON.stringify(orderObject));
 
@@ -124,9 +114,7 @@ class TestServer {
       expect(response.channel).equal('nostro');
       expect(response.contract).equal('BTC_XMR');
       expect(response.sell).instanceOf(Array);
-      expect(response.buy)
-        .to.be.an('Array')
-        .to.deep.include.members(responseBuyObj);
+      expect(response.buy).to.be.an('Array').to.deep.include.members(responseBuyObj);
     });
     done();
   }

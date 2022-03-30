@@ -57,8 +57,7 @@ export class Settlement {
   }
 
   public async process(blockHeight: number) {
-    const mapOfRBH: Map<string, number> =
-      await this.decision.getAuctionRestrictBlockHeight();
+    const mapOfRBH: Map<string, number> = await this.decision.getAuctionRestrictBlockHeight();
     mapOfRBH.forEach((value, contract) => {
       if (blockHeight == value) {
         console.log('Settlement on block: ' + blockHeight);
@@ -78,15 +77,9 @@ export class Settlement {
   }
 
   private sendSettlementToChain(contract: string, blockheight: number): void {
-    const matchData: Array<tMatch> =
-      this.match.getMatchMap().get(contract) || Array<tMatch>();
+    const matchData: Array<tMatch> = this.match.getMatchMap().get(contract) || Array<tMatch>();
     const instructions = this.getInstructions(matchData, contract);
-    const nameSpace: string =
-      this.config.ns_first_part +
-      this.config.ns_settlement +
-      contract +
-      ':' +
-      blockheight;
+    const nameSpace: string = this.config.ns_first_part + this.config.ns_settlement + contract + ':' + blockheight;
     const opts = {
       method: 'PUT',
       url: this.config.url_api_chain + '/transaction',
@@ -113,8 +106,7 @@ export class Settlement {
 
   deleteMyMatchesFromNostro(contract: string): boolean {
     let orderFound = false;
-    const data: Array<tMatch> | undefined =
-      this.match.getMatchMap().get(contract) || new Array<tMatch>();
+    const data: Array<tMatch> | undefined = this.match.getMatchMap().get(contract) || new Array<tMatch>();
     if (data.length > 0) {
       data.forEach((v) => {
         if (v.buy.pk === this.config.my_public_key) {
@@ -130,45 +122,25 @@ export class Settlement {
     return orderFound;
   }
 
-  private deleteOrder(
-    contract: string,
-    type: 'buy' | 'sell',
-    id: number,
-    p: string,
-    a: string
-  ) {
+  private deleteOrder(contract: string, type: 'buy' | 'sell', id: number, p: string, a: string) {
     this.orderBook.deleteNostro(id, contract, type, p, a);
   }
 
-  private getInstructions(
-    data: Array<tMatch>,
-    contract: string
-  ): Array<iRecord> {
+  private getInstructions(data: Array<tMatch>, contract: string): Array<iRecord> {
     const result: Array<iRecord> = Array<iRecord>();
     const currencies: Array<string> = contract.split('_', 2);
     const currency1: string = currencies[0];
     const currency2: string = currencies[1];
     if (data.length > 0) {
       for (const match of data) {
-        const countedAmount: string = Big(match.buy.p)
-          .times(match.buy.a)
-          .toPrecision(this.config.decimalPrecision);
-        result.push(
-          this.getInstructionRecord(
-            match.buy.pk,
-            match.sell.pk,
-            currency2,
-            countedAmount
-          )
-        );
+        const countedAmount: string = Big(match.buy.p).times(match.buy.a).toPrecision(this.config.decimalPrecision);
+        result.push(this.getInstructionRecord(match.buy.pk, match.sell.pk, currency2, countedAmount));
         result.push(
           this.getInstructionRecord(
             match.sell.pk,
             match.buy.pk,
             currency1,
-            new Big(match.sell.a)
-              .toPrecision(this.config.decimalPrecision)
-              .toString()
+            new Big(match.sell.a).toPrecision(this.config.decimalPrecision).toString()
           )
         );
       }
@@ -176,12 +148,7 @@ export class Settlement {
     return result;
   }
 
-  private getInstructionRecord(
-    pkFrom: string,
-    pkTo: string,
-    currency: string,
-    amount: string
-  ): iRecord {
+  private getInstructionRecord(pkFrom: string, pkTo: string, currency: string, amount: string): iRecord {
     return {
       pk_from: pkFrom,
       c: currency,

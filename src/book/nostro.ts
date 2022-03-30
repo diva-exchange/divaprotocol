@@ -57,33 +57,18 @@ export class Nostro {
     this.contract = contract;
   }
 
-  public buy(
-    id: number,
-    price: string | number,
-    amount: string | number
-  ): void {
+  public buy(id: number, price: string | number, amount: string | number): void {
     this.set(id, TYPE_BUY, price, amount);
   }
 
-  public sell(
-    id: number,
-    price: string | number,
-    amount: string | number
-  ): void {
+  public sell(id: number, price: string | number, amount: string | number): void {
     this.set(id, TYPE_SELL, price, amount);
   }
 
-  public deleteBuy(
-    id: number,
-    price: string | number,
-    amount: string | number
-  ): void {
+  public deleteBuy(id: number, price: string | number, amount: string | number): void {
     if (this.mapBuy.size > 0 && this.mapBuy.has(id)) {
-      const existingMapBuy: Map<string, string> =
-        this.mapBuy.get(id) || new Map<string, string>();
-      const newAmount = new Big(existingMapBuy.get(price.toString()) || '0')
-        .minus(amount)
-        .toFixed(PRECISION);
+      const existingMapBuy: Map<string, string> = this.mapBuy.get(id) || new Map<string, string>();
+      const newAmount = new Big(existingMapBuy.get(price.toString()) || '0').minus(amount).toFixed(PRECISION);
       if (new Big(newAmount).toNumber() > 0) {
         this.set(id, TYPE_BUY, price, newAmount);
       } else {
@@ -92,17 +77,10 @@ export class Nostro {
     }
   }
 
-  public deleteSell(
-    id: number,
-    price: string | number,
-    amount: string | number
-  ): void {
+  public deleteSell(id: number, price: string | number, amount: string | number): void {
     if (this.mapSell.size > 0 && this.mapSell.has(id)) {
-      const existingMapSell: Map<string, string> =
-        this.mapSell.get(id) || new Map<string, string>();
-      const newAmount = new Big(existingMapSell.get(price.toString()) || '0')
-        .minus(amount)
-        .toFixed(PRECISION);
+      const existingMapSell: Map<string, string> = this.mapSell.get(id) || new Map<string, string>();
+      const newAmount = new Big(existingMapSell.get(price.toString()) || '0').minus(amount).toFixed(PRECISION);
       if (new Big(newAmount).toNumber() > 0) {
         this.set(id, TYPE_SELL, price, newAmount);
       } else {
@@ -121,18 +99,12 @@ export class Nostro {
       case TYPE_BUY:
         return this.mapBuy.set(
           id,
-          new Map().set(
-            new Big(price).toFixed(PRECISION),
-            new Big(amount).toFixed(PRECISION)
-          )
+          new Map().set(new Big(price).toFixed(PRECISION), new Big(amount).toFixed(PRECISION))
         );
       case TYPE_SELL:
         return this.mapSell.set(
           id,
-          new Map().set(
-            new Big(price).toFixed(PRECISION),
-            new Big(amount).toFixed(PRECISION)
-          )
+          new Map().set(new Big(price).toFixed(PRECISION), new Big(amount).toFixed(PRECISION))
         );
       default:
         throw new Error('Book.set(): invalid type');

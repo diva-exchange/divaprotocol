@@ -64,19 +64,13 @@ export class Market {
     this.set(TYPE_SELL, price, amount);
   }
 
-  private set(
-    type: string,
-    price: string | number,
-    amount: string | number
-  ): Map<string, string> {
+  private set(type: string, price: string | number, amount: string | number): Map<string, string> {
     const convertedPrice = new Big(price).toFixed(PRECISION);
     const convertedAmount = new Big(amount).toFixed(PRECISION);
     switch (type) {
       case TYPE_BUY: {
         const existingBuyAmount = this.mapBuy.get(convertedPrice);
-        const newBuyAmount = new Big(existingBuyAmount || 0)
-          .plus(convertedAmount)
-          .toFixed(PRECISION);
+        const newBuyAmount = new Big(existingBuyAmount || 0).plus(convertedAmount).toFixed(PRECISION);
         if (new Big(newBuyAmount).toNumber() > 0) {
           this.mapBuy.set(convertedPrice, newBuyAmount);
         } else {
@@ -86,9 +80,7 @@ export class Market {
       }
       case TYPE_SELL: {
         const existingSellAmount = this.mapSell.get(convertedPrice);
-        const newSellAmount = new Big(existingSellAmount || 0)
-          .plus(convertedAmount)
-          .toFixed(PRECISION);
+        const newSellAmount = new Big(existingSellAmount || 0).plus(convertedAmount).toFixed(PRECISION);
         if (new Big(newSellAmount).toNumber() > 0) {
           this.mapSell.set(convertedPrice, newSellAmount);
         } else {

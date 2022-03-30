@@ -33,12 +33,8 @@ const IP = '127.0.0.1';
 class TestOderBook {
   static config: Config;
   static orderBook: Orderbook;
-  private expectedBuyObj: Array<Object> = [
-    { id: 123456789, p: '10.98765400', a: '5.09876500' },
-  ];
-  private expectedSellObj: Array<Object> = [
-    { id: 987654321, p: '17.98765400', a: '75.09876500' },
-  ];
+  private expectedBuyObj: Array<Object> = [{ id: 123456789, p: '10.98765400', a: '5.09876500' }];
+  private expectedSellObj: Array<Object> = [{ id: 987654321, p: '17.98765400', a: '75.09876500' }];
   private notExistContract: string = 'NOT_EXIST';
 
   @timeout(10000)
@@ -65,26 +61,14 @@ class TestOderBook {
   testAddNostroFail() {
     // CONTRACT DOES NOT EXIST
     expect(() => {
-      TestOderBook.orderBook.addNostro(
-        123456789,
-        this.notExistContract,
-        'buy',
-        10.987654,
-        5.098765
-      );
+      TestOderBook.orderBook.addNostro(123456789, this.notExistContract, 'buy', 10.987654, 5.098765);
     }).to.throw('OrderBook.update(): invalid contract');
   }
 
   @test
   testAddNostroBuy() {
     // BUY
-    TestOderBook.orderBook.addNostro(
-      123456789,
-      'BTC_XMR',
-      'buy',
-      10.987654,
-      5.098765
-    );
+    TestOderBook.orderBook.addNostro(123456789, 'BTC_XMR', 'buy', 10.987654, 5.098765);
     const orderBookNostroBuy = TestOderBook.orderBook.getNostro('BTC_XMR').buy;
 
     expect(orderBookNostroBuy).to.be.instanceOf(Array);
@@ -94,15 +78,8 @@ class TestOderBook {
   @test
   testAddNostroSell() {
     // SELL
-    TestOderBook.orderBook.addNostro(
-      987654321,
-      'BTC_XMR',
-      'sell',
-      17.987654,
-      75.098765
-    );
-    const orderBookNostroSell =
-      TestOderBook.orderBook.getNostro('BTC_XMR').sell;
+    TestOderBook.orderBook.addNostro(987654321, 'BTC_XMR', 'sell', 17.987654, 75.098765);
+    const orderBookNostroSell = TestOderBook.orderBook.getNostro('BTC_XMR').sell;
 
     expect(orderBookNostroSell).to.be.instanceOf(Array);
     expect(orderBookNostroSell).to.deep.include.members(this.expectedSellObj);
@@ -127,12 +104,8 @@ class TestOderBook {
       const orderBookMarket = TestOderBook.orderBook.getMarket('BTC_XMR');
 
       expect(orderBookMarket).to.be.instanceOf(Object);
-      expect(orderBookMarket)
-        .to.have.property('buy')
-        .to.eql(this.expectedBuyObj);
-      expect(orderBookMarket)
-        .to.have.property('sell')
-        .to.eql(this.expectedSellObj);
+      expect(orderBookMarket).to.have.property('buy').to.eql(this.expectedBuyObj);
+      expect(orderBookMarket).to.have.property('sell').to.eql(this.expectedSellObj);
     });
   }
 
@@ -140,13 +113,7 @@ class TestOderBook {
   testDeleteNostroFail() {
     // CONTRACT DOES NOT EXIST
     expect(() => {
-      TestOderBook.orderBook.deleteNostro(
-        123456789,
-        this.notExistContract,
-        'buy',
-        10.987654,
-        5.098765
-      );
+      TestOderBook.orderBook.deleteNostro(123456789, this.notExistContract, 'buy', 10.987654, 5.098765);
     }).to.throw('OrderBook.update(): invalid contract');
   }
 
@@ -154,13 +121,7 @@ class TestOderBook {
   testDeleteNostroBuy() {
     // BUY
 
-    TestOderBook.orderBook.deleteNostro(
-      123456789,
-      'BTC_XMR',
-      'buy',
-      10.987654,
-      5.098765
-    );
+    TestOderBook.orderBook.deleteNostro(123456789, 'BTC_XMR', 'buy', 10.987654, 5.098765);
     const orderBookNostroBuy = TestOderBook.orderBook.getNostro('BTC_XMR');
 
     expect(orderBookNostroBuy).to.be.instanceOf(Object);
@@ -170,13 +131,7 @@ class TestOderBook {
   @test
   testDeleteNostroSell() {
     // SELL
-    TestOderBook.orderBook.deleteNostro(
-      987654321,
-      'BTC_XMR',
-      'sell',
-      17.987654,
-      75.098765
-    );
+    TestOderBook.orderBook.deleteNostro(987654321, 'BTC_XMR', 'sell', 17.987654, 75.098765);
     const orderBookNostroSell = TestOderBook.orderBook.getNostro('BTC_XMR');
 
     expect(orderBookNostroSell).to.be.instanceOf(Object);

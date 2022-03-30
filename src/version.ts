@@ -21,7 +21,4 @@ import fs from 'fs';
 import path from 'path';
 
 const pathPackage = path.join(__dirname, '../package.json');
-fs.writeFileSync(
-  path.join(__dirname, '../build/version'),
-  require(pathPackage).version
-);
+fs.writeFileSync(path.join(__dirname, '../build/version'), require(pathPackage).version);

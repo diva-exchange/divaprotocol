@@ -43,24 +43,12 @@ export class Orderbook {
   private constructor(config: Config) {
     this.config = config;
     this.config.contracts_array.forEach((contract) => {
-      this.arrayNostro[contract] = Nostro.make(
-        contract,
-        config.decimalPrecision
-      );
-      this.arrayMarket[contract] = Market.make(
-        contract,
-        config.decimalPrecision
-      );
+      this.arrayNostro[contract] = Nostro.make(contract, config.decimalPrecision);
+      this.arrayMarket[contract] = Market.make(contract, config.decimalPrecision);
     });
   }
 
-  public addNostro(
-    id: number,
-    contract: string,
-    type: tBuySell,
-    price: number,
-    amount: number
-  ): void {
+  public addNostro(id: number, contract: string, type: tBuySell, price: number, amount: number): void {
     if (!this.arrayNostro[contract]) {
       throw new Error('Nostro.update(): invalid contract');
     }
@@ -104,18 +92,11 @@ export class Orderbook {
     }
     const currentState: string = await this.getState();
     if (currentState) {
-      this.arrayMarket[contract] = Market.make(
-        contract,
-        this.config.decimalPrecision
-      );
+      this.arrayMarket[contract] = Market.make(contract, this.config.decimalPrecision);
       const allData = [...JSON.parse(currentState)];
       allData.forEach((element) => {
         const keyArray: Array<string> = element.key.toString().split(':', 4);
-        if (
-          keyArray[0] === 'DivaExchange' &&
-          keyArray[1] === 'OrderBook' &&
-          keyArray[2] === contract
-        ) {
+        if (keyArray[0] === 'DivaExchange' && keyArray[1] === 'OrderBook' && keyArray[2] === contract) {
           try {
             const book: tNostro = JSON.parse(element.value);
             if (Validation.make().validateBook(book)) {
@@ -161,10 +142,7 @@ export class Orderbook {
         ) {
           try {
             const book: tNostro = JSON.parse(element.value);
-            const channel =
-              keyArray[keyArray.length - 1] === this.config.my_public_key
-                ? 'nostro'
-                : 'market';
+            const channel = keyArray[keyArray.length - 1] === this.config.my_public_key ? 'nostro' : 'market';
             if (Validation.make().validateBook(book)) {
               if (channel === 'nostro') {
                 book.buy.forEach((r) => {
@@ -190,8 +168,7 @@ export class Orderbook {
   }
 
   private getState(): Promise<string> {
-    const url: string =
-      this.config.url_api_chain + '/state/search/DivaExchange:OrderBook:';
+    const url: string = this.config.url_api_chain + '/state/search/DivaExchange:OrderBook:';
     return new Promise((resolve, reject) => {
       get.concat(url, (error: Error, res: any, data: any) => {
         if (error || res.statusCode !== 200) {

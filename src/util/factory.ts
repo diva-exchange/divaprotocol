@@ -30,20 +30,17 @@ export class Factory {
 
   public async getPublicKey(): Promise<string> {
     return new Promise((resolve, reject) => {
-      get.concat(
-        this.url_api_chain + '/about',
-        (error: Error, res: any, data: any) => {
-          if (error) {
-            Logger.trace(error);
-            reject(error);
-            return;
-          }
-          if (res.statusCode == 200) {
-            this.my_public_key = JSON.parse(data).publicKey.toString();
-          }
-          resolve(JSON.parse(data).publicKey.toString());
+      get.concat(this.url_api_chain + '/about', (error: Error, res: any, data: any) => {
+        if (error) {
+          Logger.trace(error);
+          reject(error);
+          return;
         }
-      );
+        if (res.statusCode == 200) {
+          this.my_public_key = JSON.parse(data).publicKey.toString();
+        }
+        resolve(JSON.parse(data).publicKey.toString());
+      });
     });
   }
 }

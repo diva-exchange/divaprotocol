@@ -54,10 +54,7 @@ export class BlockProcessor {
     for (const t of block.tx) {
       for (const c of t.commands) {
         //@FIXME literals -> constants or config
-        if (
-          c.command === 'data' &&
-          c.ns.startsWith(this.config.ns_first_part + this.config.ns_order_book)
-        ) {
+        if (c.command === 'data' && c.ns.startsWith(this.config.ns_first_part + this.config.ns_order_book)) {
           const decodedJsonData: tNostro = JSON.parse(c.d);
 
           const contract: string = decodedJsonData.contract;
@@ -69,8 +66,7 @@ export class BlockProcessor {
           await this.decision.process(contract, block.height);
 
           // subscription
-          const sub: Map<WebSocket, iSubscribe> =
-            this.subscribeManager.getSubscriptions();
+          const sub: Map<WebSocket, iSubscribe> = this.subscribeManager.getSubscriptions();
 
           sub.forEach((subscribe, ws) => {
             if (subscribe.market.has(contract)) {
@@ -84,10 +80,7 @@ export class BlockProcessor {
           c.ns.startsWith(this.config.ns_first_part + this.config.ns_settlement)
         ) {
           const keyArray: Array<string> = c.ns.toString().split(':', 4);
-          if (
-            this.config.contracts_array.includes(keyArray[2]) &&
-            (await this.settlementTaken(c.ns))
-          ) {
+          if (this.config.contracts_array.includes(keyArray[2]) && (await this.settlementTaken(c.ns))) {
             this.settlement.settlementHappenedProcess(keyArray[2]);
           }
         }
@@ -99,11 +92,7 @@ export class BlockProcessor {
 
   private settlementTaken(ns: string): Promise<boolean> {
     let response: boolean = false;
-    const url: string =
-      this.config.url_api_chain +
-      '/state/search/' +
-      this.config.decision_taken +
-      ns;
+    const url: string = this.config.url_api_chain + '/state/search/' + this.config.decision_taken + ns;
     return new Promise((resolve, reject) => {
       get.concat(url, (error: Error, res: any) => {
         if (error || res.statusCode !== 200) {

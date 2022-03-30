@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2021 diva.exchange
+ * Copyright (C) 2021-2022 diva.exchange
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -22,7 +22,6 @@ import { Logger } from '../util/logger';
 import WebSocket, { Server as WebSocketServer } from 'ws';
 import { BlockProcessor } from '../protocol/block-processor';
 import { MessageProcessor } from '../protocol/message-processor';
-import Buffer from 'buffer';
 import { Validation } from './validation';
 import { BlockStruct, Message } from '../protocol/struct';
 import { Orderbook } from '../book/orderbook';
@@ -57,9 +56,7 @@ export class Server {
       host: this.config.ip,
       port: this.config.port,
     });
-    Logger.info(
-      `WebSocket Server listening on ${this.config.ip}:${this.config.port}`
-    );
+    Logger.info(`WebSocket Server listening on ${this.config.ip}:${this.config.port}`);
 
     this.webSocketServer.on('connection', (ws: WebSocket) => {
       ws.on('error', (err: Error) => {
@@ -88,9 +85,7 @@ export class Server {
     });
 
     this.webSocketServer.on('close', () => {
-      Logger.info(
-        `WebSocket Server closing on ${this.config.ip}:${this.config.port}`
-      );
+      Logger.info(`WebSocket Server closing on ${this.config.ip}:${this.config.port}`);
     });
   }
 
@@ -125,15 +120,13 @@ export class Server {
     });
   }
 
-  public async shutdown() {
+  public shutdown() {
     // await this.feeder.clear();
     // await this.feeder.shutdown();
-    return new Promise((resolve) => {
-      this.webSocketServer.clients.forEach((ws) => {
-        this.subscribeManager.deleteSockets(ws);
-        ws.terminate();
-      });
-      this.webSocketServer.close(resolve);
+    this.webSocketServer.clients.forEach((ws) => {
+      this.subscribeManager.deleteSockets(ws);
+      ws.terminate();
     });
+    this.webSocketServer.close();
   }
 }

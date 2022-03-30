@@ -96,17 +96,12 @@ class TestFeeder {
   @test
   async testFeedProcess() {
     const spyOderBook = sinon.spy(TestFeeder.orderBook, 'updateMarket');
-    const spySubscribeManager = sinon.spy(
-      TestFeeder.subscribeManager,
-      'getSubscriptions'
-    );
+    const spySubscribeManager = sinon.spy(TestFeeder.subscribeManager, 'getSubscriptions');
 
     await TestFeeder.feeder.process(TestFeeder.testBlock).then((result) => {
       const market = TestFeeder.orderBook.getMarket(TestFeeder.data.contract);
       expect(market).to.be.an('object');
-      expect(market)
-        .to.have.property('contract')
-        .to.eql(TestFeeder.data.contract);
+      expect(market).to.have.property('contract').to.eql(TestFeeder.data.contract);
       expect(market).to.have.property('channel').to.eql('market');
       expect(market).to.have.property('buy').to.be.an('array');
       expect(market).to.have.property('sell').to.be.an('array');

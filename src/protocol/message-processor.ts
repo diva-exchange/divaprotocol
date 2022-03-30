@@ -44,24 +44,12 @@ export class MessageProcessor {
   public async process(message: Message, ws: WebSocket): Promise<void> {
     switch (message.command) {
       case 'delete':
-        this.orderbook.deleteNostro(
-          message.id,
-          message.contract,
-          message.type,
-          message.price,
-          message.amount
-        );
+        this.orderbook.deleteNostro(message.id, message.contract, message.type, message.price, message.amount);
         this.sendSubscriptions(message.contract, 'nostro');
         this.storeNostroOnChain(message.contract);
         break;
       case 'add':
-        this.orderbook.addNostro(
-          message.id,
-          message.contract,
-          message.type,
-          message.price,
-          message.amount
-        );
+        this.orderbook.addNostro(message.id, message.contract, message.type, message.price, message.amount);
         this.sendSubscriptions(message.contract, 'nostro');
         this.storeNostroOnChain(message.contract);
         break;
@@ -80,8 +68,7 @@ export class MessageProcessor {
   }
 
   sendSubscriptions(contract: string, channel: string): void {
-    const sub: Map<WebSocket, iSubscribe> =
-      this.subscribeManager.getSubscriptions();
+    const sub: Map<WebSocket, iSubscribe> = this.subscribeManager.getSubscriptions();
 
     sub.forEach((subscribe, ws) => {
       if (subscribe.market.has(contract) && channel === 'market') {
@@ -96,8 +83,7 @@ export class MessageProcessor {
   }
 
   storeNostroOnChain(contract: string): void {
-    const nameSpace: string =
-      this.config.ns_first_part + this.config.ns_order_book + contract;
+    const nameSpace: string = this.config.ns_first_part + this.config.ns_order_book + contract;
     const opts = {
       method: 'PUT',
       url: this.config.url_api_chain + '/transaction',

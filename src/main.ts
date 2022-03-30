@@ -33,17 +33,19 @@ class Main {
     this.start();
   }
 
-  private async start() {
-    this.config.my_public_key = await this.factory.getPublicKey();
-    const server = await Server.make(this.config);
-    ['SIGINT', 'SIGTERM'].forEach((sig) => {
-      process.once(sig, async () => {
-        await server.shutdown();
-        process.exit(0);
+  private start() {
+    (async () => {
+      this.config.my_public_key = await this.factory.getPublicKey();
+      const server = await Server.make(this.config);
+      ['SIGINT', 'SIGTERM'].forEach((sig) => {
+        process.once(sig, () => {
+          server.shutdown();
+          process.exit(0);
+        });
       });
-    });
 
-    server.initFeed();
+      server.initFeed();
+    })();
   }
 }
 

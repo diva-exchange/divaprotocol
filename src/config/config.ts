@@ -63,21 +63,12 @@ export class Config {
   constructor(c: Configuration) {
     this.path_app =
       c.path_app ||
-      path.join(
-        Object.keys(process).includes('pkg')
-          ? path.dirname(process.execPath)
-          : __dirname,
-        '/../../'
-      );
+      path.join(Object.keys(process).includes('pkg') ? path.dirname(process.execPath) : __dirname, '/../../');
     try {
-      this.VERSION = fs
-        .readFileSync(path.join(__dirname, 'version'))
-        .toString();
+      this.VERSION = fs.readFileSync(path.join(__dirname, 'version')).toString();
     } catch (error) {
       if (!fs.existsSync(path.join(this.path_app, 'package.json'))) {
-        throw new Error(
-          'File not found: ' + path.join(this.path_app, 'package.json')
-        );
+        throw new Error('File not found: ' + path.join(this.path_app, 'package.json'));
       }
       this.VERSION = require(path.join(this.path_app, 'package.json')).version;
     }
@@ -85,10 +76,8 @@ export class Config {
 
     this.ip = c.ip || process.env.IP || DEFAULT_IP;
     this.port = Config.port(c.port || process.env.PORT || DEFAULT_PORT);
-    this.url_block_feed =
-      c.url_block_feed || process.env.URL_BLOCK_FEED || URL_BLOCK_FEED;
-    this.url_api_chain =
-      c.url_api_chain || process.env.URL_API_CHAIN || URL_API_CHAIN;
+    this.url_block_feed = c.url_block_feed || process.env.URL_BLOCK_FEED || URL_BLOCK_FEED;
+    this.url_api_chain = c.url_api_chain || process.env.URL_API_CHAIN || URL_API_CHAIN;
 
     this.path_state = c.path_state || path.join(this.path_app, 'state/');
     if (!fs.existsSync(this.path_state)) {

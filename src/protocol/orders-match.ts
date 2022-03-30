@@ -50,16 +50,9 @@ export class OrdersMatch {
   }
 
   async populateMatchBook(contract: string) {
-    const matchOrders: Map<string, Array<mRecord>> = await this.getMatchOrders(
-      contract
-    );
-    const buyMRecordArray = this.sortMRecords(
-      matchOrders.get('buy') || Array()
-    );
-    const sellMRecordArray = this.sortMRecords(
-      matchOrders.get('sell') || Array(),
-      -1
-    );
+    const matchOrders: Map<string, Array<mRecord>> = await this.getMatchOrders(contract);
+    const buyMRecordArray = this.sortMRecords(matchOrders.get('buy') || Array());
+    const sellMRecordArray = this.sortMRecords(matchOrders.get('sell') || Array(), -1);
 
     while (buyMRecordArray.length != 0 && sellMRecordArray.length != 0) {
       const buyValue: mRecord = buyMRecordArray[0];
@@ -78,9 +71,7 @@ export class OrdersMatch {
           sellValue.pk,
           sellValue.id,
           sellValue.p,
-          new Big(Math.min(ba, sa))
-            .toPrecision(this.config.decimalPrecision)
-            .toString()
+          new Big(Math.min(ba, sa)).toPrecision(this.config.decimalPrecision).toString()
         );
         const remaining: Number = Math.abs(ba - sa);
         if (ba - sa <= 0) {
@@ -99,26 +90,14 @@ export class OrdersMatch {
     }
   }
 
-  private async getMatchOrders(
-    contract: string
-  ): Promise<Map<string, Array<mRecord>>> {
-    const buyInDescOrder: Array<tRecord> = this.decision.marketBuyInDescOrder(
-      this.orderBook.getMarket(contract)
-    );
-    const sellInAscOrder: Array<tRecord> = this.decision.marketSellInAscOrder(
-      this.orderBook.getMarket(contract)
-    );
+  private async getMatchOrders(contract: string): Promise<Map<string, Array<mRecord>>> {
+    const buyInDescOrder: Array<tRecord> = this.decision.marketBuyInDescOrder(this.orderBook.getMarket(contract));
+    const sellInAscOrder: Array<tRecord> = this.decision.marketSellInAscOrder(this.orderBook.getMarket(contract));
     if (buyInDescOrder.length < 1 || sellInAscOrder.length < 1) {
       return new Map<string, Array<mRecord>>();
     }
-    const sellCrossPrice: Number = this.getSellCrossLimit(
-      buyInDescOrder,
-      sellInAscOrder
-    );
-    const buyCrossPrice: Number = this.getBuyCrossLimit(
-      buyInDescOrder,
-      sellInAscOrder
-    );
+    const sellCrossPrice: Number = this.getSellCrossLimit(buyInDescOrder, sellInAscOrder);
+    const buyCrossPrice: Number = this.getBuyCrossLimit(buyInDescOrder, sellInAscOrder);
     const buyMRecordArray = new Array<mRecord>();
     const sellMRecordArray = new Array<mRecord>();
 
@@ -127,12 +106,7 @@ export class OrdersMatch {
       const allData = [...JSON.parse(data)];
       allData.forEach((element) => {
         const keyArray: Array<string> = element.key.toString().split(':', 4);
-        if (
-          element.key.startsWith(
-            this.config.ns_first_part + this.config.ns_order_book
-          ) &&
-          keyArray[2] === contract
-        ) {
+        if (element.key.startsWith(this.config.ns_first_part + this.config.ns_order_book) && keyArray[2] === contract) {
           try {
             const book: tNostro = JSON.parse(element.value);
             if (Validation.make().validateBook(book)) {
@@ -166,15 +140,10 @@ export class OrdersMatch {
         }
       });
     }
-    return new Map<string, Array<mRecord>>()
-      .set('buy', buyMRecordArray)
-      .set('sell', sellMRecordArray);
+    return new Map<string, Array<mRecord>>().set('buy', buyMRecordArray).set('sell', sellMRecordArray);
   }
 
-  getSellCrossLimit(
-    buyInDescOrder: Array<tRecord>,
-    sellInAscOrder: Array<tRecord>
-  ): Number {
+  getSellCrossLimit(buyInDescOrder: Array<tRecord>, sellInAscOrder: Array<tRecord>): Number {
     let sellCrossHigh: Number = 0;
     sellInAscOrder.forEach((value) => {
       if (Big(value.p).toNumber() <= Big(buyInDescOrder[0].p).toNumber()) {
@@ -184,10 +153,7 @@ export class OrdersMatch {
     return sellCrossHigh;
   }
 
-  getBuyCrossLimit(
-    buyInDescOrder: Array<tRecord>,
-    sellInAscOrder: Array<tRecord>
-  ): Number {
+  getBuyCrossLimit(buyInDescOrder: Array<tRecord>, sellInAscOrder: Array<tRecord>): Number {
     let buyCrossLow: Number = 0;
     buyInDescOrder.forEach((value) => {
       if (Big(value.p).toNumber() >= Big(sellInAscOrder[0].p).toNumber()) {
@@ -197,18 +163,13 @@ export class OrdersMatch {
     return buyCrossLow;
   }
 
-  public sortMRecords(
-    mRecordsArray: Array<mRecord>,
-    order: number = 1
-  ): Array<mRecord> {
+  public sortMRecords(mRecordsArray: Array<mRecord>, order: number = 1): Array<mRecord> {
     if (mRecordsArray.length > 0) {
       mRecordsArray.sort((a, b) => {
         if (a.p.padStart(21, '0') == b.p.padStart(21, '0')) {
           return this.stakeRanking(a.pk, b.pk);
         } else {
-          return a.p.padStart(21, '0') > b.p.padStart(21, '0')
-            ? order * -1
-            : order * 1;
+          return a.p.padStart(21, '0') > b.p.padStart(21, '0') ? order * -1 : order * 1;
         }
       });
       return mRecordsArray;
@@ -218,10 +179,7 @@ export class OrdersMatch {
 
   private getState(): Promise<string> {
     const url: string =
-      this.config.url_api_chain +
-      '/state/search/' +
-      this.config.ns_first_part +
-      this.config.ns_order_book;
+      this.config.url_api_chain + '/state/search/' + this.config.ns_first_part + this.config.ns_order_book;
     return new Promise((resolve, reject) => {
       get.concat(url, (error: Error, res: any, data: any) => {
         if (error || res.statusCode !== 200) {
