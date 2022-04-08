@@ -91,8 +91,8 @@ export class OrdersMatch {
   }
 
   private async getMatchOrders(contract: string): Promise<Map<string, Array<mRecord>>> {
-    const buyInDescOrder: Array<tRecord> = this.decision.marketBuyInDescOrder(this.orderBook.getMarket(contract));
-    const sellInAscOrder: Array<tRecord> = this.decision.marketSellInAscOrder(this.orderBook.getMarket(contract));
+    const buyInDescOrder: Array<tRecord> = []; // = this.decision.marketBuyInDescOrder(this.orderBook.getMarket(contract));
+    const sellInAscOrder: Array<tRecord> = []; //  = this.decision.marketSellInAscOrder(this.orderBook.getMarket(contract));
     if (buyInDescOrder.length < 1 || sellInAscOrder.length < 1) {
       return new Map<string, Array<mRecord>>();
     }

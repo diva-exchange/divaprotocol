@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2021 diva.exchange
+ * Copyright (C) 2021-2022 diva.exchange
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -23,17 +23,23 @@ import get from 'simple-get';
 import { Orderbook } from '../book/orderbook';
 import { Message } from './struct';
 import WebSocket from 'ws';
-import { SubscribeManager, iSubscribe } from './subscribe-manager';
+import { SubscriptionManager } from './subscription-manager';
+
+const MESSAGE_DELETE = 'delete';
+const MESSAGE_ADD = 'add';
+const MESSAGE_CONTRACT = 'contract';
+const MESSAGE_SUBSCRIBE = 'subscribe';
+const MESSAGE_UNSUBSCRIBE = 'unsubscribe';
 
 export class MessageProcessor {
   public readonly config: Config;
   private orderbook: Orderbook = {} as Orderbook;
-  private subscribeManager: SubscribeManager = {} as SubscribeManager;
+  private subscriptionManager: SubscriptionManager = {} as SubscriptionManager;
 
   public static async make(config: Config): Promise<MessageProcessor> {
     const p = new MessageProcessor(config);
     p.orderbook = await Orderbook.make(config);
-    p.subscribeManager = await SubscribeManager.make();
+    p.subscriptionManager = await SubscriptionManager.make();
     return p;
   }
 
@@ -43,43 +49,28 @@ export class MessageProcessor {
 
   public async process(message: Message, ws: WebSocket): Promise<void> {
     switch (message.command) {
-      case 'delete':
-        this.orderbook.deleteNostro(message.id, message.contract, message.type, message.price, message.amount);
-        this.sendSubscriptions(message.contract, 'nostro');
+      case MESSAGE_DELETE:
+        this.orderbook.delete(message.id, message.contract, message.type);
         this.storeNostroOnChain(message.contract);
         break;
-      case 'add':
-        this.orderbook.addNostro(message.id, message.contract, message.type, message.price, message.amount);
-        this.sendSubscriptions(message.contract, 'nostro');
+      case MESSAGE_ADD:
+        this.orderbook.add(message.id, message.contract, message.type, message.price, message.amount);
         this.storeNostroOnChain(message.contract);
         break;
-      case 'contract':
+      case MESSAGE_CONTRACT:
         break;
-      case 'subscribe':
-        this.subscribeManager.setSockets(ws, message);
-        this.sendSubscriptions(message.contract, message.channel);
+      case MESSAGE_SUBSCRIBE:
+        this.subscriptionManager.subscribe(ws, message);
+        message.channel === 'nostro'
+          ? this.subscriptionManager.broadcast(message.contract, 'nostro', this.orderbook.getNostro(message.contract))
+          : this.subscriptionManager.broadcast(message.contract, 'market', this.orderbook.getMarket(message.contract));
         break;
-      case 'unsubscribe':
-        this.subscribeManager.setSockets(ws, message);
+      case MESSAGE_UNSUBSCRIBE:
+        this.subscriptionManager.unsubscribe(ws, message);
         break;
       default:
         throw Error('MessageProcessor.process(): Invalid Command');
     }
-  }
-
-  sendSubscriptions(contract: string, channel: string): void {
-    const sub: Map<WebSocket, iSubscribe> = this.subscribeManager.getSubscriptions();
-
-    sub.forEach((subscribe, ws) => {
-      if (subscribe.market.has(contract) && channel === 'market') {
-        const marketBook = this.orderbook.getMarket(contract);
-        ws.send(JSON.stringify(marketBook));
-      }
-      if (subscribe.nostro.has(contract) && channel === 'nostro') {
-        const nostroBook = this.orderbook.getNostro(contract);
-        ws.send(JSON.stringify(nostroBook));
-      }
-    });
   }
 
   storeNostroOnChain(contract: string): void {

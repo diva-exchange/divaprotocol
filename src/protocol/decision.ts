@@ -75,7 +75,8 @@ export class Decision {
   }
 
   private async isMatch(contract: string): Promise<boolean> {
-    let match: boolean = false;
+    const match: boolean = false;
+    /*
     if (this.orderBook.getMarket(contract).buy.length < 1 || this.orderBook.getMarket(contract).sell.length < 1) {
       return match;
     }
@@ -85,6 +86,7 @@ export class Decision {
     ) {
       match = true;
     }
+*/
     return match;
   }
 

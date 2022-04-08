@@ -25,7 +25,7 @@ import sinonChai from 'sinon-chai';
 import { Config } from '../../src/config/config';
 import { BlockProcessor } from '../../src/protocol/block-processor';
 import { BlockStruct } from '../../src/protocol/struct';
-import { SubscribeManager } from '../../src/protocol/subscribe-manager';
+import { SubscriptionManager } from '../../src/protocol/subscription-manager';
 import { Orderbook } from '../../src/book/orderbook';
 import sinon from 'sinon';
 
@@ -40,7 +40,7 @@ class TestFeeder {
   static config: Config;
   static feeder: BlockProcessor;
   static orderBook: Orderbook;
-  static subscribeManager: SubscribeManager;
+  static subscribeManager: SubscriptionManager;
   private static data = {
     contract: 'BTC_XMR',
     channel: 'market',
@@ -84,7 +84,7 @@ class TestFeeder {
     });
     this.feeder = await BlockProcessor.make(this.config);
     this.orderBook = await Orderbook.make(this.config);
-    this.subscribeManager = await SubscribeManager.make();
+    this.subscribeManager = await SubscriptionManager.make();
 
     return new Promise((resolve) => {
       setTimeout(resolve, 5000);

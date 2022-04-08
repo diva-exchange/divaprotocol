@@ -25,7 +25,7 @@ import { MessageProcessor } from '../protocol/message-processor';
 import { Validation } from './validation';
 import { BlockStruct, Message } from '../protocol/struct';
 import { Orderbook } from '../book/orderbook';
-import { SubscribeManager } from '../protocol/subscribe-manager';
+import { SubscriptionManager } from '../protocol/subscription-manager';
 
 export class Server {
   private readonly config: Config;
@@ -34,15 +34,15 @@ export class Server {
   private readonly validation: Validation;
   private readonly webSocketServer: WebSocketServer;
   private webSocketFeed: WebSocket | undefined;
-  private subscribeManager: SubscribeManager = {} as SubscribeManager;
-  private orderBook: Orderbook = {} as Orderbook;
+  private subscribeManager: SubscriptionManager = {} as SubscriptionManager;
+  private orderbook: Orderbook = {} as Orderbook;
 
   public static async make(config: Config): Promise<Server> {
     const s = new Server(config);
+    s.orderbook = await Orderbook.make(config);
     s.processor = await MessageProcessor.make(config);
     s.feeder = await BlockProcessor.make(config);
-    s.subscribeManager = await SubscribeManager.make();
-    s.orderBook = await Orderbook.make(config);
+    s.subscribeManager = await SubscriptionManager.make();
     return s;
   }
 
@@ -110,7 +110,7 @@ export class Server {
       try {
         block = JSON.parse(message.toString());
         if (block.tx.length > 0) {
-          await this.feeder.process(block);
+          this.feeder.process(block);
         }
       } catch (error: any) {
         //@FIXME logging
@@ -124,7 +124,7 @@ export class Server {
     // await this.feeder.clear();
     // await this.feeder.shutdown();
     this.webSocketServer.clients.forEach((ws) => {
-      this.subscribeManager.deleteSockets(ws);
+      this.subscribeManager.deleteSubscription(ws);
       ws.terminate();
     });
     this.webSocketServer.close();

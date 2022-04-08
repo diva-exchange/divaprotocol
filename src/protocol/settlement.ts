@@ -70,7 +70,7 @@ export class Settlement {
 
   settlementHappenedProcess(contract: string) {
     if (this.deleteMyMatchesFromNostro(contract)) {
-      this.messageProcessor.sendSubscriptions(contract, 'nostro');
+      //      this.messageProcessor.sendSubscriptions(contract, 'nostro');
       this.messageProcessor.storeNostroOnChain(contract);
     }
     this.match.getMatchMap().set(contract, new Array<tMatch>());
@@ -123,7 +123,7 @@ export class Settlement {
   }
 
   private deleteOrder(contract: string, type: 'buy' | 'sell', id: number, p: string, a: string) {
-    this.orderBook.deleteNostro(id, contract, type, p, a);
+    // this.orderBook.deleteNostro(id, contract, type, p, a);
   }
 
   private getInstructions(data: Array<tMatch>, contract: string): Array<iRecord> {

@@ -4,21 +4,26 @@
 
   "type": "object",
   "properties": {
-    "channel": {
-      "enum": ["market", "nostro"]
-    },
     "contract": {
       "type": "string",
       "pattern": "^[A-Z0-9]{2,6}_[A-Z0-9]{2,6}$"
     },
     "buy": {
-      "$ref": "record-buy-sell.json"
+      "type": "array",
+      "items": {
+        "$ref": "record-buy-sell.json"
+      },
+      "uniqueItems": true
     },
     "sell": {
-      "$ref": "record-buy-sell.json"
+      "type": "array",
+      "items": {
+        "$ref": "record-buy-sell.json"
+      },
+      "uniqueItems": true
     }
   },
-  "additionalProperties": false,
+  "additionalProperties": true,
   "required": [
     "contract",
     "buy",

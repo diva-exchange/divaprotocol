@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2021 diva.exchange
+ * Copyright (C) 2021-2022 diva.exchange
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -20,29 +20,26 @@
 import { Config } from '../config/config';
 import { BlockStruct } from './struct';
 import { Orderbook } from '../book/orderbook';
-import WebSocket from 'ws';
-import { SubscribeManager, iSubscribe } from './subscribe-manager';
-import { tNostro } from '../book/nostro';
+import { SubscriptionManager } from './subscription-manager';
 import { Decision } from './decision';
 import { Settlement } from './settlement';
-import { MessageProcessor } from './message-processor';
 import get from 'simple-get';
 
 export class BlockProcessor {
   private readonly config: Config;
-  private orderBook: Orderbook = {} as Orderbook;
-  private subscribeManager: SubscribeManager = {} as SubscribeManager;
+  private orderbook: Orderbook = {} as Orderbook;
+  private subscriptionManager: SubscriptionManager = {} as SubscriptionManager;
   private decision: Decision = {} as Decision;
   private settlement: Settlement = {} as Settlement;
-  private messageProcessor: MessageProcessor = {} as MessageProcessor;
 
   static async make(config: Config): Promise<BlockProcessor> {
     const f = new BlockProcessor(config);
-    f.orderBook = await Orderbook.make(config);
-    f.subscribeManager = await SubscribeManager.make();
+    f.orderbook = await Orderbook.make(config);
+    f.subscriptionManager = await SubscriptionManager.make();
+    /*
     f.decision = await Decision.make(config);
     f.settlement = await Settlement.make(config);
-    f.messageProcessor = await MessageProcessor.make(config);
+*/
     return f;
   }
 
@@ -50,31 +47,14 @@ export class BlockProcessor {
     this.config = config;
   }
 
-  public async process(block: BlockStruct): Promise<void> {
+  public process(block: BlockStruct) {
+    const arrayOrderBookUpdates = [];
     for (const t of block.tx) {
       for (const c of t.commands) {
-        //@FIXME literals -> constants or config
         if (c.command === 'data' && c.ns.startsWith(this.config.ns_first_part + this.config.ns_order_book)) {
-          const decodedJsonData: tNostro = JSON.parse(c.d);
-
-          const contract: string = decodedJsonData.contract;
-
-          // fill marketBook
-          await this.orderBook.updateMarket(contract);
-
-          // check for decision
-          await this.decision.process(contract, block.height);
-
-          // subscription
-          const sub: Map<WebSocket, iSubscribe> = this.subscribeManager.getSubscriptions();
-
-          sub.forEach((subscribe, ws) => {
-            if (subscribe.market.has(contract)) {
-              const marketBook = this.orderBook.getMarket(contract);
-              ws.send(JSON.stringify(marketBook));
-            }
-          });
+          arrayOrderBookUpdates.push(c.ns.split(':')[2] || '');
         }
+        /*
         if (
           c.command === this.config.decision &&
           c.ns.startsWith(this.config.ns_first_part + this.config.ns_settlement)
@@ -84,10 +64,19 @@ export class BlockProcessor {
             this.settlement.settlementHappenedProcess(keyArray[2]);
           }
         }
+*/
       }
+
       // check for settlement
-      await this.settlement.process(block.height);
+      //await this.settlement.process(block.height);
     }
+
+    arrayOrderBookUpdates.forEach(async (contract) => {
+      if (contract && (await this.orderbook.fetchOrderBook(contract))) {
+        this.subscriptionManager.broadcast(contract, 'nostro', this.orderbook.getNostro(contract));
+        this.subscriptionManager.broadcast(contract, 'market', this.orderbook.getMarket(contract));
+      }
+    });
   }
 
   private settlementTaken(ns: string): Promise<boolean> {
