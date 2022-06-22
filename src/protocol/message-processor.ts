@@ -18,13 +18,13 @@
  */
 
 import { Config } from '../config/config';
-import { Logger } from '../util/logger';
 import get from 'simple-get';
 import { Orderbook } from '../book/orderbook';
 import { Message } from './struct';
 import WebSocket from 'ws';
 import { SubscriptionManager } from './subscription-manager';
 
+const MESSAGE_DELETE_ALL = 'delete-all';
 const MESSAGE_DELETE = 'delete';
 const MESSAGE_ADD = 'add';
 const MESSAGE_CONTRACT = 'contract';
@@ -49,13 +49,20 @@ export class MessageProcessor {
 
   public async process(message: Message, ws: WebSocket): Promise<void> {
     switch (message.command) {
+      case MESSAGE_DELETE_ALL:
+        this.orderbook.deleteAll(message.contract);
+        await this.storeNostroOnChain(message.contract);
+        this.subscriptionManager.broadcast(message.contract, 'nostro', this.orderbook.getNostro(message.contract));
+        break;
       case MESSAGE_DELETE:
         this.orderbook.delete(message.id, message.contract, message.type);
-        this.storeNostroOnChain(message.contract);
+        await this.storeNostroOnChain(message.contract);
+        this.subscriptionManager.broadcast(message.contract, 'nostro', this.orderbook.getNostro(message.contract));
         break;
       case MESSAGE_ADD:
         this.orderbook.add(message.id, message.contract, message.type, message.price, message.amount);
-        this.storeNostroOnChain(message.contract);
+        await this.storeNostroOnChain(message.contract);
+        this.subscriptionManager.broadcast(message.contract, 'nostro', this.orderbook.getNostro(message.contract));
         break;
       case MESSAGE_CONTRACT:
         break;
@@ -73,26 +80,25 @@ export class MessageProcessor {
     }
   }
 
-  storeNostroOnChain(contract: string): void {
-    const nameSpace: string = this.config.ns_first_part + this.config.ns_order_book + contract;
-    const opts = {
-      method: 'PUT',
-      url: this.config.url_api_chain + '/transaction',
-      body: [
-        {
-          seq: 1,
-          command: 'data',
-          ns: nameSpace,
-          d: JSON.stringify(this.orderbook.getNostro(contract)),
-        },
-      ],
-      json: true,
-    };
-    get.concat(opts, (error: Error) => {
-      if (error) {
-        //@FIXME logging and error handling
-        Logger.trace(error);
-      }
+  storeNostroOnChain(contract: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const nameSpace: string = this.config.ns_first_part + this.config.ns_order_book + contract;
+      const opts = {
+        method: 'PUT',
+        url: this.config.url_api_chain + '/transaction',
+        body: [
+          {
+            seq: 1,
+            command: 'data',
+            ns: nameSpace,
+            d: JSON.stringify(this.orderbook.getNostro(contract)),
+          },
+        ],
+        json: true,
+      };
+      get.concat(opts, (error: Error) => {
+        error ? reject() : resolve();
+      });
     });
   }
 }

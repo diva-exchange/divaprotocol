@@ -59,7 +59,7 @@ export class SubscriptionManager {
   public broadcast(contract: string, channel: string, dta: Book): void {
     this.mapSub.forEach((map, ws) => {
       if ((map.get(channel) || new Set<string>()).has(contract)) {
-        ws.send(JSON.stringify({contract: contract, channel: channel, buy: dta.buy || [], sell: dta.sell || []}));
+        ws.send(JSON.stringify({ contract: contract, channel: channel, buy: dta.buy || [], sell: dta.sell || [] }));
       }
     });
   }

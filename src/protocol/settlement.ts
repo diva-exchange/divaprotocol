@@ -68,14 +68,6 @@ export class Settlement {
     });
   }
 
-  settlementHappenedProcess(contract: string) {
-    if (this.deleteMyMatchesFromNostro(contract)) {
-      //      this.messageProcessor.sendSubscriptions(contract, 'nostro');
-      this.messageProcessor.storeNostroOnChain(contract);
-    }
-    this.match.getMatchMap().set(contract, new Array<tMatch>());
-  }
-
   private sendSettlementToChain(contract: string, blockheight: number): void {
     const matchData: Array<tMatch> = this.match.getMatchMap().get(contract) || Array<tMatch>();
     const instructions = this.getInstructions(matchData, contract);

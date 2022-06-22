@@ -24,6 +24,8 @@ import { SubscriptionManager } from './subscription-manager';
 import { Decision } from './decision';
 import { Settlement } from './settlement';
 import get from 'simple-get';
+import Big from 'big.js';
+import { Logger } from '../util/logger';
 
 export class BlockProcessor {
   private readonly config: Config;
@@ -73,8 +75,39 @@ export class BlockProcessor {
 
     arrayOrderBookUpdates.forEach(async (contract) => {
       if (contract && (await this.orderbook.fetchOrderBook(contract))) {
-        this.subscriptionManager.broadcast(contract, 'nostro', this.orderbook.getNostro(contract));
-        this.subscriptionManager.broadcast(contract, 'market', this.orderbook.getMarket(contract));
+        const m = this.orderbook.getMarket(contract);
+        this.subscriptionManager.broadcast(contract, 'market', m);
+
+        // match
+        if (this.orderbook.hasMatch(contract)) {
+          Logger.trace(`Match: ${contract} ${m.buy[0].p} >= ${m.sell[0].p}; Auction height: ${block.height + 10}`);
+          //@FIXME height + 10
+          this.auction(contract, block.height + 10);
+        }
+      }
+    });
+  }
+
+  private auction(contract: string, blockHeight: number): void {
+    const nameSpace: string = this.config.ns_first_part + this.config.ns_auction + contract;
+    const opts = {
+      method: 'PUT',
+      url: this.config.url_api_chain + '/transaction',
+      body: [
+        {
+          seq: 1,
+          command: this.config.decision,
+          ns: nameSpace,
+          h: blockHeight,
+          d: '',
+        },
+      ],
+      json: true,
+    };
+    get.concat(opts, (error: Error) => {
+      if (error) {
+        //@FIXME logging and error handling
+        Logger.trace(error);
       }
     });
   }

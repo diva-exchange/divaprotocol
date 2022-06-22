@@ -59,6 +59,8 @@ export class Validation {
         case 'add':
         case 'delete':
           return this.validateOrder(m);
+        case 'delete-all':
+          return true;
         case 'subscribe':
           return this.validateSubscribe(m);
         case 'unsubscribe':

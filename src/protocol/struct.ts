@@ -48,7 +48,7 @@ interface iMessage {
 }
 
 export interface MessageOrder extends iMessage {
-  id: number;
+  id: string;
   type: 'buy' | 'sell';
   price: number;
   amount: number;

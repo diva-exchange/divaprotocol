@@ -43,8 +43,6 @@ class Main {
           process.exit(0);
         });
       });
-
-      server.initFeed();
     })();
   }
 }

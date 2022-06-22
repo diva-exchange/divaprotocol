@@ -43,6 +43,9 @@ export class Server {
     s.processor = await MessageProcessor.make(config);
     s.feeder = await BlockProcessor.make(config);
     s.subscribeManager = await SubscriptionManager.make();
+
+    s.initFeed();
+
     return s;
   }
 
@@ -89,7 +92,7 @@ export class Server {
     });
   }
 
-  public initFeed() {
+  private initFeed() {
     this.webSocketFeed = new WebSocket(this.config.url_block_feed, {
       followRedirects: false,
     });
@@ -113,8 +116,6 @@ export class Server {
           this.feeder.process(block);
         }
       } catch (error: any) {
-        //@FIXME logging
-        Logger.trace(error);
         return;
       }
     });

@@ -32,7 +32,6 @@ export class Factory {
     return new Promise((resolve, reject) => {
       get.concat(this.url_api_chain + '/about', (error: Error, res: any, data: any) => {
         if (error) {
-          Logger.trace(error);
           reject(error);
           return;
         }
