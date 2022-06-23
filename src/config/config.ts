@@ -35,9 +35,8 @@ export type Configuration = {
 
 const DEFAULT_IP = '127.0.0.1';
 const DEFAULT_PORT = 19720;
-const URL_BLOCK_FEED = 'ws://172.19.72.21:17469';
-
-const URL_API_CHAIN = 'http://172.19.72.21:17468';
+const DEFAULT_URL_BLOCK_FEED = 'ws://172.19.72.21:17469';
+const DEFAULT_URL_API_CHAIN = 'http://172.19.72.21:17468';
 
 export class Config {
   public readonly VERSION: string;
@@ -76,8 +75,8 @@ export class Config {
 
     this.ip = c.ip || process.env.IP || DEFAULT_IP;
     this.port = Config.port(c.port || process.env.PORT || DEFAULT_PORT);
-    this.url_block_feed = c.url_block_feed || process.env.URL_BLOCK_FEED || URL_BLOCK_FEED;
-    this.url_api_chain = c.url_api_chain || process.env.URL_API_CHAIN || URL_API_CHAIN;
+    this.url_block_feed = c.url_block_feed || process.env.URL_BLOCK_FEED || DEFAULT_URL_BLOCK_FEED;
+    this.url_api_chain = c.url_api_chain || process.env.URL_API_CHAIN || DEFAULT_URL_API_CHAIN;
 
     this.path_state = c.path_state || path.join(this.path_app, 'state/');
     if (!fs.existsSync(this.path_state)) {

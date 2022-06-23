@@ -88,10 +88,10 @@ export class Orderbook {
   }
 
   public add(id: string, contract: string, type: string, price: number, amount: number) {
-    id = id.trim();
+    id = id ? id.trim() : '';
     id = id || nanoid();
     const b = this.mapBook.get(contract);
-    if (!id || !b) {
+    if (!b) {
       throw new Error('Orderbook.add(): invalid id or contract');
     }
     const book = b.get(this.config.my_public_key) || { buy: [], sell: [] };
@@ -127,7 +127,7 @@ export class Orderbook {
   }
 
   public delete(id: string, contract: string, type: string) {
-    id = id.trim();
+    id = id ? id.trim() : '';
     const b = this.mapBook.get(contract);
     if (!id || !b) {
       throw new Error('Orderbook.delete(): invalid id or contract');
