@@ -28,7 +28,7 @@
     },
     "id": {
       "type": "string",
-      "maxLength": 16
+      "maxLength": 32
     }
   },
   "additionalProperties": false,
