@@ -56,7 +56,7 @@ export class BlockProcessor {
         if (c.command === 'data' && c.ns.startsWith(this.config.ns_first_part + this.config.ns_order_book)) {
           arrayOrderBookUpdates.push(c.ns.split(':')[2] || '');
         }
-        /*
+/*
         if (
           c.command === this.config.decision &&
           c.ns.startsWith(this.config.ns_first_part + this.config.ns_settlement)

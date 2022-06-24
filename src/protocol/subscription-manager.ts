@@ -19,7 +19,6 @@
 
 import WebSocket from 'ws';
 import { Message } from './struct';
-import { Book } from '../book/orderbook';
 
 export class SubscriptionManager {
   private readonly mapSub: Map<WebSocket, Map<string, Set<string>>>;
@@ -56,7 +55,7 @@ export class SubscriptionManager {
     this.mapSub.delete(websocket);
   }
 
-  public broadcast(contract: string, channel: string, dta: Book): void {
+  public broadcast(contract: string, channel: string, dta: any): void {
     this.mapSub.forEach((map, ws) => {
       if ((map.get(channel) || new Set<string>()).has(contract)) {
         ws.send(JSON.stringify({ contract: contract, channel: channel, buy: dta.buy || [], sell: dta.sell || [] }));

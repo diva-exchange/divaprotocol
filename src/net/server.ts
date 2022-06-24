@@ -23,7 +23,7 @@ import WebSocket, { Server as WebSocketServer } from 'ws';
 import { BlockProcessor } from '../protocol/block-processor';
 import { MessageProcessor } from '../protocol/message-processor';
 import { Validation } from './validation';
-import { BlockStruct, Message } from '../protocol/struct';
+import { Message } from '../protocol/struct';
 import { Orderbook } from '../book/orderbook';
 import { SubscriptionManager } from '../protocol/subscription-manager';
 
@@ -109,14 +109,10 @@ export class Server {
     });
 
     this.webSocketFeed.on('message', async (message: Buffer) => {
-      let block: BlockStruct;
       try {
-        block = JSON.parse(message.toString());
-        if (block.tx.length > 0) {
-          this.feeder.process(block);
-        }
+        this.feeder.process(JSON.parse(message.toString()));
       } catch (error: any) {
-        return;
+        Logger.warn(error);
       }
     });
   }
