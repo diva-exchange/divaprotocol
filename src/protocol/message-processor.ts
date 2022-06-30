@@ -95,6 +95,7 @@ export class MessageProcessor {
           },
         ],
         json: true,
+        followRedirects: false,
       };
       get.concat(opts, (error: Error) => {
         error ? reject() : resolve();

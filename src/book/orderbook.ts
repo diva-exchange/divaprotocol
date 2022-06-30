@@ -98,6 +98,10 @@ export class Orderbook {
     return this.mapMatch.has(contract);
   }
 
+  public getMatch(contract: string): Book {
+    return this.mapMatch.get(contract) || {} as Book;
+  }
+
   public add(id: string, contract: string, type: string, price: number, amount: number) {
     id = id ? id.trim() : '';
     id = id || nanoid();
@@ -164,7 +168,7 @@ export class Orderbook {
    */
   public fetchOrderBook(contract: string): Promise<Boolean> {
     const url: string = this.config.url_api_chain + '/state/search/DivaExchange:OrderBook:' + contract;
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       get.concat(url, (error: Error, res: any, data: any) => {
         const hash = this.mapHash.get(contract) || '';
         const md5 = crypto.createHash('md5').update(data).digest('base64');
@@ -176,44 +180,70 @@ export class Orderbook {
         }
         this.mapHash.set(contract, md5);
 
+        let mapBook: Map<string, Book> = new Map();
         try {
-          const mapBook = this.processOrderBook(JSON.parse(data));
-          this.mapBook.set(contract, mapBook);
-
-          const buy: { [price: string]: MarketRecord } = {};
-          const sell: { [price: string]: MarketRecord } = {};
-
-          // update market
-          mapBook.forEach((v: Book) => {
-            v.buy.forEach((_b) => {
-              buy[_b.p] = buy[_b.p] || { t: 0, p: _b.p, a: '0' };
-              buy[_b.p].a = Big(buy[_b.p].a).plus(_b.a).toFixed(this.config.decimalPrecision);
-              buy[_b.p].t = buy[_b.p].t > _b.t ? buy[_b.p].t : _b.t;
-            });
-
-            v.sell.forEach((_b) => {
-              sell[_b.p] = sell[_b.p] || { t: 0, p: _b.p, a: '0' };
-              sell[_b.p].a = Big(sell[_b.p].a).plus(_b.a).toFixed(this.config.decimalPrecision);
-              sell[_b.p].t = sell[_b.p].t > _b.t ? sell[_b.p].t : _b.t;
-            });
-          });
-
-          const m: Market = {
-            buy: Object.values(buy).sort((a: MarketRecord, b: MarketRecord) => (Big(a.p).lt(b.p) ? 1 : -1)),
-            sell: Object.values(sell).sort((a: MarketRecord, b: MarketRecord) => (Big(a.p).gt(b.p) ? 1 : -1)),
-          };
-          this.mapMarket.set(contract, m);
-          // match
-          if (m.buy[0] && m.sell[0] && Big(m.buy[0].p).gte(m.sell[0].p)) {
-            //@FIXME calc matches
-            this.mapMatch.set(contract, { buy: [], sell: [] });
-          } else {
-            this.mapMatch.delete(contract);
-          }
+          mapBook = this.processOrderBook(JSON.parse(data));
         } catch (error: any) {
+          Logger.warn(`JSON parsing failed fetchOrderBook(${contract})`);
           Logger.warn(error);
-          reject(error);
+          resolve(false);
         }
+
+        this.mapBook.set(contract, mapBook);
+
+        const buy: { [price: string]: MarketRecord } = {};
+        const sell: { [price: string]: MarketRecord } = {};
+
+        // update market
+        let aMatchBuy: Array<BookRecord> = [];
+        let aMatchSell: Array<BookRecord> = [];
+        mapBook.forEach((v: Book) => {
+          v.buy.forEach((_b) => {
+            buy[_b.p] = buy[_b.p] || { t: 0, p: _b.p, a: '0' };
+            buy[_b.p].a = Big(buy[_b.p].a).plus(_b.a).toFixed(this.config.decimalPrecision);
+            buy[_b.p].t = buy[_b.p].t > _b.t ? buy[_b.p].t : _b.t;
+          });
+          aMatchBuy = aMatchBuy.concat(v.buy);
+
+          v.sell.forEach((_b) => {
+            sell[_b.p] = sell[_b.p] || { t: 0, p: _b.p, a: '0' };
+            sell[_b.p].a = Big(sell[_b.p].a).plus(_b.a).toFixed(this.config.decimalPrecision);
+            sell[_b.p].t = sell[_b.p].t > _b.t ? sell[_b.p].t : _b.t;
+          });
+          aMatchSell = aMatchSell.concat(v.sell);
+        });
+
+        // sorting by price, then by md5 hash - this is a protocol decision and not affected by
+        // preimage / collision attacks on md5
+        aMatchBuy.sort((a: BookRecord, b: BookRecord) =>
+          Big(a.p).lt(b.p) ? 1 : Big(a.p).eq(b.p) && a.h >= b.h ? 1 : -1
+        );
+        aMatchSell.sort((a: BookRecord, b: BookRecord) =>
+          Big(a.p).gt(b.p) ? 1 : Big(a.p).eq(b.p) && a.h >= b.h ? 1 : -1
+        );
+
+        const m: Market = {
+          buy: Object.values(buy).sort((a: MarketRecord, b: MarketRecord) => (Big(a.p).lt(b.p) ? 1 : -1)),
+          sell: Object.values(sell).sort((a: MarketRecord, b: MarketRecord) => (Big(a.p).gt(b.p) ? 1 : -1)),
+        };
+        this.mapMarket.set(contract, m);
+
+        // matching
+        this.mapMatch.delete(contract);
+        const match: Book = { buy: [], sell: [] };
+        do {
+          if (aMatchBuy[0] && aMatchSell[0] && Big(aMatchBuy[0].p).gte(aMatchSell[0].p)) {
+            match.buy.push(aMatchBuy.shift() as BookRecord);
+            match.sell.push(aMatchSell.shift() as BookRecord);
+          } else if (aMatchBuy[0] && match.sell[0] && Big(aMatchBuy[0].p).gte(match.sell[0].p)) {
+            match.buy.push(aMatchBuy.shift() as BookRecord);
+          } else if (aMatchSell[0] && match.buy[0] && Big(match.buy[0].p).gte(aMatchSell[0].p)) {
+            match.sell.push(aMatchSell.shift() as BookRecord);
+          } else {
+            match.buy.length && match.sell.length && this.mapMatch.set(contract, match);
+            break;
+          }
+        } while (true);
 
         resolve(true);
       });

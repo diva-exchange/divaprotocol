@@ -82,33 +82,33 @@ export class BlockProcessor {
         if (this.orderbook.hasMatch(contract)) {
           Logger.trace(`Match: ${contract} ${m.buy[0].p} >= ${m.sell[0].p}; Auction height: ${block.height + 10}`);
           //@FIXME height + 10
-          this.auction(contract, block.height + 10);
+          await this.auction(contract, block.height + 10);
         }
       }
     });
   }
 
-  private auction(contract: string, blockHeight: number): void {
-    const nameSpace: string = this.config.ns_first_part + this.config.ns_auction + contract;
-    const opts = {
-      method: 'PUT',
-      url: this.config.url_api_chain + '/transaction',
-      body: [
-        {
-          seq: 1,
-          command: this.config.decision,
-          ns: nameSpace,
-          h: blockHeight,
-          d: '',
-        },
-      ],
-      json: true,
-    };
-    get.concat(opts, (error: Error) => {
-      if (error) {
-        //@FIXME logging and error handling
-        Logger.trace(error);
-      }
+  private auction(contract: string, blockHeight: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const nameSpace: string = this.config.ns_first_part + this.config.ns_auction + contract;
+      const opts = {
+        method: 'PUT',
+        url: this.config.url_api_chain + '/transaction',
+        body: [
+          {
+            seq: 1,
+            command: this.config.decision,
+            ns: nameSpace,
+            h: blockHeight,
+            d: ''
+          },
+        ],
+        json: true,
+        followRedirects: false,
+      };
+      get.concat(opts, (error: Error, res: any) => {
+        (res.statusCode === 200 && error) ? reject(error) : resolve();
+      });
     });
   }
 
